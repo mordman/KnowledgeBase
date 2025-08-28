@@ -516,4 +516,5 @@ https://habr.com/ru/articles/917316/
 |1|https://solvit.space/podborki_voprosov/27|Вопросы с собесов|TechnicalInterviews|
 |1|https://hr-portal.ru/story/senior-voprosy-i-otvety-na-intervyu-net-developer|Вопросы с собесов|TechnicalInterviews|
 |1|Google search:Вопросы на собеседовании для Senior (C# / .NET Developer)/(PL/SQL Developer)/(PG/SQL Developer)|Вопросы с собесов|TechnicalInterviews|TechnicalInterviews|
+|1|https://itvdn.com/ru/blog/article/150-questions-net-developer|Вопросы с собесов|TechnicalInterviews|TechnicalInterviews|
 /
