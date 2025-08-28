@@ -2,6 +2,7 @@
 
 ## Цель
 - Составить документацию по дорожной карте (Русский+Английский)
+- По каждой теме составить краткую документацию и несколько вопросов с собесов
 - Выучить разговорный английский
 
 - Развернуть LLM+обучить
@@ -101,6 +102,11 @@ EventSourcing
 - ElasticSearch
 - ClickHouse
 - ETL (Extract, Transform, Load)
+- Lang
+    - PG/SQL
+    - T-SQL
+    - PL/SQL
+        
 
 ### Components
 - Devexpress
