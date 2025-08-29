@@ -11,12 +11,6 @@
     - Довести до конца
     - 
 
-## Links
-[RoadMaps](https://roadmap.sh/)\
-[ASP.Net](https://roadmap.sh/aspnet-core)\
-[Backend](https://roadmap.sh/backend)
-
-
 # Principles
 - Solid
 - KISS

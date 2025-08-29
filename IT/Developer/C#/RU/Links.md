@@ -1,3 +1,16 @@
+## RoadMaps
+[RoadMaps](https://roadmap.sh/)\
+[ASP.Net](https://roadmap.sh/aspnet-core)\
+[Backend](https://roadmap.sh/backend)
+
+## Preparing
+LeetCode
+HakerHank
+CodeWars
+
+## Трахатоны
+
+
 ## Interview
 https://www.interviewbit.com/technical-interview-questions/#programming-language-tools-technologies  
 https://itvdn.com/ru/blog/article/150-questions-net-developer  
