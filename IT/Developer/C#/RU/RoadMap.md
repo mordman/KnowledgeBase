@@ -85,6 +85,10 @@ EventSourcing
 - Singleton/Scope/ (вложенные)
 
 ### Tests
+- Theory
+    - Ручное
+    - Авто
+    - Юнит
 - xUnit
 - NUnut
 - Fixture
@@ -133,6 +137,10 @@ EventSourcing
     - Indexes
     - Explaration Plan
 - Selects, Window func
+
+## Linters
+- SonarCube
+- [SQLFluff](https://github.com/sqlfluff/sqlfluff)
 
 ## Live Coding
 - Code rewiev

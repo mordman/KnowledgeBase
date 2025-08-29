@@ -1,13 +1,21 @@
+## Interview
+https://www.interviewbit.com/technical-interview-questions/#programming-language-tools-technologies  
+https://itvdn.com/ru/blog/article/150-questions-net-developer  
+https://bool.dev/blog/detail/voprosy-na-sobesedovanii-dlya-senior-net-developer  
+
 ## AI
 https://habr.com/ru/articles/936954/
 
 ## Git
 https://github.com/hotheadhacker/seedbox-lite
 
-## Habr
-### C#
-### DataBase
-### Python
+## C#
+## DataBase
+## Python
+
+## QA
+https://testengineer.ru/vidy-tipy-testirovaniya/
+https://habr.com/ru/articles/587620/
 
 
 
