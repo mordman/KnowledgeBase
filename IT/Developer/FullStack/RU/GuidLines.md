@@ -17,5 +17,8 @@ Examples:\
 `Feat`, `Fix` - [Fix][Feat]: Fix [.description.] bug and add [.description.] features
 
 ## CodeStyle
-[C#](/RU/Docs/CodeStyle/C#.md)
-### SQL
+- [C#](/RU/Docs/CodeStyle/C#.md)
+- [Python](/RU/Docs/CodeStyle/Python.md)
+- [JS](/RU/Docs/CodeStyle/JavaScript.md)
+- [TS](/RU/Docs/CodeStyle/TypeScript.md)
+- [SQL](/RU/Docs/CodeStyle/SQL.md)
