@@ -10,6 +10,13 @@ CodeWars
 
 ## Трахатоны
 
+## Machine Translate
+https://github.com/Tencent-Hunyuan/Hunyuan-MT
+
+## Spech Recognition
+
+## Text To Spech
+https://help.elevenlabs.io/hc/en-us
 
 ## Interview
 https://www.interviewbit.com/technical-interview-questions/#programming-language-tools-technologies  
