@@ -7,3 +7,4 @@ https://www.postgresql.org/
 
 ## Documentation
 https://postgrespro.ru/docs/postgresql/current
+https://metanit.com/sql/postgresql/

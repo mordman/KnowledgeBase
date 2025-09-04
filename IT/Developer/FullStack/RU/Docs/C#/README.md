@@ -1,4 +1,4 @@
 ## C# Documentation
 
-### Links on Docs
+### Docs
 https://metanit.com/sharp/tutorial/
