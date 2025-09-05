@@ -47,6 +47,10 @@ EventSourcing
 
 # Practice
 
+## FrameWorks
+ - AOP(Аспектно Ориентированное Програмирование)
+ - BenchmarkDotNet
+
 ## TaskTracker
 - Princeples
 - Work Proccess
