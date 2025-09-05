@@ -3,6 +3,8 @@
 [ASP.Net](https://roadmap.sh/aspnet-core)\
 [Backend](https://roadmap.sh/backend)
 
+https://github.com/MoienTajik/AspNetCore-Developer-Roadmap/blob/master/ReadMe.ru.md
+
 ## Preparing
 LeetCode
 HakerHank
@@ -33,6 +35,7 @@ https://github.com/hotheadhacker/seedbox-lite
 
 ## C#
 ## DataBase
+https://habr.com/ru/articles/943924/
 ## Python
 
 ## QA
@@ -49,6 +52,5 @@ https://habr.com/ru/articles/932962/
 https://habr.com/ru/articles/932936/
 https://habr.com/ru/articles/917316/
 
-Вот аннотации и тэги для первых 100 ссылок из вашего списка (по 6 тэгов максимум, на английском):
 
 ---
