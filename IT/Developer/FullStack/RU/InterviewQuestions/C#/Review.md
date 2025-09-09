@@ -60,7 +60,7 @@ public class Person
     public string LastName { get; set; }
 }
 ```
-
+# Вариант 1
 ### Улучшенный вариант класса `Plane` с описанием возможных ошибок и проблем
 
 ```csharp
@@ -219,3 +219,203 @@ public sealed class Person
 
 ### Итоги:
 Теперь класс `Plane` работает быстрее, безопаснее и удобнее для повторного использования благодаря улучшению потоков и защищённости от внешних факторов.
+
+# Вариант 2
+
+Вот ревью вашего кода с указанием потенциальных проблем, улучшений и рекомендаций:
+
+---
+
+### **1. Потокобезопасность и асинхронность**
+
+#### **Проблемы:**
+- **`async void`**
+  Методы `CheckCoordinate` и `StartFlight` объявлены как `async void`. Это опасно, потому что исключения, выброшенные в таких методах, невозможно корректно обработать снаружи. Лучше использовать `async Task`.
+
+- **Блокировка с `Monitor` в асинхронном коде**
+  Использование `Monitor.Enter/Exit` в асинхронном методе может привести к дедлоку, если `await` выполнится после захвата мьютекса, но до его освобождения. Вместо этого используйте `SemaphoreSlim` или `lock` с `async/await`.
+
+#### **Рекомендации:**
+```csharp
+private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
+
+public async Task CheckCoordinate()
+{
+    await _semaphore.WaitAsync();
+    try
+    {
+        string temp = await Navigator.GetCoordinate();
+        if (!_coordinate?.Equals(temp) ?? false)
+        {
+            _coordinate = temp;
+        }
+    }
+    finally
+    {
+        _semaphore.Release();
+    }
+}
+```
+
+---
+
+### **2. Изменение состояния пилота**
+
+#### **Проблема:**
+- Метод `ChangePilot` напрямую изменяет свойства объекта `_pilot`. Это может привести к неконсистентному состоянию, если `Person` используется где-то ещё. Лучше создать новый объект `Person` и присвоить его `_pilot`.
+
+#### **Рекомендация:**
+```csharp
+public void ChangePilot(string firstName, string lastName, string documentId)
+{
+    _pilot = new Person
+    {
+        FirstName = firstName,
+        LastName = lastName,
+        DocumentId = documentId
+    };
+}
+```
+
+---
+
+### **3. Работа с `ConcurrentDictionary`**
+
+#### **Проблема:**
+- В методе `Register` используется постфиксный инкремент `_currentNumber++`, но нет гарантии, что это значение не будет дублироваться в многопоточной среде. `ConcurrentDictionary` сам по себе потокобезопасен, но генерация ключей — нет.
+
+#### **Рекомендация:**
+Используйте `Interlocked.Increment` для атомарного инкремента:
+```csharp
+public void Register(Person person)
+{
+    int number = Interlocked.Increment(ref _currentNumber);
+    Passengers[number] = person;
+}
+```
+
+---
+
+### **4. Сериализация и десериализация**
+
+#### **Проблема:**
+- В методе `StartFlight` используется `JsonConvert.SerializeObject(Passengers)`. Если `Passengers` содержит циклические ссылки или сложные объекты, это может привести к ошибкам. Убедитесь, что сериализация корректна.
+
+#### **Рекомендация:**
+Добавьте обработку ошибок:
+```csharp
+public async Task StartFlight()
+{
+    try
+    {
+        string passengersJson = JsonConvert.SerializeObject(Passengers);
+        await FlightDb.Start(_flightId, passengersJson);
+        await FlightKafkaQueue.SendStart(_flightId, passengersJson);
+    }
+    catch (Exception ex)
+    {
+        // Логирование или обработка ошибки
+    }
+}
+```
+
+---
+
+### **5. Общая архитектура**
+
+#### **Проблемы:**
+- Класс `Plane` отвечает за слишком многое: регистрацию пассажиров, работу с координатами, отправку данных в Kafka и БД. Рассмотрите возможность разделения ответственности (например, вынести работу с Kafka и БД в отдельные сервисы).
+- Отсутствует валидация входных данных (например, проверка `pilot` на `null` в конструкторе).
+
+#### **Рекомендации:**
+- Вынесите логику работы с Kafka и БД в отдельные классы.
+- Добавьте валидацию:
+  ```csharp
+  public Plane(Person pilot, int flightId)
+  {
+      _pilot = pilot ?? throw new ArgumentNullException(nameof(pilot));
+      _flightId = flightId;
+      Passengers = new ConcurrentDictionary<int, Person>();
+  }
+  ```
+
+---
+
+### **6. Прочее**
+
+- **Имена переменных и полей:**
+  `_currentNumber` можно переименовать в `_nextPassengerId` для большей ясности.
+- **Документация:**
+  Добавьте XML-комментарии для публичных методов и свойств.
+
+---
+
+### **Итоговый пример улучшенного кода:**
+```csharp
+public class Plane
+{
+    private int _flightId;
+    private Person _pilot;
+    private int _nextPassengerId = 0;
+    private string _coordinate;
+    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
+
+    public ConcurrentDictionary<int, Person> Passengers { get; }
+
+    public Plane(Person pilot, int flightId)
+    {
+        _pilot = pilot ?? throw new ArgumentNullException(nameof(pilot));
+        _flightId = flightId;
+        Passengers = new ConcurrentDictionary<int, Person>();
+    }
+
+    public void Register(Person person)
+    {
+        int id = Interlocked.Increment(ref _nextPassengerId);
+        Passengers[id] = person;
+    }
+
+    public async Task CheckCoordinate()
+    {
+        await _semaphore.WaitAsync();
+        try
+        {
+            string temp = await Navigator.GetCoordinate();
+            if (!_coordinate?.Equals(temp) ?? false)
+            {
+                _coordinate = temp;
+            }
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
+
+    public void ChangePilot(string firstName, string lastName, string documentId)
+    {
+        _pilot = new Person
+        {
+            FirstName = firstName,
+            LastName = lastName,
+            DocumentId = documentId
+        };
+    }
+
+    public async Task StartFlight()
+    {
+        try
+        {
+            string passengersJson = JsonConvert.SerializeObject(Passengers);
+            await FlightDb.Start(_flightId, passengersJson);
+            await FlightKafkaQueue.SendStart(_flightId, passengersJson);
+        }
+        catch (Exception ex)
+        {
+            // Логирование или обработка ошибки
+        }
+    }
+}
+```
+
+---
