@@ -1368,3 +1368,5 @@ Console.WriteLine(numbersList.Sum);
 - **`IEnumerable<T>`** — если нужна только итерация (например, для LINQ или ленивой загрузки).
 - **`ICollection<T>`** — если нужны модификация, `Count` или `CopyTo`.
 - **`IReadOnlyCollection<T>`** — если нужны чтение + `Count`, но не модификация.
+
+---

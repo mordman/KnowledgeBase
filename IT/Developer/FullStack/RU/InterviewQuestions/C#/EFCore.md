@@ -705,5 +705,522 @@ var query = dbContext.Users
     .ThenByDescending(joined => joined.Order.Amount)
     .ToList();
 ```
+---
+
+Вот **15 вопросов по настройке соединений (joins) и использованию Fluent API в Entity Framework Core**, включая примеры кода и практические сценарии:
+
+---
+
+### **1. Как настроить соединение "один-ко-многим" с помощью Fluent API?**
+**Ответ:**
+Используйте методы `HasMany` и `WithOne` для настройки связи "один-ко-многим".
+
+**Пример:**
+```csharp
+modelBuilder.Entity<User>()
+    .HasMany(u => u.Orders)          // У пользователя много заказов
+    .WithOne(o => o.User)           // У заказа один пользователь
+    .HasForeignKey(o => o.UserId); // Внешний ключ
+```
+
+---
+
+### **2. Как настроить соединение "многие-ко-многим" без сущности-посредника в Fluent API?**
+**Ответ:**
+В EF Core 5+ связь "многие-ко-многим" настраивается без явной сущности-посредника.
+
+**Пример:**
+```csharp
+modelBuilder.Entity<User>()
+    .HasMany(u => u.Roles)
+    .WithMany(r => r.Users);
+```
+
+---
+
+### **3. Как настроить соединение "один-к-одному" с помощью Fluent API?**
+**Ответ:**
+Используйте методы `HasOne` и `WithOne`.
+
+**Пример:**
+```csharp
+modelBuilder.Entity<User>()
+    .HasOne(u => u.Profile)         // У пользователя один профиль
+    .WithOne(p => p.User)          // У профиля один пользователь
+    .HasForeignKey<UserProfile>(p => p.UserId); // Внешний ключ
+```
+
+---
+
+### **4. Как настроить составной внешний ключ для соединения?**
+**Ответ:**
+Используйте анонимный тип для настройки составного внешнего ключа.
+
+**Пример:**
+```csharp
+modelBuilder.Entity<OrderItem>()
+    .HasOne(oi => oi.Order)
+    .WithMany(o => o.Items)
+    .HasForeignKey(oi => new { oi.OrderId, oi.UserId }); // Составной ключ
+```
+
+---
+
+### **5. Как настроить каскадное удаление для соединения?**
+**Ответ:**
+Используйте `OnDelete` для настройки каскадного удаления.
+
+**Пример:**
+```csharp
+modelBuilder.Entity<User>()
+    .HasMany(u => u.Orders)
+    .WithOne(o => o.User)
+    .OnDelete(DeleteBehavior.Cascade); // Каскадное удаление заказов при удалении пользователя
+```
+
+---
+
+### **6. Как настроить соединение с фильтрацией (Filtered Include) в Fluent API?**
+**Ответ:**
+В EF Core 5+ можно настроить фильтрацию для навигационных свойств.
+
+**Пример:**
+```csharp
+modelBuilder.Entity<User>()
+    .HasMany(u => u.Orders)
+    .WithOne(o => o.User)
+    .HasForeignKey(o => o.UserId)
+    .HasFilter(o => o.Amount > 1000); // Фильтр для заказов
+```
+
+---
+
+### **7. Как настроить соединение с использованием Shadow Properties?**
+**Ответ:**
+Shadow Properties можно использовать для хранения внешних ключей без явного объявления в классе.
+
+**Пример:**
+```csharp
+modelBuilder.Entity<Order>()
+    .Property<int>("UserId"); // Shadow Property
+
+modelBuilder.Entity<User>()
+    .HasMany(u => u.Orders)
+    .WithOne()
+    .HasForeignKey("UserId"); // Используем Shadow Property
+```
+
+---
+
+### **8. Как настроить соединение с использованием альтернативного ключа?**
+**Ответ:**
+Используйте `HasAlternateKey` для настройки альтернативного ключа.
+
+**Пример:**
+```csharp
+modelBuilder.Entity<User>()
+    .HasAlternateKey(u => u.Email); // Альтернативный ключ
+
+modelBuilder.Entity<Order>()
+    .HasOne(o => o.User)
+    .WithMany(u => u.Orders)
+    .HasPrincipalKey(u => u.Email) // Используем альтернативный ключ
+    .HasForeignKey(o => o.UserEmail);
+```
+
+---
+
+### **9. Как настроить соединение с использованием конвертеров значений (Value Converters)?**
+**Ответ:**
+Используйте `HasConversion` для преобразования значений при соединении.
+
+**Пример:**
+```csharp
+modelBuilder.Entity<User>()
+    .Property(u => u.Status)
+    .HasConversion<string>(); // Преобразуем enum в строку
+
+modelBuilder.Entity<User>()
+    .HasMany(u => u.Orders)
+    .WithOne(o => o.User)
+    .HasForeignKey(o => o.UserId);
+```
+
+---
+
+### **10. Как настроить соединение с использованием индексов?**
+**Ответ:**
+Используйте `HasIndex` для создания индексов на внешних ключах.
+
+**Пример:**
+```csharp
+modelBuilder.Entity<Order>()
+    .HasIndex(o => o.UserId); // Индекс на внешнем ключе
+
+modelBuilder.Entity<User>()
+    .HasMany(u => u.Orders)
+    .WithOne(o => o.User)
+    .HasForeignKey(o => o.UserId);
+```
+
+---
+
+### **11. Как настроить соединение с использованием ограничений (Constraints)?**
+**Ответ:**
+Используйте `HasConstraintName` для задания имени ограничения.
+
+**Пример:**
+```csharp
+modelBuilder.Entity<User>()
+    .HasMany(u => u.Orders)
+    .WithOne(o => o.User)
+    .HasForeignKey(o => o.UserId)
+    .HasConstraintName("FK_Orders_Users"); // Имя ограничения
+```
+
+---
+
+### **12. Как настроить соединение с использованием таблицы-посредника для связи "многие-ко-многим"?**
+**Ответ:**
+Явно настройте сущность-посредник для связи "многие-ко-многим".
+
+**Пример:**
+```csharp
+modelBuilder.Entity<UserRole>()
+    .HasKey(ur => new { ur.UserId, ur.RoleId });
+
+modelBuilder.Entity<User>()
+    .HasMany(u => u.Roles)
+    .WithMany(r => r.Users)
+    .UsingEntity<UserRole>(); // Явная сущность-посредник
+```
+
+---
+
+### **13. Как настроить соединение с использованием наследования (TPH, TPT, TPC)?**
+**Ответ:**
+Настройте наследование и соединения для каждого типа.
+
+**Пример (TPH):**
+```csharp
+modelBuilder.Entity<Person>()
+    .HasDiscriminator<person_type>("PersonType");
+
+modelBuilder.Entity<Employee>()
+    .HasMany(e => e.Orders)
+    .WithOne(o => o.Employee);
+```
+
+---
+
+### **14. Как настроить соединение с использованием владельца (Owned Entity)?**
+**Ответ:**
+Используйте `OwnsOne` для настройки владельца.
+
+**Пример:**
+```csharp
+modelBuilder.Entity<User>()
+    .OwnsOne(u => u.Address); // Владелец
+
+modelBuilder.Entity<User>()
+    .HasMany(u => u.Orders)
+    .WithOne(o => o.User);
+```
+
+---
+
+### **15. Как настроить соединение с использованием вычисляемых свойств?**
+**Ответ:**
+Используйте `HasComputedColumnSql` для вычисляемых свойств.
+
+**Пример:**
+```csharp
+modelBuilder.Entity<Order>()
+    .Property(o => o.TotalAmount)
+    .HasComputedColumnSql("Price * Quantity"); // Вычисляемое свойство
+
+modelBuilder.Entity<User>()
+    .HasMany(u => u.Orders)
+    .WithOne(o => o.User);
+```
+
+---
+
+# **10 вопросов по соединениям с несколькими таблицами** в **Entity Framework Core**, включая сложные сценарии и примеры кода:
+
+
+### **1. Как выполнить соединение трёх таблиц с фильтрацией?**
+**Ответ:**
+Соедините три таблицы последовательно, применив фильтрацию на каждом этапе.
+
+**Пример:**
+```csharp
+var query = dbContext.Users
+    .Where(user => user.IsActive)
+    .Join(
+        dbContext.Orders,
+        user => user.Id,
+        order => order.UserId,
+        (user, order) => new { User = user, Order = order }
+    )
+    .Where(joined => joined.Order.Amount > 1000)
+    .Join(
+        dbContext.Products,
+        joined => joined.Order.ProductId,
+        product => product.Id,
+        (joined, product) => new { joined.User, joined.Order, Product = product }
+    )
+    .Where(final => final.Product.IsAvailable)
+    .ToList();
+```
+
+---
+
+### **2. Как выполнить соединение четырёх таблиц с проекцией?**
+**Ответ:**
+Последовательно соедините четыре таблицы и спроецируйте результат в анонимный тип.
+
+**Пример:**
+```csharp
+var query = dbContext.Users
+    .Join(
+        dbContext.Orders,
+        user => user.Id,
+        order => order.UserId,
+        (user, order) => new { User = user, Order = order }
+    )
+    .Join(
+        dbContext.Products,
+        uo => uo.Order.ProductId,
+        product => product.Id,
+        (uo, product) => new { uo.User, uo.Order, Product = product }
+    )
+    .Join(
+        dbContext.Categories,
+        uop => uop.Product.CategoryId,
+        category => category.Id,
+        (uop, category) => new
+        {
+            UserName = uop.User.Name,
+            OrderAmount = uop.Order.Amount,
+            ProductName = uop.Product.Name,
+            CategoryName = category.Name
+        }
+    )
+    .ToList();
+```
+
+---
+
+### **3. Как выполнить соединение с агрегацией по нескольким таблицам?**
+**Ответ:**
+Соедините таблицы и примените агрегатные функции (`Sum`, `Count`, `Average`).
+
+**Пример:**
+```csharp
+var query = dbContext.Users
+    .GroupJoin(
+        dbContext.Orders,
+        user => user.Id,
+        order => order.UserId,
+        (user, orders) => new { User = user, Orders = orders }
+    )
+    .SelectMany(
+        x => x.Orders.DefaultIfEmpty(),
+        (x, order) => new { x.User, Order = order }
+    )
+    .GroupJoin(
+        dbContext.Products,
+        x => x.Order.ProductId,
+        product => product.Id,
+        (x, products) => new
+        {
+            x.User.Name,
+            TotalOrders = x.Order != null ? 1 : 0,
+            TotalAmount = x.Order != null ? x.Order.Amount : 0,
+            Products = products
+        }
+    )
+    .ToList();
+```
+
+---
+
+### **4. Как выполнить соединение с подзапросами для нескольких таблиц?**
+**Ответ:**
+Используйте подзапросы для фильтрации данных перед соединением.
+
+**Пример:**
+```csharp
+var activeUsers = dbContext.Users.Where(u => u.IsActive);
+var expensiveOrders = dbContext.Orders.Where(o => o.Amount > 1000);
+
+var query = activeUsers
+    .Join(
+        expensiveOrders,
+        user => user.Id,
+        order => order.UserId,
+        (user, order) => new { User = user, Order = order }
+    )
+    .Join(
+        dbContext.Products,
+        uo => uo.Order.ProductId,
+        product => product.Id,
+        (uo, product) => new { uo.User, uo.Order, Product = product }
+    )
+    .ToList();
+```
+
+---
+
+### **5. Как выполнить соединение с использованием навигационных свойств для нескольких таблиц?**
+**Ответ:**
+Используйте навигационные свойства для упрощения соединений.
+
+**Пример:**
+```csharp
+var query = dbContext.Users
+    .Where(user => user.IsActive)
+    .SelectMany(
+        user => user.Orders,
+        (user, order) => new { User = user, Order = order }
+    )
+    .SelectMany(
+        uo => uo.Order.Product.Categories.DefaultIfEmpty(),
+        (uo, category) => new { uo.User, uo.Order, uo.Order.Product, Category = category }
+    )
+    .ToList();
+```
+
+---
+
+### **6. Как выполнить соединение с фильтрацией по нескольким таблицам?**
+**Ответ:**
+Примените фильтрацию на каждом этапе соединения.
+
+**Пример:**
+```csharp
+var query = dbContext.Users
+    .Where(user => user.IsActive)
+    .Join(
+        dbContext.Orders.Where(order => order.Amount > 1000),
+        user => user.Id,
+        order => order.UserId,
+        (user, order) => new { User = user, Order = order }
+    )
+    .Join(
+        dbContext.Products.Where(product => product.IsAvailable),
+        uo => uo.Order.ProductId,
+        product => product.Id,
+        (uo, product) => new { uo.User, uo.Order, Product = product }
+    )
+    .ToList();
+```
+
+---
+
+### **7. Как выполнить соединение с сортировкой по нескольким таблицам?**
+**Ответ:**
+Соедините таблицы и примените сортировку по полям из разных таблиц.
+
+**Пример:**
+```csharp
+var query = dbContext.Users
+    .Join(
+        dbContext.Orders,
+        user => user.Id,
+        order => order.UserId,
+        (user, order) => new { User = user, Order = order }
+    )
+    .Join(
+        dbContext.Products,
+        uo => uo.Order.ProductId,
+        product => product.Id,
+        (uo, product) => new { uo.User, uo.Order, Product = product }
+    )
+    .OrderBy(x => x.User.Name)
+    .ThenByDescending(x => x.Order.Amount)
+    .ThenBy(x => x.Product.Name)
+    .ToList();
+```
+
+---
+
+### **8. Как выполнить соединение с группировкой по нескольким таблицам?**
+**Ответ:**
+Соедините таблицы и сгруппируйте данные по полям из разных таблиц.
+
+**Пример:**
+```csharp
+var query = dbContext.Users
+    .Join(
+        dbContext.Orders,
+        user => user.Id,
+        order => order.UserId,
+        (user, order) => new { User = user, Order = order }
+    )
+    .Join(
+        dbContext.Products,
+        uo => uo.Order.ProductId,
+        product => product.Id,
+        (uo, product) => new { uo.User, uo.Order, Product = product }
+    )
+    .GroupBy(
+        x => new { x.User.DepartmentId, x.Product.CategoryId },
+        x => x.Order.Amount,
+        (key, amounts) => new
+        {
+            DepartmentId = key.DepartmentId,
+            CategoryId = key.CategoryId,
+            TotalAmount = amounts.Sum()
+        }
+    )
+    .ToList();
+```
+
+---
+
+### **9. Как выполнить соединение с использованием Raw SQL для нескольких таблиц?**
+**Ответ:**
+Используйте `FromSqlRaw` для выполнения сложных SQL-запросов с соединением нескольких таблиц.
+
+**Пример:**
+```csharp
+var query = dbContext.Users
+    .FromSqlRaw(@"
+        SELECT u.*, o.*, p.*
+        FROM Users u
+        INNER JOIN Orders o ON u.Id = o.UserId
+        INNER JOIN Products p ON o.ProductId = p.Id
+        WHERE u.IsActive = 1 AND o.Amount > 1000
+    ")
+    .ToList();
+```
+
+---
+
+### **10. Как выполнить соединение с использованием временных таблиц для нескольких таблиц?**
+**Ответ:**
+Создайте временные таблицы с помощью Raw SQL и соедините их в запросе.
+
+**Пример:**
+```csharp
+dbContext.Database.ExecuteSqlRaw(@"
+    CREATE TEMPORARY TABLE TempActiveUsers AS
+    SELECT * FROM Users WHERE IsActive = 1;
+
+    CREATE TEMPORARY TABLE TempExpensiveOrders AS
+    SELECT * FROM Orders WHERE Amount > 1000;
+");
+
+var query = dbContext.Users
+    .FromSqlRaw(@"
+        SELECT u.*, o.*, p.*
+        FROM TempActiveUsers u
+        INNER JOIN TempExpensiveOrders o ON u.Id = o.UserId
+        INNER JOIN Products p ON o.ProductId = p.Id
+    ")
+    .ToList();
+```
 
 ---
