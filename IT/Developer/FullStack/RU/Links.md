@@ -11,9 +11,6 @@ HakerHank
 CodeWars
 ulearn
 
-
-## Трахатоны
-
 ## Machine Translate
 [Tencent-Hunyuan](https://github.com/Tencent-Hunyuan/Hunyuan-MT)
 
