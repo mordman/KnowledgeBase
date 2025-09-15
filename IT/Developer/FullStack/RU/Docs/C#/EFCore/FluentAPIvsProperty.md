@@ -79,3 +79,206 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 - **Комбинируйте оба подхода**: Например, используйте навигационные свойства для удобства и Fluent API для тонкой настройки.
 
 ---
+В Entity Framework Core, помимо **Fluent API** и **навигационных свойств**, существуют и другие механизмы для конфигурации модели данных и работы с сущностями. Вот основные из них:
+
+---
+
+### 1. **Data Annotations (Атрибуты данных)**
+Используются для конфигурации модели прямо в классах сущностей с помощью атрибутов. Это удобно для простых сценариев, когда не требуется сложная логика конфигурации.
+
+**Примеры атрибутов:**
+- `[Key]` — указывает первичный ключ.
+- `[Required]` — поле обязательно для заполнения.
+- `[MaxLength]` — ограничивает длину строки.
+- `[Column]` — задаёт имя колонки в базе данных.
+- `[ForeignKey]` — указывает внешний ключ.
+- `[InverseProperty]` — помогает разрешать конфликты при наличии нескольких навигационных свойств.
+
+**Пример:**
+```csharp
+public class Blog
+{
+    public int Id { get; set; }
+
+    [Required]
+    [MaxLength(100)]
+    public string Name { get; set; }
+
+    public List<Post> Posts { get; set; }
+}
+```
+
+---
+
+### 2. **Shadow Properties (Теневые свойства)**
+Позволяют добавлять свойства к сущности, которые не существуют в классе, но хранятся в базе данных. Полезно для служебных полей (например, `CreatedDate`, `ModifiedDate`).
+
+**Пример конфигурации через Fluent API:**
+```csharp
+modelBuilder.Entity<Blog>()
+    .Property<DateTime>("CreatedDate");
+```
+
+---
+
+### 3. **Owned Entity Types (Вложенные типы сущностей)**
+Позволяют группировать свойства в отдельные классы, которые хранятся в той же таблице, что и основная сущность. Полезно для сложных типов данных (например, адреса, координаты).
+
+**Пример:**
+```csharp
+public class Order
+{
+    public int Id { get; set; }
+    public Address ShippingAddress { get; set; }
+}
+
+public class Address
+{
+    public string Street { get; set; }
+    public string City { get; set; }
+}
+
+// Конфигурация:
+modelBuilder.Entity<Order>().OwnsOne(o => o.ShippingAddress);
+```
+
+---
+
+### 4. **Table Splitting (Разделение таблиц)**
+Позволяет разделить одну сущность на несколько таблиц в базе данных. Полезно, если часть данных используется редко и их можно вынести в отдельную таблицу.
+
+**Пример:**
+```csharp
+modelBuilder.Entity<Order>()
+    .ToTable("Orders");
+
+modelBuilder.Entity<Order>()
+    .Property(o => o.Notes)
+    .HasColumnName("Notes")
+    .ToTable("OrderDetails");
+```
+
+---
+
+### 5. **TPH, TPT, TPC (Стратегии наследования)**
+EF Core поддерживает три стратегии отображения иерархии наследования в базе данных:
+- **TPH (Table-Per-Hierarchy)** — все классы иерархии хранятся в одной таблице с дискриминатором.
+- **TPT (Table-Per-Type)** — каждый класс иерархии хранится в отдельной таблице.
+- **TPC (Table-Per-Concrete-Type)** — только конкретные классы хранятся в отдельных таблицах.
+
+**Пример (TPH):**
+```csharp
+modelBuilder.Entity<Animal>().ToTable("Animals");
+```
+
+---
+
+### 6. **Global Query Filters (Глобальные фильтры запросов)**
+Позволяют автоматически применять фильтры ко всем запросам для определённой сущности. Полезно для "мягкого удаления" (soft delete).
+
+**Пример:**
+```csharp
+modelBuilder.Entity<Blog>()
+    .HasQueryFilter(b => !b.IsDeleted);
+```
+
+---
+
+### 7. **Value Conversions (Конвертация значений)**
+Позволяют автоматически конвертировать значения при чтении/записи в базу данных. Например, для работы с перечислениями (`enum`) или JSON.
+
+**Пример:**
+```csharp
+modelBuilder.Entity<Order>()
+    .Property(o => o.Status)
+    .HasConversion<string>();
+```
+
+---
+
+### 8. **Backing Fields (Поля поддержки)**
+Позволяют использовать поля вместо свойств для хранения данных, что полезно для инкапсуляции логики.
+
+**Пример:**
+```csharp
+public class Blog
+{
+    private string _name;
+
+    public string Name
+    {
+        get => _name;
+        set => _name = value?.Trim();
+    }
+}
+
+// Конфигурация:
+modelBuilder.Entity<Blog>()
+    .Property(b => b.Name)
+    .HasField("_name");
+```
+
+---
+
+### 9. **Database Views (Представления базы данных)**
+EF Core позволяет работать с представлениями базы данных как с обычными сущностями. Для этого используются ключевые атрибуты или конфигурация.
+
+**Пример:**
+```csharp
+[Keyless]
+public class CustomerReport
+{
+    public string Name { get; set; }
+    public int OrderCount { get; set; }
+}
+```
+
+---
+
+### 10. **Raw SQL Queries (Сырые SQL-запросы)**
+Позволяют выполнять произвольные SQL-запросы для чтения и записи данных, если LINQ или Fluent API недостаточно.
+
+**Пример:**
+```csharp
+var blogs = context.Blogs
+    .FromSqlRaw("SELECT * FROM Blogs WHERE Name = {0}", "MyBlog")
+    .ToList();
+```
+
+---
+
+### 11. **Interceptors (Перехватчики)**
+Позволяют перехватывать и модифицировать SQL-запросы, команды и события EF Core. Полезно для логирования, аудита или изменения поведения.
+
+**Пример:**
+```csharp
+public class MyInterceptor : DbCommandInterceptor
+{
+    public override InterceptionResult<DbDataReader> ReaderExecuting(
+        DbCommand command,
+        CommandEventData eventData,
+        InterceptionResult<DbDataReader> result)
+    {
+        Console.WriteLine(command.CommandText);
+        return result;
+    }
+}
+
+// Регистрация:
+optionsBuilder.AddInterceptors(new MyInterceptor());
+```
+
+---
+
+### 12. **Explicit Loading (Явная загрузка)**
+Позволяет загружать навигационные свойства по требованию, а не автоматически (как в lazy loading).
+
+**Пример:**
+```csharp
+var blog = context.Blogs.First();
+context.Entry(blog)
+    .Collection(b => b.Posts)
+    .Load();
+```
+
+---
