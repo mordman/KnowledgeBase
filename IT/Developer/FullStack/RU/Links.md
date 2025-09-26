@@ -12,6 +12,11 @@ HakerHank
 CodeWars
 ulearn
 
+## LLM Models
+https://mistral.ai
+https://qwen.ai
+https://giga.chat
+
 ## Machine Translate
 [Tencent-Hunyuan](https://github.com/Tencent-Hunyuan/Hunyuan-MT)
 
