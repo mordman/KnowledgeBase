@@ -17,6 +17,10 @@ https://mistral.ai
 https://qwen.ai
 https://giga.chat
 
+## LLM Agents
+https://github.com/microsoft/ai-agents-for-beginners/tree/main/00-course-setup
+https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk
+
 ## Machine Translate
 [Tencent-Hunyuan](https://github.com/Tencent-Hunyuan/Hunyuan-MT)
 
