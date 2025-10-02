@@ -12,6 +12,11 @@ HakerHank
 CodeWars
 ulearn
 
+## Ленты на HABR
+Умный дом
+Искуственный интелект
+
+
 ## LLM Models
 https://mistral.ai
 https://qwen.ai
