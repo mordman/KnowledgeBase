@@ -13,14 +13,17 @@ CodeWars
 ulearn
 
 ## Ленты на HABR
-Умный дом
-Искуственный интелект
+https://habr.com/
+
+## Microsoft
+https://dotnet.microsoft.com/ru-ru/?wt.mc_id=developermscom
 
 
 ## LLM Models
-https://mistral.ai
-https://qwen.ai
-https://giga.chat
+[Список моделей](https://habr.com/ru/companies/bothub/articles/952148)  
+[MistralAI](https://mistral.ai)  
+[QWEN](https://qwen.ai)  
+[Giga.Chat](https://giga.chat)  
 
 ## LLM Agents
 https://github.com/microsoft/ai-agents-for-beginners/tree/main/00-course-setup
@@ -51,18 +54,18 @@ https://habr.com/ru/articles/943924/
 ## Python
 
 ## QA
-https://testengineer.ru/vidy-tipy-testirovaniya/
-https://habr.com/ru/articles/587620/
+https://testengineer.ru/vidy-tipy-testirovaniya/  
+https://habr.com/ru/articles/587620/  
 
 
+### Разобрать
 
-https://habr.com/ru/articles/931568/
-https://habr.com/ru/companies/ruvds/articles/930234/
-https://habr.com/ru/articles/934176/
-https://habr.com/ru/articles/936832/
-https://habr.com/ru/articles/932962/
-https://habr.com/ru/articles/932936/
-https://habr.com/ru/articles/917316/
-
+https://habr.com/ru/articles/931568/  
+https://habr.com/ru/companies/ruvds/articles/930234/  
+https://habr.com/ru/articles/934176/  
+https://habr.com/ru/articles/936832/  
+https://habr.com/ru/articles/932962/  
+https://habr.com/ru/articles/932936/  
+https://habr.com/ru/articles/917316/  
 
 ---
