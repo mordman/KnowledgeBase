@@ -28,6 +28,7 @@ https://dotnet.microsoft.com/ru-ru/?wt.mc_id=developermscom
 ## LLM Agents
 https://github.com/microsoft/ai-agents-for-beginners/tree/main/00-course-setup
 https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk
+https://habr.com/ru/articles/953038/
 
 ## Machine Translate
 [Tencent-Hunyuan](https://github.com/Tencent-Hunyuan/Hunyuan-MT)
