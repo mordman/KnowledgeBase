@@ -1,4 +1,9 @@
-## 1. Порождающие шаблоны (Creational Patterns)
+# Design Patterns
+- [1. Порождающие шаблоны (Creational Patterns)](#p1)
+- [2. Структурные шаблоны (Structural Patterns)](#p2)
+- [3. Поведенческие шаблоны (Behavioral Patterns)](#p3)
+
+## 1. <anchor id="p1"/>Порождающие шаблоны (Creational Patterns)
 
 ### 1. Singleton (Одиночка)
 **Цель:** Гарантирует, что класс имеет только один экземпляр и предоставляет глобальную точку доступа к нему.
@@ -204,7 +209,7 @@ public class SimpleFactory
 
 ---
 
-## 2. Структурные шаблоны (Structural Patterns)
+## 2. <anchor id="p2"/>Структурные шаблоны (Structural Patterns)
 
 ### 1. Adapter (Адаптер)
 **Цель:** Позволяет объектам с несовместимыми интерфейсами работать вместе.
@@ -373,7 +378,7 @@ public class Twin
 
 ---
 
-## 3. Поведенческие шаблоны (Behavioral Patterns)
+## 3. <anchor id="p3"/>Поведенческие шаблоны (Behavioral Patterns)
 
 ### 1. Observer (Наблюдатель)
 **Цель:** Определяет зависимость "один ко многим" между объектами.
