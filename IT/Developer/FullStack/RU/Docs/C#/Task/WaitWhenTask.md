@@ -59,8 +59,24 @@ Task completedTask = await Task.WhenAny(task1, task2); // Вернёт task2
 ---
 
 ### **5. `Task.WhenEach`**
+- **Асинхронно перечисляет результаты задач по мере их завершения**
+- **Не блокирует поток**, возвращает асинхронную перечисляемую последовательность
+- **Использование**: когда нужно обрабатывать результаты задач сразу по готовности, а не ждать завершения всех
 
-`Доработать`
+**Пример:**
+```csharp
+var tasks = new List<Task<int>>
+{
+    GetDataAsync("api/data1", 1000),
+    GetDataAsync("api/data2", 500),
+    GetDataAsync("api/data3", 1500)
+};
+
+await foreach (var result in Task.WhenEach(tasks))
+{
+    Console.WriteLine($"Получен результат: {result}");
+}
+```
 
 ---
 
