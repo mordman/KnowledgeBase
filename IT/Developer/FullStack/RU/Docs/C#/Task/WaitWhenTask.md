@@ -59,18 +59,8 @@ Task completedTask = await Task.WhenAny(task1, task2); // Вернёт task2
 ---
 
 ### **5. `Task.WhenEach`**
-- **Такого метода в стандартной библиотеке .NET нет!**
-- Возможно, ты имел в виду `Task.WhenAll` или `Task.WhenAny`, или же это опечатка.
-- Если нужно обработать задачи по мере их завершения, можно использовать цикл с `Task.WhenAny`:
-  ```csharp
-  var tasks = new List<Task> { task1, task2, task3 };
-  while (tasks.Count > 0)
-  {
-      Task completed = await Task.WhenAny(tasks);
-      tasks.Remove(completed);
-      Console.WriteLine($"Задача {completed.Id} завершена");
-  }
-  ```
+
+`Доработать`
 
 ---
 
