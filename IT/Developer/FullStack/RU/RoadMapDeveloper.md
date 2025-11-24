@@ -67,7 +67,7 @@ graph TD
     %% --- IoT & Edge Computing ---
     subgraph IoT["🤖 IoT & Edge Computing"]
         D1[MicroPython/C++] --> D2[ESP-IDF/PlatformIO]
-        D2 --> D3[MQTT (Mosquitto/EMQX)]
+        D2 --> D3[MQTT Mosquitto/EMQX]
         D2 --> D4[TensorFlow Lite]
         D4 --> D5[Обучение моделей в Python]
         D5 --> D6[ONNX Runtime для инференса]
