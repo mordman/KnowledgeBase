@@ -187,3 +187,11 @@
 **Владение языками**
 
 Русский, Английский
+
+### Для связи
+- e-mail
+  - mordman@mail.ru
+  - mordmanisone@gmain.com
+- Messengers
+  - Telegram
+    - https://t.me/TheBear_md
