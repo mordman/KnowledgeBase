@@ -69,4 +69,6 @@ https://habr.com/ru/articles/932962/
 https://habr.com/ru/articles/932936/  
 https://habr.com/ru/articles/917316/  
 
+https://github.com/avito-tech/patterns-and-practices-abstracts
+https://github.com/avito-tech/tech-internship/tree/main/Tech%20Internships
 ---
