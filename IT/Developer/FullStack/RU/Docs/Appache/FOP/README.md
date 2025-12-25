@@ -1,12 +1,8 @@
-Вот информация по Apache FOP в запрашиваемом формате:
-
 ### **Official**
 - **Официальный сайт**: [https://xmlgraphics.apache.org/fop/](https://xmlgraphics.apache.org/fop/)
 - **Разработчик**: Apache Software Foundation
 - **Лицензия**: Apache License 2.0
 - **Статус**: Активно развивается
-
----
 
 ### **Docker**
 - **Официальный образ Docker**: Нет официального образа от Apache, но есть неофициальные сборки.
@@ -22,14 +18,10 @@
   ```
 - **Использование**: Можно запустить FOP в контейнере для генерации PDF из XSL-FO.
 
----
-
 ### **Git**
 - **Исходный код**: [https://github.com/apache/xmlgraphics-fop](https://github.com/apache/xmlgraphics-fop)
 - **Репозиторий**: Часть проекта Apache XML Graphics
 - **Как участвовать**: Принимаются pull request’ы, баг-репорты и предложения через GitHub или JIRA Apache.
-
----
 
 ### **Documentation**
 - **Официальная документация**: [https://xmlgraphics.apache.org/fop/2.9/](https://xmlgraphics.apache.org/fop/2.9/)
@@ -38,8 +30,6 @@
   - [Running FOP](https://xmlgraphics.apache.org/fop/2.9/running.html)
   - [XSL-FO Reference](https://www.w3.org/TR/xsl11/)
 - **Примеры**: В комплекте с дистрибутивом FOP идут примеры XSL-FO и XML файлов.
-
----
 
 ### **Files**
 - **Дистрибутивы**:
