@@ -1,9 +1,12 @@
-## Official
+## **Official**
 https://github.com/
 
-## Doker
+## **Doker**
 
-## Git
+## **Git**
+GitHub Ч платформа дл€ хостинга Git-репозиториев, pull request'ов и совместной разработки.
 
-## Documentation
+## **Documentation**
 https://docs.github.com/ru
+
+## **Files**
