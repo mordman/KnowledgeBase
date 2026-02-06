@@ -1,5 +1,15 @@
 # Copilot Instructions for KnowledgeBase
 
+
+
+## Оглавление
+- [Project Overview](#project-overview)
+- [Structure and Organization](#structure-and-organization)
+- [Content Formatting Conventions](#content-formatting-conventions)
+- [Contribution Guidelines](#contribution-guidelines)
+- [Workflows](#workflows)
+- [Key References](#key-references)
+
 ## Project Overview
 This is a personal knowledge base repository for fullstack development learning materials, organized hierarchically under `IT/Developer/FullStack/`. Content is primarily in Russian (RU) with some English (EN) sections. It includes documentation, roadmaps, interview questions, prompts, test tasks, and job vacancies.
 

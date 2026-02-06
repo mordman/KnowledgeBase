@@ -1,5 +1,18 @@
 ### RabbitMQ vs Kafka vs NATS
 
+
+
+## Оглавление
+- [RabbitMQ vs Kafka vs NATS](#rabbitmq-vs-kafka-vs-nats)
+  - [1. RabbitMQ](#1-rabbitmq)
+  - [2. Apache Kafka](#2-apache-kafka)
+  - [3. NATS](#3-nats)
+- [Таблица сравнения:](#таблица-сравнения)
+- [Выбор подходящей технологии:](#выбор-подходящей-технологии)
+
+  - [1. RabbitMQ](#1-rabbitmq)
+  - [2. Apache Kafka](#2-apache-kafka)
+  - [3. NATS](#3-nats)
 #### 1. RabbitMQ
 - **Тип:** Очереди сообщений (Message Queue).
 - **Цель:** Надежная и гарантированная доставка сообщений между приложениями.

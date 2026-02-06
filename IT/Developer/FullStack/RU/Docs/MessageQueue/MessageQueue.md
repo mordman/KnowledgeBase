@@ -1,4 +1,15 @@
 ## Apache Kafka:
+
+
+## Оглавление
+- [Apache Kafka:](#apache-kafka)
+- [RabbitMQ:](#rabbitmq)
+- [Apache Pulsar:](#apache-pulsar)
+- [NATS:](#nats)
+- [AWS SQS (Simple Queue Service):](#aws-sqs-simple-queue-service)
+- [Yandex Message Queue:](#yandex-message-queue)
+- [Почему используются очереди сообщений:](#почему-используются-очереди-сообщений)
+
 Разработанный Apache Software Foundation, Kafka является мощным инструментом для потоковой передачи данных в реальном времени, отличающимся низкими задержками и высокой пропускной способностью. 
 ## RabbitMQ:
 Это популярный брокер сообщений с открытым исходным кодом, написанный на Erlang, который обеспечивает надежную доставку сообщений с различными протоколами, такими как AMQP, MQTT и STOMP. 

@@ -3,6 +3,18 @@
 ---
 
 ### **1. Jenkins**
+
+
+## Оглавление
+- [**1. Jenkins**](#1-jenkins)
+- [**2. GitLab CI/CD**](#2-gitlab-cicd)
+- [**3. GitHub Actions**](#3-github-actions)
+- [**4. CircleCI**](#4-circleci)
+- [**5. Azure DevOps (Azure Pipelines)**](#5-azure-devops-azure-pipelines)
+- [**6. TeamCity (JetBrains)**](#6-teamcity-jetbrains)
+- [**7. Bitbucket Pipelines**](#7-bitbucket-pipelines)
+- [**Сравнительная таблица**](#сравнительная-таблица)
+
 **Сильные стороны:**
 - **Гибкость и расширяемость**: Поддерживает огромное количество плагинов для интеграции с любыми инструментами.
 - **Открытый исходный код**: Бесплатен и активно развивается сообществом.

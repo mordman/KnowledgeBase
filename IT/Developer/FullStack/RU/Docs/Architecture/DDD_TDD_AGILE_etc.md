@@ -1,5 +1,19 @@
 # Обзор основных подходов разработки
 
+
+
+## Оглавление
+- [1. Domain Driven Design (DDD)](#1-domain-driven-design-ddd)
+  - [Основные концепции DDD:](#основные-концепции-ddd)
+- [2. Test Driven Development (TDD)](#2-test-driven-development-tdd)
+  - [Этапы цикла TDD:](#этапы-цикла-tdd)
+- [3. Agile Методологии](#3-agile-методологии)
+- [4. Behavior Driven Development (BDD)](#4-behavior-driven-development-bdd)
+- [5. Continuous Integration and Continuous Deployment (CI/CD)](#5-continuous-integration-and-continuous-deployment-cicd)
+- [6. Чистая Архитектура (Clean Architecture)](#6-чистая-архитектура-clean-architecture)
+
+  - [Основные концепции DDD:](#основные-концепции-ddd)
+  - [Этапы цикла TDD:](#этапы-цикла-tdd)
 ## 1. Domain Driven Design (DDD)
 
 DDD сосредоточен на проектировании программного продукта вокруг доменной модели (предметной области бизнеса). Главная цель этого подхода — создать архитектуру, максимально близкую к реальной бизнес-модели, обеспечивающую гибкость и масштабируемость системы.

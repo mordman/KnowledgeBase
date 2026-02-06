@@ -1,4 +1,26 @@
 ## RoadMaps
+
+
+## Оглавление
+- [RoadMaps](#roadmaps)
+- [Preparing](#preparing)
+- [Ленты на HABR](#ленты-на-habr)
+- [Microsoft](#microsoft)
+- [LLM Models](#llm-models)
+- [LLM Agents](#llm-agents)
+- [Machine Translate](#machine-translate)
+- [Spech Recognition](#spech-recognition)
+- [Text To Spech](#text-to-spech)
+- [Interview](#interview)
+- [AI](#ai)
+- [Git](#git)
+- [C#](#c)
+- [DataBase](#database)
+- [Python](#python)
+- [QA](#qa)
+  - [Разобрать](#разобрать)
+
+  - [Разобрать](#разобрать)
 [RoadMaps](https://roadmap.sh/)  
 [ASP.Net](https://roadmap.sh/aspnet-core)  
 [Backend](https://roadmap.sh/backend)

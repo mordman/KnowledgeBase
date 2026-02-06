@@ -166,6 +166,26 @@ classDiagram
 ---
 
 ### 1. **Repository Pattern**  
+
+
+## Оглавление
+- [1. **Repository Pattern**](#1-repository-pattern)
+- [2. **Active Record**](#2-active-record)
+- [3. **Data Mapper**](#3-data-mapper)
+- [4. **Transaction Script**](#4-transaction-script)
+- [5. **Domain Model + Domain Events**](#5-domain-model-domain-events)
+- [6. **Outbox Pattern** (расширенный UoW)](#6-outbox-pattern-расширенный-uow)
+- [7. **Ambient Transaction / TransactionScope** (.NET)](#7-ambient-transaction-transactionscope-net)
+- [Сравнительная таблица](#сравнительная-таблица)
+- [Рекомендации:](#рекомендации)
+- [1. **Unit of Work + Repository** (классический)](#1-unit-of-work-repository-классический)
+- [2. **Active Record** (простой, но ограниченный)](#2-active-record-простой-но-ограниченный)
+- [3. **Transaction Script** (процедурный стиль)](#3-transaction-script-процедурный-стиль)
+- [4. **Domain Model + Domain Events** (DDD-стиль)](#4-domain-model-domain-events-ddd-стиль)
+- [5. **Outbox Pattern** (надёжная доставка)](#5-outbox-pattern-надёжная-доставка)
+- [6. **Ambient Transaction (`TransactionScope`)**](#6-ambient-transaction-transactionscope)
+- [Когда что использовать?](#когда-что-использовать)
+
 **Связь с UoW:** Почти всегда используется **в паре**.  
 - **Repository** абстрагирует доступ к данным (CRUD-операции).  
 - **Unit of Work** отслеживает изменения, сделанные через репозитории, и координирует их сохранение.  

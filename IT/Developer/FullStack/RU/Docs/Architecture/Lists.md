@@ -1,4 +1,32 @@
 ### 1. **Шаблоны уровня системы (System-level Patterns)**
+
+
+## Оглавление
+  - [1. **Шаблоны уровня системы (System-level Patterns)**](#1-шаблоны-уровня-системы-system-level-patterns)
+  - [2. **Шаблоны уровня компонентов (Component-level Patterns)**](#2-шаблоны-уровня-компонентов-component-level-patterns)
+  - [3. **Шаблоны уровня данных (Data-level Patterns)**](#3-шаблоны-уровня-данных-data-level-patterns)
+  - [4. **Шаблоны взаимодействия (Communication Patterns)**](#4-шаблоны-взаимодействия-communication-patterns)
+  - [5. **Шаблоны развертывания (Deployment Patterns)**](#5-шаблоны-развертывания-deployment-patterns)
+  - [6. **Шаблоны безопасности (Security Patterns)**](#6-шаблоны-безопасности-security-patterns)
+  - [Пример применения](#пример-применения)
+- [Details](#details)
+- [1. **Многослойная архитектура (Layered Architecture, N-tier)**](#1-многослойная-архитектура-layered-architecture-n-tier)
+- [2. **Микросервисы (Microservices)**](#2-микросервисы-microservices)
+- [3. **Ориентированная на события (Event-Driven Architecture, EDA)**](#3-ориентированная-на-события-event-driven-architecture-eda)
+- [4. **Репозиторий (Repository Pattern)**](#4-репозиторий-repository-pattern)
+- [5. **CQRS (Command Query Responsibility Segregation)**](#5-cqrs-command-query-responsibility-segregation)
+- [6. **API Gateway**](#6-api-gateway)
+- [7. **Безсерверная архитектура (Serverless)**](#7-безсерверная-архитектура-serverless)
+  - [Итоговая таблица: Когда какой шаблон использовать](#итоговая-таблица-когда-какой-шаблон-использовать)
+
+  - [1. **Шаблоны уровня системы (System-level Patterns)**](#1-шаблоны-уровня-системы-system-level-patterns)
+  - [2. **Шаблоны уровня компонентов (Component-level Patterns)**](#2-шаблоны-уровня-компонентов-component-level-patterns)
+  - [3. **Шаблоны уровня данных (Data-level Patterns)**](#3-шаблоны-уровня-данных-data-level-patterns)
+  - [4. **Шаблоны взаимодействия (Communication Patterns)**](#4-шаблоны-взаимодействия-communication-patterns)
+  - [5. **Шаблоны развертывания (Deployment Patterns)**](#5-шаблоны-развертывания-deployment-patterns)
+  - [6. **Шаблоны безопасности (Security Patterns)**](#6-шаблоны-безопасности-security-patterns)
+  - [Пример применения](#пример-применения)
+  - [Итоговая таблица: Когда какой шаблон использовать](#итоговая-таблица-когда-какой-шаблон-использовать)
 Определяют общую структуру приложения.
 
 - **Многослойная архитектура (Layered Architecture, N-tier)**

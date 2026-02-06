@@ -1,5 +1,11 @@
 # Различные дорожные карты для обучения
 
+
+
+## Оглавление
+- [Links](#links)
+- [TechnicalInterview](#technicalinterview)
+
 # Links
 
 [.NET Developer Roadmap](https://github.com/milanm/DotNet-Developer-Roadmap?tab=readme-ov-file)  

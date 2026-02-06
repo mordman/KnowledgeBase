@@ -1,5 +1,38 @@
 # Принципы ООП (Объектно-Ориентированного Программирования)
 
+
+
+## Оглавление
+- [Основные принципы ООП](#основные-принципы-ооп)
+  - [1. **Инкапсуляция (Encapsulation)**](#1-инкапсуляция-encapsulation)
+  - [2. **Наследование (Inheritance)**](#2-наследование-inheritance)
+  - [3. **Полиморфизм (Polymorphism)**](#3-полиморфизм-polymorphism)
+  - [4. **Абстракция (Abstraction)**](#4-абстракция-abstraction)
+- [Принципы SOLID](#принципы-solid)
+  - [1. **S - Single Responsibility Principle (Принцип единственной ответственности)**](#1-s-single-responsibility-principle-принцип-единственной-ответственности)
+  - [2. **O - Open/Closed Principle (Принцип открытости/закрытости)**](#2-o-openclosed-principle-принцип-открытостизакрытости)
+  - [3. **L - Liskov Substitution Principle (Принцип подстановки Лисков)**](#3-l-liskov-substitution-principle-принцип-подстановки-лисков)
+  - [4. **I - Interface Segregation Principle (Принцип разделения интерфейсов)**](#4-i-interface-segregation-principle-принцип-разделения-интерфейсов)
+  - [5. **D - Dependency Inversion Principle (Принцип инверсии зависимостей)**](#5-d-dependency-inversion-principle-принцип-инверсии-зависимостей)
+- [Дополнительные принципы ООП](#дополнительные-принципы-ооп)
+  - [1. **Композиция против наследования**](#1-композиция-против-наследования)
+  - [2. **Принцип DRY (Don't Repeat Yourself)**](#2-принцип-dry-dont-repeat-yourself)
+- [Практическое применение принципов ООП](#практическое-применение-принципов-ооп)
+  - [Пример хорошо спроектированного класса:](#пример-хорошо-спроектированного-класса)
+- [Ключевые выводы:](#ключевые-выводы)
+
+  - [1. **Инкапсуляция (Encapsulation)**](#1-инкапсуляция-encapsulation)
+  - [2. **Наследование (Inheritance)**](#2-наследование-inheritance)
+  - [3. **Полиморфизм (Polymorphism)**](#3-полиморфизм-polymorphism)
+  - [4. **Абстракция (Abstraction)**](#4-абстракция-abstraction)
+  - [1. **S - Single Responsibility Principle (Принцип единственной ответственности)**](#1-s-single-responsibility-principle-принцип-единственной-ответственности)
+  - [2. **O - Open/Closed Principle (Принцип открытости/закрытости)**](#2-o-openclosed-principle-принцип-открытостизакрытости)
+  - [3. **L - Liskov Substitution Principle (Принцип подстановки Лисков)**](#3-l-liskov-substitution-principle-принцип-подстановки-лисков)
+  - [4. **I - Interface Segregation Principle (Принцип разделения интерфейсов)**](#4-i-interface-segregation-principle-принцип-разделения-интерфейсов)
+  - [5. **D - Dependency Inversion Principle (Принцип инверсии зависимостей)**](#5-d-dependency-inversion-principle-принцип-инверсии-зависимостей)
+  - [1. **Композиция против наследования**](#1-композиция-против-наследования)
+  - [2. **Принцип DRY (Don't Repeat Yourself)**](#2-принцип-dry-dont-repeat-yourself)
+  - [Пример хорошо спроектированного класса:](#пример-хорошо-спроектированного-класса)
 ## Основные принципы ООП
 
 ### 1. **Инкапсуляция (Encapsulation)**

@@ -1,4 +1,19 @@
 # WEb FrameWorks
+
+
+## Оглавление
+- [**JavaScript/TypeScript (Frontend)**](#javascripttypescript-frontend)
+- [**JavaScript/TypeScript (Backend)**](#javascripttypescript-backend)
+- [**Python**](#python)
+- [**Ruby**](#ruby)
+- [**PHP**](#php)
+- [**Java**](#java)
+- [**C# (.NET)**](#c-net)
+- [**Go**](#go)
+- [**Rust**](#rust)
+- [**Kotlin**](#kotlin)
+- [**Выводы:**](#выводы)
+
 ---
 
 ### **JavaScript/TypeScript (Frontend)**

@@ -1,4 +1,18 @@
 ### 1. Монолитная архитектура (Monolithic Architecture)
+
+
+## Оглавление
+- [1. Монолитная архитектура (Monolithic Architecture)](#1-монолитная-архитектура-monolithic-architecture)
+- [2. Микросервисная архитектура (Microservices Architecture)](#2-микросервисная-архитектура-microservices-architecture)
+- [3. Многослойная архитектура (Layered Architecture)](#3-многослойная-архитектура-layered-architecture)
+- [4. Архитектура на основе событий (Event-Driven Architecture)](#4-архитектура-на-основе-событий-event-driven-architecture)
+- [5. Сервис-ориентированная архитектура (SOA)](#5-сервис-ориентированная-архитектура-soa)
+- [6. Архитектура "Клиент-Сервер" (Client-Server Architecture)](#6-архитектура-клиент-сервер-client-server-architecture)
+- [7. Архитектура "Пиринговая сеть" (Peer-to-Peer Architecture)](#7-архитектура-пиринговая-сеть-peer-to-peer-architecture)
+- [8. Чистая архитектура (Clean Architecture)](#8-чистая-архитектура-clean-architecture)
+- [9. Архитектура "Шина сервисов" (Service Bus Architecture)](#9-архитектура-шина-сервисов-service-bus-architecture)
+- [10. Шестиугольная архитектура (Hexagonal Architecture, Ports and Adapters)](#10-шестиугольная-архитектура-hexagonal-architecture-ports-and-adapters)
+
 - **Описание**: Все компоненты приложения (интерфейс, бизнес-логика, доступ к данным) объединены в один модуль.
 - **Плюсы**: Простота разработки, развертывания и тестирования.
 - **Минусы**: Сложность масштабирования, высокая связанность компонентов.

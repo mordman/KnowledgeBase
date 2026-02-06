@@ -4,6 +4,16 @@
 
 ### 1. **Unit of Work + Repository**
 
+
+
+## Оглавление
+- [1. **Unit of Work + Repository**](#1-unit-of-work-repository)
+- [2. **Active Record**](#2-active-record)
+- [3. **Transaction Script**](#3-transaction-script)
+- [4. **Domain Model (DDD-style)**](#4-domain-model-ddd-style)
+- [5. **Outbox Pattern**](#5-outbox-pattern)
+- [6. **Ambient Transaction (`TransactionScope`)**](#6-ambient-transaction-transactionscope)
+
 **Цель:**  
 Обеспечить согласованное управление изменениями над несколькими сущностями в рамках одной транзакции, инкапсулируя логику сохранения и отслеживания изменений.
 

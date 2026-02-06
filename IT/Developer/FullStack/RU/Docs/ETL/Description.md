@@ -34,6 +34,37 @@ graph TD
 ---
 
 ### **Логика ETL-процесса**:
+
+
+## Оглавление
+  - [**Логика ETL-процесса**:](#логика-etl-процесса)
+  - [**Дополнительные нюансы**:](#дополнительные-нюансы)
+- [Список популярных **ETL-систем** и инструментов, которые широко используются для извлечения, преобразования и загрузки данных:](#список-популярных-etl-систем-и-инструментов-которые-широко-используются-для-извлечения-преобразования-и-загрузки-данных)
+  - [**1. Apache NiFi**](#1-apache-nifi)
+  - [**2. Talend**](#2-talend)
+  - [**3. Informatica PowerCenter**](#3-informatica-powercenter)
+  - [**4. Microsoft SQL Server Integration Services (SSIS)**](#4-microsoft-sql-server-integration-services-ssis)
+  - [**5. Apache Airflow**](#5-apache-airflow)
+  - [**6. Pentaho Data Integration (Kettle)**](#6-pentaho-data-integration-kettle)
+  - [**7. AWS Glue**](#7-aws-glue)
+  - [**8. Google Dataflow**](#8-google-dataflow)
+  - [**9. IBM InfoSphere DataStage**](#9-ibm-infosphere-datastage)
+  - [**10. Python-библиотеки (Pandas, Petl, Bonobo)**](#10-python-библиотеки-pandas-petl-bonobo)
+  - [**Сравнение ETL-систем**](#сравнение-etl-систем)
+
+  - [**Логика ETL-процесса**:](#логика-etl-процесса)
+  - [**Дополнительные нюансы**:](#дополнительные-нюансы)
+  - [**1. Apache NiFi**](#1-apache-nifi)
+  - [**2. Talend**](#2-talend)
+  - [**3. Informatica PowerCenter**](#3-informatica-powercenter)
+  - [**4. Microsoft SQL Server Integration Services (SSIS)**](#4-microsoft-sql-server-integration-services-ssis)
+  - [**5. Apache Airflow**](#5-apache-airflow)
+  - [**6. Pentaho Data Integration (Kettle)**](#6-pentaho-data-integration-kettle)
+  - [**7. AWS Glue**](#7-aws-glue)
+  - [**8. Google Dataflow**](#8-google-dataflow)
+  - [**9. IBM InfoSphere DataStage**](#9-ibm-infosphere-datastage)
+  - [**10. Python-библиотеки (Pandas, Petl, Bonobo)**](#10-python-библиотеки-pandas-petl-bonobo)
+  - [**Сравнение ETL-систем**](#сравнение-etl-систем)
 1. **Extract (Извлечение)**:
    - Данные извлекаются из различных источников (базы данных, API, файлы).
    - Важно обеспечить **надёжность** (например, повторные попытки при ошибках) и **логирование** (чтобы отслеживать проблемы).

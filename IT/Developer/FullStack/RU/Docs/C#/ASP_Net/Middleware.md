@@ -4,6 +4,47 @@
 
 ## Как работает Middleware
 
+
+## Оглавление
+  - [Как работает Middleware](#как-работает-middleware)
+    - [Схема работы Middleware](#схема-работы-middleware)
+  - [Пример Middleware](#пример-middleware)
+  - [Базовые Middleware в ASP.NET Core](#базовые-middleware-в-aspnet-core)
+    - [1. **UseAuthentication**](#1-useauthentication)
+    - [2. **UseAuthorization**](#2-useauthorization)
+    - [3. **UseCors**](#3-usecors)
+    - [4. **UseRouting**](#4-userouting)
+    - [5. **UseEndpoints**](#5-useendpoints)
+    - [6. **UseStaticFiles**](#6-usestaticfiles)
+    - [7. **UseExceptionHandler**](#7-useexceptionhandler)
+    - [8. **UseHttpsRedirection**](#8-usehttpsredirection)
+  - [Порядок регистрации Middleware](#порядок-регистрации-middleware)
+    - [Пример типичного конвейера:](#пример-типичного-конвейера)
+  - [Схема типичного конвейера Middleware](#схема-типичного-конвейера-middleware)
+- [Более детально](#более-детально)
+  - [1. **UseAuthentication**](#1-useauthentication)
+    - [Настройка](#настройка)
+    - [Использование](#использование)
+  - [2. **UseAuthorization**](#2-useauthorization)
+    - [Настройка](#настройка)
+    - [Использование](#использование)
+  - [3. **UseCors**](#3-usecors)
+    - [Настройка](#настройка)
+    - [Использование](#использование)
+  - [4. **UseRouting**](#4-userouting)
+    - [Настройка](#настройка)
+    - [Использовение](#использовение)
+  - [5. **UseStaticFiles**](#5-usestaticfiles)
+    - [Настройка](#настройка)
+    - [Использование](#использование)
+  - [6. **UseExceptionHandler**](#6-useexceptionhandler)
+    - [Настройка](#настройка)
+    - [Использование](#использование)
+  - [7. **UseHttpsRedirection**](#7-usehttpsredirection)
+    - [Настройка](#настройка)
+    - [Использование](#использование)
+  - [Пример полного конвейера в `Program.cs`](#пример-полного-конвейера-в-programcs)
+
 Middleware в ASP.NET Core организованы в **конвейер**. Каждый запрос проходит через этот конвейер, последовательно обрабатываясь каждым middleware. Каждый middleware может:
 - Обработать запрос и передать его следующему middleware.
 - Обработать запрос и завершить его (например, вернуть ответ).
@@ -164,6 +205,44 @@ graph TD
 
 # Более детально
 
+
+  - [Как работает Middleware](#как-работает-middleware)
+    - [Схема работы Middleware](#схема-работы-middleware)
+  - [Пример Middleware](#пример-middleware)
+  - [Базовые Middleware в ASP.NET Core](#базовые-middleware-в-aspnet-core)
+    - [1. **UseAuthentication**](#1-useauthentication)
+    - [2. **UseAuthorization**](#2-useauthorization)
+    - [3. **UseCors**](#3-usecors)
+    - [4. **UseRouting**](#4-userouting)
+    - [5. **UseEndpoints**](#5-useendpoints)
+    - [6. **UseStaticFiles**](#6-usestaticfiles)
+    - [7. **UseExceptionHandler**](#7-useexceptionhandler)
+    - [8. **UseHttpsRedirection**](#8-usehttpsredirection)
+  - [Порядок регистрации Middleware](#порядок-регистрации-middleware)
+    - [Пример типичного конвейера:](#пример-типичного-конвейера)
+  - [Схема типичного конвейера Middleware](#схема-типичного-конвейера-middleware)
+  - [1. **UseAuthentication**](#1-useauthentication)
+    - [Настройка](#настройка)
+    - [Использование](#использование)
+  - [2. **UseAuthorization**](#2-useauthorization)
+    - [Настройка](#настройка)
+    - [Использование](#использование)
+  - [3. **UseCors**](#3-usecors)
+    - [Настройка](#настройка)
+    - [Использование](#использование)
+  - [4. **UseRouting**](#4-userouting)
+    - [Настройка](#настройка)
+    - [Использовение](#использовение)
+  - [5. **UseStaticFiles**](#5-usestaticfiles)
+    - [Настройка](#настройка)
+    - [Использование](#использование)
+  - [6. **UseExceptionHandler**](#6-useexceptionhandler)
+    - [Настройка](#настройка)
+    - [Использование](#использование)
+  - [7. **UseHttpsRedirection**](#7-usehttpsredirection)
+    - [Настройка](#настройка)
+    - [Использование](#использование)
+  - [Пример полного конвейера в `Program.cs`](#пример-полного-конвейера-в-programcs)
 ## 1. **UseAuthentication**
 **Назначение:** Аутентификация пользователя (проверка, кто совершает запрос).
 

@@ -3,6 +3,18 @@
 ---
 
 ### 1. **REST (Representational State Transfer)**
+
+
+## Оглавление
+- [1. **REST (Representational State Transfer)**](#1-rest-representational-state-transfer)
+- [2. **SOAP (Simple Object Access Protocol)**](#2-soap-simple-object-access-protocol)
+- [3. **GraphQL**](#3-graphql)
+- [4. **gRPC (Google Remote Procedure Call)**](#4-grpc-google-remote-procedure-call)
+- [5. **WebSocket**](#5-websocket)
+- [6. **SignalR**](#6-signalr)
+- [Сравнение протоколов](#сравнение-протоколов)
+- [Какой выбрать?](#какой-выбрать)
+
 - **Основная идея**: Использует стандартные HTTP-методы (GET, POST, PUT, DELETE) для работы с ресурсами, которые идентифицируются URL.
 - **Преимущества**:
   - Простота и понятность.

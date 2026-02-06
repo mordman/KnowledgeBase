@@ -1,5 +1,53 @@
 # <b style="color:lime;">ROAD MAP</b>
 
+
+
+## Оглавление
+- [Principles](#principles)
+- [Protocols](#protocols)
+- [Patterns](#patterns)
+  - [Architectural design patterns](#architectural-design-patterns)
+- [Practice](#practice)
+  - [FrameWorks](#frameworks)
+  - [TaskTracker](#tasktracker)
+  - [Git](#git)
+  - [CI/CD](#cicd)
+  - [C#](#c)
+    - [Base](#base)
+    - [ASP.net](#aspnet)
+    - [Tests](#tests)
+    - [Message Queue](#message-queue)
+    - [DataBase](#database)
+    - [Components](#components)
+  - [UI](#ui)
+    - [TypeScript](#typescript)
+    - [C#](#c)
+    - [JS](#js)
+  - [SQL](#sql)
+  - [Linters](#linters)
+  - [Live Coding](#live-coding)
+  - [Links for learn](#links-for-learn)
+
+  - [Architectural design patterns](#architectural-design-patterns)
+  - [FrameWorks](#frameworks)
+  - [TaskTracker](#tasktracker)
+  - [Git](#git)
+  - [CI/CD](#cicd)
+  - [C#](#c)
+    - [Base](#base)
+    - [ASP.net](#aspnet)
+    - [Tests](#tests)
+    - [Message Queue](#message-queue)
+    - [DataBase](#database)
+    - [Components](#components)
+  - [UI](#ui)
+    - [TypeScript](#typescript)
+    - [C#](#c)
+    - [JS](#js)
+  - [SQL](#sql)
+  - [Linters](#linters)
+  - [Live Coding](#live-coding)
+  - [Links for learn](#links-for-learn)
 # Principles
 - Solid
 - KISS

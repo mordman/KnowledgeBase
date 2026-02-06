@@ -4,6 +4,58 @@ Here is the English translation of your text:
 
 # <b style="color:lime;">ROAD MAP</b>
 
+
+
+## Оглавление
+  - [**Goal**](#goal)
+  - [**Links**](#links)
+- [**Principles**](#principles)
+- [**Protocols**](#protocols)
+- [**Patterns**](#patterns)
+  - [**Architectural Design Patterns**](#architectural-design-patterns)
+- [**Practice**](#practice)
+  - [**TaskTracker**](#tasktracker)
+  - [**Git**](#git)
+  - [**CI/CD**](#cicd)
+  - [**C#**](#c)
+    - [**Basics**](#basics)
+    - [**ASP.NET**](#aspnet)
+    - [**Tests**](#tests)
+    - [**Message Queues**](#message-queues)
+    - [**Databases**](#databases)
+      - [**Languages**](#languages)
+    - [**Components**](#components)
+  - [**UI**](#ui)
+    - [**TypeScript**](#typescript)
+    - [**C#**](#c)
+    - [**JavaScript**](#javascript)
+  - [**SQL**](#sql)
+  - [**Linters**](#linters)
+  - [**Live Coding**](#live-coding)
+  - [**Learning Resources**](#learning-resources)
+
+  - [**Goal**](#goal)
+  - [**Links**](#links)
+  - [**Architectural Design Patterns**](#architectural-design-patterns)
+  - [**TaskTracker**](#tasktracker)
+  - [**Git**](#git)
+  - [**CI/CD**](#cicd)
+  - [**C#**](#c)
+    - [**Basics**](#basics)
+    - [**ASP.NET**](#aspnet)
+    - [**Tests**](#tests)
+    - [**Message Queues**](#message-queues)
+    - [**Databases**](#databases)
+      - [**Languages**](#languages)
+    - [**Components**](#components)
+  - [**UI**](#ui)
+    - [**TypeScript**](#typescript)
+    - [**C#**](#c)
+    - [**JavaScript**](#javascript)
+  - [**SQL**](#sql)
+  - [**Linters**](#linters)
+  - [**Live Coding**](#live-coding)
+  - [**Learning Resources**](#learning-resources)
 ## **Goal**
 - Create documentation for the roadmap (Russian + English).
 - For each topic, prepare brief documentation and several interview questions.

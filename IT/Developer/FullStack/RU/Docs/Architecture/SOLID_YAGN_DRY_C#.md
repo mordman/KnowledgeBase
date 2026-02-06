@@ -1,5 +1,32 @@
 ### **SOLID**
 
+
+
+## Оглавление
+- [**SOLID**](#solid)
+  - [1. Single Responsibility Principle (SRP)](#1-single-responsibility-principle-srp)
+  - [2. Open/Closed Principle (OCP)](#2-openclosed-principle-ocp)
+  - [3. Liskov Substitution Principle (LSP)](#3-liskov-substitution-principle-lsp)
+  - [4. Interface Segregation Principle (ISP)](#4-interface-segregation-principle-isp)
+  - [5. Dependency Inversion Principle (DIP)](#5-dependency-inversion-principle-dip)
+- [**DRY (Don’t Repeat Yourself)**](#dry-dont-repeat-yourself)
+- [**GRASP**](#grasp)
+  - [1. Information Expert](#1-information-expert)
+  - [2. Creator](#2-creator)
+  - [3. Low Coupling](#3-low-coupling)
+  - [4. High Cohesion](#4-high-cohesion)
+- [**KISS (Keep It Simple, Stupid)**](#kiss-keep-it-simple-stupid)
+- [**YAGNI (You Aren’t Gonna Need It)**](#yagni-you-arent-gonna-need-it)
+
+  - [1. Single Responsibility Principle (SRP)](#1-single-responsibility-principle-srp)
+  - [2. Open/Closed Principle (OCP)](#2-openclosed-principle-ocp)
+  - [3. Liskov Substitution Principle (LSP)](#3-liskov-substitution-principle-lsp)
+  - [4. Interface Segregation Principle (ISP)](#4-interface-segregation-principle-isp)
+  - [5. Dependency Inversion Principle (DIP)](#5-dependency-inversion-principle-dip)
+  - [1. Information Expert](#1-information-expert)
+  - [2. Creator](#2-creator)
+  - [3. Low Coupling](#3-low-coupling)
+  - [4. High Cohesion](#4-high-cohesion)
 #### 1. Single Responsibility Principle (SRP)
 **Описание:** Класс должен иметь только одну причину для изменения — то есть выполнять только одну задачу.
 

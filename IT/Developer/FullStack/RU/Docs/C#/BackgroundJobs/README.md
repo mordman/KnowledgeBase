@@ -1,4 +1,16 @@
 ### 1. **Hangfire**
+
+
+## Оглавление
+- [1. **Hangfire**](#1-hangfire)
+- [2. **Quartz.NET**](#2-quartznet)
+- [3. **BackgroundService (встроенный в .NET Core)**](#3-backgroundservice-встроенный-в-net-core)
+- [4. **Coravel**](#4-coravel)
+- [5. **Azure Functions / AWS Lambda**](#5-azure-functions-aws-lambda)
+- [6. **Bull / BullMQ (для .NET через Redis)**](#6-bull-bullmq-для-net-через-redis)
+- [**Сравнение фреймворков**](#сравнение-фреймворков)
+- [**Как выбрать?**](#как-выбрать)
+
 - **Описание**: Самый популярный и универсальный фреймворк для фоновых задач в .NET. Поддерживает отложенные, повторяющиеся и долго выполняющиеся задачи.
 - **Особенности**:
   - Простая интеграция с ASP.NET Core.
