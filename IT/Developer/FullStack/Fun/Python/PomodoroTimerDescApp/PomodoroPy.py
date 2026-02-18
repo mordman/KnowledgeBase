@@ -108,9 +108,11 @@ class Pomodoro:
         self.root.geometry(f"{self.config['width']}x{self.config['height']}+{self.config['pos_x']}+{self.config['pos_y']}")
         self.root.configure(bg=self.theme['bg_primary'])
         self.root.protocol("WM_DELETE_WINDOW", self.close_app)
+        # Курсор перетаскивания для главного окна
+        self.root.config(cursor="fleur")
 
     def setup_ui(self):
-        top = tk.Frame(self.root, bg=self.theme['bg_primary'])
+        top = tk.Frame(self.root, bg=self.theme['bg_primary'], cursor="fleur")
         top.pack(fill=tk.X, padx=5, pady=3)
         
         for txt, cmd, tip in [("⚙️", self.open_settings, "Настройки"), 
@@ -138,6 +140,7 @@ class Pomodoro:
         self.lbl_mode.pack(pady=(0, 5))
 
     def setup_bindings(self):
+        # Перетаскивание главного окна
         for widget in [self.root, self.lbl_time]:
             widget.bind("<ButtonPress-1>", lambda e: setattr(self, '_drag', (e.x_root - self.root.winfo_x(), e.y_root - self.root.winfo_y())))
             widget.bind("<B1-Motion>", lambda e: self.root.geometry(f'+{e.x_root - self._drag[0]}+{e.y_root - self._drag[1]}'))
@@ -156,6 +159,34 @@ class Pomodoro:
             if hasattr(self, 'tip'): self.tip.destroy()
         widget.bind("<Enter>", show)
         widget.bind("<Leave>", hide)
+
+    def make_draggable(self, widget, handle=None):
+        """Делает Toplevel окно перетаскиваемым за любой дочерний виджет"""
+        handle = handle or widget
+        
+        def on_press(event):
+            try:
+                widget._drag_offset = (event.x_root - widget.winfo_x(), 
+                                       event.y_root - widget.winfo_y())
+            except:
+                pass
+        
+        def on_drag(event):
+            try:
+                if hasattr(widget, '_drag_offset'):
+                    x = event.x_root - widget._drag_offset[0]
+                    y = event.y_root - widget._drag_offset[1]
+                    widget.geometry(f'+{x}+{y}')
+            except:
+                pass
+        
+        handle.bind("<ButtonPress-1>", on_press, add=True)
+        handle.bind("<B1-Motion>", on_drag, add=True)
+        
+        # Рекурсивно применяем к дочерним виджетам, кроме интерактивных
+        for child in widget.winfo_children():
+            if not isinstance(child, (tk.Button, tk.Entry, ttk.Combobox, tk.Text, tk.Checkbutton)):
+                self.make_draggable(widget, child)
 
     def toggle(self):
         if self.running:
@@ -221,6 +252,12 @@ class Pomodoro:
         win.overrideredirect(True)
         win.attributes('-topmost', True)
         win.configure(bg=self.theme['bg_secondary'])
+        win.config(cursor="fleur")  # Курсор перетаскивания
+        
+        # === Делаем окно перетаскиваемым ===
+        self.make_draggable(win)
+        # ===================================
+        
         x, y = self.root.winfo_x() + 50, self.root.winfo_y() + 50
         win.geometry(f"+{x}+{y}")
         
@@ -296,8 +333,10 @@ class Pomodoro:
         self.create_btn(bf, "Сохранить", save, self.theme['fg_accent']).pack(side=tk.LEFT, padx=5)
         self.create_btn(bf, "Сброс", reset, self.theme['fg_pause']).pack(side=tk.LEFT, padx=5)
         
-        tk.Button(win, text="✕", command=win.destroy, bg=self.theme['btn_close_bg'],
-            fg='#ffffff', bd=0, font=("Arial", 8), cursor="hand2").place(x=375, y=2)
+        # Кнопка закрытия с place для позиционирования в углу
+        close_btn = tk.Button(win, text="✕", command=win.destroy, bg=self.theme['btn_close_bg'],
+            fg='#ffffff', bd=0, font=("Arial", 8), cursor="hand2")
+        close_btn.place(x=375, y=2)
         
         win.update_idletasks()
         win.geometry(f"400x{f.winfo_reqheight() + 80}+{x}+{y}")
@@ -307,6 +346,12 @@ class Pomodoro:
         win.overrideredirect(True)
         win.attributes('-topmost', True)
         win.configure(bg=self.theme['bg_secondary'])
+        win.config(cursor="fleur")  # Курсор перетаскивания
+        
+        # === Делаем окно перетаскиваемым ===
+        self.make_draggable(win)
+        # ===================================
+        
         win.geometry(f"+{self.root.winfo_x() + 50}+{self.root.winfo_y() + 50}")
         
         tk.Label(win, text="📊 Статистика", bg=self.theme['bg_secondary'],
@@ -345,8 +390,12 @@ class Pomodoro:
         
         self.create_btn(bf, "Очистить", clear, self.theme['btn_close_bg']).pack(side=tk.LEFT, padx=5)
         self.create_btn(bf, "Закрыть", win.destroy, self.theme['bg_button']).pack(side=tk.LEFT, padx=5)
-        tk.Button(win, text="✕", command=win.destroy, bg=self.theme['btn_close_bg'],
-            fg='#ffffff', bd=0, font=("Arial", 8), cursor="hand2").place(x=375, y=2)
+        
+        # Кнопка закрытия с place для позиционирования в углу
+        close_btn = tk.Button(win, text="✕", command=win.destroy, bg=self.theme['btn_close_bg'],
+            fg='#ffffff', bd=0, font=("Arial", 8), cursor="hand2")
+        close_btn.place(x=375, y=2)
+        
         win.geometry("400x400")
         
         def wheel(e):

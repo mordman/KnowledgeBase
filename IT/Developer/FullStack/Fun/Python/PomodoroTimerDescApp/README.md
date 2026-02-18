@@ -31,7 +31,7 @@
 
 ```
 pomodoro/
-├── pomodoro.py              # Основной скрипт (520 строк)
+├── pomodoroPy.py              # Основной скрипт (520 строк)
 ├── config.json              # Настройки приложения
 ├── pomodoro_history.json    # История сессий
 └── themes/                  # Папка с темами
@@ -188,7 +188,7 @@ pomodoro/
 ```
 ┌─────────────┐
 │   Запуск    │
-│ pomodoro.py │
+│ pomodoroPy.py │
 └──────┬──────┘
        │
        ▼
@@ -299,9 +299,9 @@ pomodoro/
 mkdir pomodoro
 cd pomodoro
 
-# 2. Сохраните код в файл pomodoro.py
+# 2. Сохраните код в файл pomodoroPy.py
 # 3. Запустите приложение
-python pomodoro.py
+python pomodoroPy.py
 ```
 
 ### 🎨 Добавление своей темы:
