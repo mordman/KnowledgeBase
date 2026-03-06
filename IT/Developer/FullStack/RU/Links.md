@@ -95,5 +95,12 @@ https://habr.com/ru/companies/vktech/articles/963714/
 
 https://github.com/avito-tech/patterns-and-practices-abstracts
 https://github.com/avito-tech/tech-internship/tree/main/Tech%20Internships
+https://habr.com/ru/articles/769384/
 
+API
+https://habr.com/ru/articles/891684/
+https://habr.com/ru/companies/flant/articles/770036/
+
+Interview
+https://habr.com/ru/companies/yadro/articles/1001574/
 ---
