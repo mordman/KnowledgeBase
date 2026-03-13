@@ -246,8 +246,8 @@ python -m main
 | `name` | string | ✅ | Название элемента |
 | `mass` | float | ✅ | Атомная масса |
 | `category` | string | ✅ | Категория (должна совпадать с settings.json) |
-| `row` | int | ✅ | Номер периода (1-9) |
-| `col` | int | ✅ | Номер группы (1-18) |
+| `period` | int | ✅ | Номер периода (1-9) |
+| `group` | int | ✅ | Номер группы (1-18) |
 | `description` | string | ❌ | Простое описание |
 | `markdown` | string | ❌ | Markdown-описание (приоритет) |
 | `html` | string | ❌ | HTML-описание |
