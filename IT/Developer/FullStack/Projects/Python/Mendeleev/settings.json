@@ -1,19 +1,409 @@
 {
-    "cell_width": 45,
-    "cell_height": 55,
+    "cell_width": 65,
+    "cell_height": 75,
     "window_width": 1200,
     "window_height": 850,
     "category_colors": {
-        "Щелочные металлы": "#FF6B6B",
-        "Щелочноземельные металлы": "#FFE66D",
-        "Переходные металлы": "#4ECDC4",
-        "Постпереходные металлы": "#C7F464",
-        "Полуметаллы": "#A8D8EA",
-        "Неметаллы": "#F7FFF7",
-        "Галогены": "#FF9F1C",
-        "Благородные газы": "#D4A5A5",
-        "Лантаноиды": "#9D8DF1",
-        "Актиноиды": "#C77DFF",
-        "Неизвестные свойства": "#808080"
-    }
+        "Щелочные металлы": "#FFB3BA",
+        "Щелочноземельные металлы": "#FFDFBA",
+        "Переходные металлы": "#BAFFC9",
+        "Постпереходные металлы": "#BAE1FF",
+        "Полуметаллы": "#E2F0CB",
+        "Неметаллы": "#FFFFBA",
+        "Галогены": "#FFC6FF",
+        "Благородные газы": "#FFFFDF",
+        "Лантаноиды": "#D4A5A5",
+        "Актиноиды": "#B5EAD7",
+        "Неизвестные свойства": "#C7C9CA"
+    },
+    "fonts": {
+        "element_symbol": {
+            "family": "Arial",
+            "size": 16,
+            "weight": "bold"
+        },
+        "element_number": {
+            "family": "Arial",
+            "size": 9,
+            "weight": "normal"
+        },
+        "element_mass": {
+            "family": "Arial",
+            "size": 8,
+            "weight": "normal"
+        },
+        "detail_title": {
+            "family": "Arial",
+            "size": 20,
+            "weight": "bold"
+        },
+        "detail_info": {
+            "family": "Arial",
+            "size": 11,
+            "weight": "normal"
+        },
+        "detail_description": {
+            "family": "Arial",
+            "size": 11,
+            "weight": "normal"
+        },
+        "molecule_title": {
+            "family": "Arial",
+            "size": 16,
+            "weight": "bold"
+        },
+        "molecule_name": {
+            "family": "Arial",
+            "size": 11,
+            "weight": "normal"
+        },
+        "molecule_formula": {
+            "family": "Arial",
+            "size": 11,
+            "weight": "normal"
+        },
+        "molecule_description": {
+            "family": "Arial",
+            "size": 10,
+            "weight": "normal"
+        },
+        "legend_title": {
+            "family": "Arial",
+            "size": 16,
+            "weight": "bold"
+        },
+        "legend_category": {
+            "family": "Arial",
+            "size": 10,
+            "weight": "normal"
+        },
+        "button_text": {
+            "family": "Arial",
+            "size": 11,
+            "weight": "bold"
+        },
+        "settings_label": {
+            "family": "Arial",
+            "size": 11,
+            "weight": "normal"
+        }
+    },
+    "colors": {
+        "window_background": "#F0F0F0",
+        "canvas_background": "#F0F0F0",
+        "header_background": "#333333",
+        "header_foreground": "#FFFFFF",
+        "text_foreground": "#000000",
+        "button_background": "#4ECDC4",
+        "button_foreground": "#FFFFFF",
+        "row_even": "#FFFFFF",
+        "row_odd": "#E8F4F8",
+        "border_color": "#DDDDDD",
+        "element_border": "#333333"
+    },
+    "templates": {
+        "mini": {
+            "name": "Мини",
+            "description": "Минимальные шрифты для компактного отображения",
+            "fonts": {
+                "element_symbol": {
+                    "family": "Arial",
+                    "size": 7,
+                    "weight": "bold"
+                },
+                "element_number": {
+                    "family": "Arial",
+                    "size": 4,
+                    "weight": "normal"
+                },
+                "element_mass": {
+                    "family": "Arial",
+                    "size": 3,
+                    "weight": "normal"
+                },
+                "detail_title": {
+                    "family": "Arial",
+                    "size": 11,
+                    "weight": "bold"
+                },
+                "detail_info": {
+                    "family": "Arial",
+                    "size": 6,
+                    "weight": "normal"
+                },
+                "detail_description": {
+                    "family": "Arial",
+                    "size": 6,
+                    "weight": "normal"
+                },
+                "molecule_title": {
+                    "family": "Arial",
+                    "size": 9,
+                    "weight": "bold"
+                },
+                "molecule_name": {
+                    "family": "Arial",
+                    "size": 6,
+                    "weight": "normal"
+                },
+                "molecule_formula": {
+                    "family": "Arial",
+                    "size": 6,
+                    "weight": "normal"
+                },
+                "molecule_description": {
+                    "family": "Arial",
+                    "size": 5,
+                    "weight": "normal"
+                },
+                "legend_title": {
+                    "family": "Arial",
+                    "size": 9,
+                    "weight": "bold"
+                },
+                "legend_category": {
+                    "family": "Arial",
+                    "size": 5,
+                    "weight": "normal"
+                },
+                "button_text": {
+                    "family": "Arial",
+                    "size": 6,
+                    "weight": "bold"
+                },
+                "settings_label": {
+                    "family": "Arial",
+                    "size": 6,
+                    "weight": "normal"
+                }
+            },
+            "cell_width": 40,
+            "cell_height": 45
+        },
+        "standard": {
+            "name": "Стандарт",
+            "description": "Стандартные настройки по умолчанию",
+            "fonts": {
+                "element_symbol": {
+                    "family": "Arial",
+                    "size": 16,
+                    "weight": "bold"
+                },
+                "element_number": {
+                    "family": "Arial",
+                    "size": 9,
+                    "weight": "normal"
+                },
+                "element_mass": {
+                    "family": "Arial",
+                    "size": 8,
+                    "weight": "normal"
+                },
+                "detail_title": {
+                    "family": "Arial",
+                    "size": 20,
+                    "weight": "bold"
+                },
+                "detail_info": {
+                    "family": "Arial",
+                    "size": 11,
+                    "weight": "normal"
+                },
+                "detail_description": {
+                    "family": "Arial",
+                    "size": 11,
+                    "weight": "normal"
+                },
+                "molecule_title": {
+                    "family": "Arial",
+                    "size": 16,
+                    "weight": "bold"
+                },
+                "molecule_name": {
+                    "family": "Arial",
+                    "size": 11,
+                    "weight": "normal"
+                },
+                "molecule_formula": {
+                    "family": "Arial",
+                    "size": 11,
+                    "weight": "normal"
+                },
+                "molecule_description": {
+                    "family": "Arial",
+                    "size": 10,
+                    "weight": "normal"
+                },
+                "legend_title": {
+                    "family": "Arial",
+                    "size": 16,
+                    "weight": "bold"
+                },
+                "legend_category": {
+                    "family": "Arial",
+                    "size": 10,
+                    "weight": "normal"
+                },
+                "button_text": {
+                    "family": "Arial",
+                    "size": 11,
+                    "weight": "bold"
+                },
+                "settings_label": {
+                    "family": "Arial",
+                    "size": 11,
+                    "weight": "normal"
+                }
+            },
+            "cell_width": 65,
+            "cell_height": 75
+        },
+        "large": {
+            "name": "Крупный",
+            "description": "Увеличенные шрифты для лучшей читаемости",
+            "fonts": {
+                "element_symbol": {
+                    "family": "Arial",
+                    "size": 22,
+                    "weight": "bold"
+                },
+                "element_number": {
+                    "family": "Arial",
+                    "size": 12,
+                    "weight": "normal"
+                },
+                "element_mass": {
+                    "family": "Arial",
+                    "size": 11,
+                    "weight": "normal"
+                },
+                "detail_title": {
+                    "family": "Arial",
+                    "size": 26,
+                    "weight": "bold"
+                },
+                "detail_info": {
+                    "family": "Arial",
+                    "size": 14,
+                    "weight": "normal"
+                },
+                "detail_description": {
+                    "family": "Arial",
+                    "size": 14,
+                    "weight": "normal"
+                },
+                "molecule_title": {
+                    "family": "Arial",
+                    "size": 20,
+                    "weight": "bold"
+                },
+                "molecule_name": {
+                    "family": "Arial",
+                    "size": 14,
+                    "weight": "normal"
+                },
+                "molecule_formula": {
+                    "family": "Arial",
+                    "size": 14,
+                    "weight": "normal"
+                },
+                "molecule_description": {
+                    "family": "Arial",
+                    "size": 12,
+                    "weight": "normal"
+                },
+                "legend_title": {
+                    "family": "Arial",
+                    "size": 20,
+                    "weight": "bold"
+                },
+                "legend_category": {
+                    "family": "Arial",
+                    "size": 12,
+                    "weight": "normal"
+                },
+                "button_text": {
+                    "family": "Arial",
+                    "size": 14,
+                    "weight": "bold"
+                },
+                "settings_label": {
+                    "family": "Arial",
+                    "size": 12,
+                    "weight": "normal"
+                }
+            },
+            "cell_width": 85,
+            "cell_height": 95
+        },
+        "dark": {
+            "name": "Тёмная тема",
+            "description": "Тёмный фон с светлым текстом",
+            "colors": {
+                "window_background": "#1E1E1E",
+                "canvas_background": "#252525",
+                "header_background": "#333333",
+                "header_foreground": "#FFFFFF",
+                "text_foreground": "#E0E0E0",
+                "button_background": "#4ECDC4",
+                "button_foreground": "#FFFFFF",
+                "row_even": "#2D2D2D",
+                "row_odd": "#383838",
+                "border_color": "#444444",
+                "element_border": "#666666"
+            }
+        },
+        "light": {
+            "name": "Светлая тема",
+            "description": "Классическая светлая тема",
+            "colors": {
+                "window_background": "#FFFFFF",
+                "canvas_background": "#FAFAFA",
+                "header_background": "#2C3E50",
+                "header_foreground": "#FFFFFF",
+                "text_foreground": "#2C3E50",
+                "button_background": "#3498DB",
+                "button_foreground": "#FFFFFF",
+                "row_even": "#FFFFFF",
+                "row_odd": "#F5F5F5",
+                "border_color": "#DDDDDD",
+                "element_border": "#333333"
+            }
+        },
+        "colorful": {
+            "name": "Цветная тема",
+            "description": "Яркие цвета для элементов",
+            "category_colors": {
+                "Щелочные металлы": "#FF6B6B",
+                "Щелочноземельные металлы": "#FFD93D",
+                "Переходные металлы": "#6BCB77",
+                "Постпереходные металлы": "#4D96FF",
+                "Полуметаллы": "#9D65C8",
+                "Неметаллы": "#F7FFF7",
+                "Галогены": "#FF9F1C",
+                "Благородные газы": "#FF85A2",
+                "Лантаноиды": "#C77DFF",
+                "Актиноиды": "#F38181",
+                "Неизвестные свойства": "#95A5A6"
+            }
+        },
+        "pastel": {
+            "name": "Пастельная тема",
+            "description": "Мягкие пастельные тона",
+            "category_colors": {
+                "Щелочные металлы": "#FFB3BA",
+                "Щелочноземельные металлы": "#FFDFBA",
+                "Переходные металлы": "#BAFFC9",
+                "Постпереходные металлы": "#BAE1FF",
+                "Полуметаллы": "#E2F0CB",
+                "Неметаллы": "#FFFFBA",
+                "Галогены": "#FFC6FF",
+                "Благородные газы": "#FFFFDF",
+                "Лантаноиды": "#D4A5A5",
+                "Актиноиды": "#B5EAD7",
+                "Неизвестные свойства": "#C7C9CA"
+            }
+        }
+    },
+    "current_template": "standard"
 }
