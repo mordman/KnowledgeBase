@@ -12,7 +12,6 @@
 - [Apache Airflow Official Website](https://airflow.apache.org/)
 
 ### **Docker**
-- [Docker Official Website](https://www.docker.com/)
 - [Docker Hub (Airflow Image)](https://hub.docker.com/r/apache/airflow)
 
 ### **Git**
