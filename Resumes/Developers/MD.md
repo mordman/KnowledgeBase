@@ -1,4 +1,4 @@
-**Middle C# Developer**
+**C# Developer**
 
 <img src="./img/avatar.png" width="200">  
 
