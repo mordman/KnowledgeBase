@@ -4,8 +4,8 @@ from typing import List, Dict, Any, Optional
 from models.dish import Dish, Meal, DietTarget, DietTolerance, MealStructure
 
 
-class DietSolver:
-    """Решатель задачи оптимальной диеты"""
+class HeuristicDietSolver:
+    """Эвристический решатель задачи оптимальной диеты (без PuLP)"""
 
     def __init__(self, dishes: List[Dish]):
         self.dishes = dishes
@@ -19,7 +19,7 @@ class DietSolver:
             'proteins': 0,
             'fats': 0,
             'carbs': 0,
-            'weight': 0  # Добавлен подсчет общего веса
+            'weight': 0
         }
         for dish in dishes:
             totals['calories'] += dish.calories
@@ -43,11 +43,7 @@ class DietSolver:
         return possible_meals
 
     def _get_deviation_score(self, actual: float, target: float, tolerance_pct: float) -> float:
-        """
-        Возвращает 'штраф' за отклонение.
-        Если в пределах допуска - штраф 0.
-        Если вне - штраф равен проценту превышения границы.
-        """
+        """Возвращает 'штраф' за отклонение"""
         if target == 0:
             return 0 if actual == 0 else 100
         
@@ -72,20 +68,15 @@ class DietSolver:
 
     def solve(self, target: DietTarget, tolerance: DietTolerance, 
               structure: MealStructure) -> Dict[str, Any]:
-        """
-        Основной алгоритм подбора диеты.
-        
-        Returns:
-            Dict с результатами или ошибкой
-        """
+        """Основной алгоритм подбора диеты"""
         if not self.dishes:
-            return {"status": "error", "message": "Список блюд пуст"}
+            return {"status": "error", "message": "Список блюд пуст", "method": "Heuristic"}
 
         # 1. Генерация всех возможных вариантов одного приема пищи
         self.possible_meals = self._generate_possible_meals(structure)
         
         if not self.possible_meals:
-            return {"status": "error", "message": "Не удалось сгенерировать варианты приемов пищи"}
+            return {"status": "error", "message": "Не удалось сгенерировать варианты", "method": "Heuristic"}
 
         # 2. Оптимизация: сортировка по близости к идеалу
         ideal_per_meal = {k: v / structure.num_meals for k, v in target.to_dict().items()}
@@ -143,7 +134,7 @@ class DietSolver:
                        tolerance: DietTolerance) -> Dict[str, Any]:
         """Форматирует результат для вывода"""
         if not result:
-            return {"status": "error", "message": "Не удалось найти решение"}
+            return {"status": "error", "message": "Не удалось найти решение", "method": "Heuristic"}
         
         output_meals = []
         for i, meal in enumerate(result['meals']):
@@ -153,8 +144,8 @@ class DietSolver:
                     "name": d.name,
                     "calories": d.calories,
                     "price": d.price,
-                    "weight": d.weight,       # Добавлен вес
-                    "recipe": d.recipe        # Добавлен рецепт
+                    "weight": d.weight,
+                    "recipe": d.recipe
                 })
             output_meals.append({
                 "meal_number": i + 1,
@@ -184,8 +175,9 @@ class DietSolver:
 
         return {
             "status": "success",
+            "method": "Heuristic",
             "daily_totals": report_totals,
             "total_price": round(result['totals']['price'], 2),
-            "total_weight": round(result['totals']['weight'], 2),  # Общий вес за день
+            "total_weight": round(result['totals']['weight'], 2),
             "plan": output_meals
         }

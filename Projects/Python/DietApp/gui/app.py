@@ -2,7 +2,8 @@ import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext, filedialog
 from typing import Dict
 from data.loader import DataLoader
-from solver.diet_solver import DietSolver
+from solver.factory import SolverFactory
+from solver.pulp_solver import PULP_AVAILABLE
 from models.dish import DietTarget, DietTolerance, MealStructure
 import json
 
@@ -18,9 +19,11 @@ class DietApp:
         self.data_loader = DataLoader()
         self.solver = None
         self.dishes = []
+        self.prefer_pulp = tk.BooleanVar(value=True)
 
         self._create_widgets()
         self._load_sample_data()
+        self._update_solver_status()
 
     def _create_widgets(self):
         """Создает все виджеты интерфейса"""
@@ -40,6 +43,21 @@ class DietApp:
         left_frame = ttk.LabelFrame(parent, text="Параметры и Цели", padding=10)
         left_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=5)
         
+        # Статус решателя
+        status_frame = ttk.LabelFrame(left_frame, text="Метод решения", padding=5)
+        status_frame.grid(row=0, column=0, columnspan=4, sticky=(tk.W, tk.E), pady=5)
+        
+        self.lbl_solver_status = ttk.Label(status_frame, text="", foreground="green")
+        self.lbl_solver_status.grid(row=0, column=0, columnspan=4, sticky=tk.W)
+        
+        self.chk_prefer_pulp = ttk.Checkbutton(
+            status_frame, 
+            text="Использовать PuLP (если доступен)",
+            variable=self.prefer_pulp,
+            command=self._update_solver_status
+        )
+        self.chk_prefer_pulp.grid(row=1, column=0, columnspan=4, sticky=tk.W, pady=5)
+        
         # Поля ввода целей
         self.targets_entries: Dict[str, ttk.Entry] = {}
         self.tolerances_entries: Dict[str, ttk.Entry] = {}
@@ -52,7 +70,7 @@ class DietApp:
             ("Цена (руб)", "price", "500")
         ]
 
-        row = 0
+        row = 2
         for label, key, default in fields:
             ttk.Label(left_frame, text=label).grid(row=row, column=0, sticky=tk.W, pady=2)
             
@@ -130,6 +148,21 @@ class DietApp:
                                 command=self.export_result)
         btn_export.grid(row=5, column=0, sticky=(tk.W, tk.E), pady=5)
 
+    def _update_solver_status(self):
+        """Обновляет статус решателя в интерфейсе"""
+        if PULP_AVAILABLE:
+            if self.prefer_pulp.get():
+                status = "✅ PuLP доступен (будет использован)"
+                self.lbl_solver_status.config(foreground="green")
+            else:
+                status = "⚠️ PuLP доступен (используется эвристика)"
+                self.lbl_solver_status.config(foreground="orange")
+        else:
+            status = "❌ PuLP не установлен (используется эвристика)"
+            self.lbl_solver_status.config(foreground="red")
+        
+        self.lbl_solver_status.config(text=status)
+
     def _load_sample_data(self):
         """Загружает пример данных в поле ввода"""
         self.txt_input.delete("1.0", tk.END)
@@ -157,7 +190,6 @@ class DietApp:
             return
         
         try:
-            # Проверка валидности JSON перед сохранением
             json.loads(result_text)
             
             file_path = filedialog.asksaveasfilename(
@@ -219,8 +251,9 @@ class DietApp:
         
         self.dishes = dishes
 
-        # Инициализация решателя
-        self.solver = DietSolver(self.dishes)
+        # Создание решателя через фабрику
+        self.solver = SolverFactory.create(self.dishes, self.prefer_pulp.get())
+        method_name = SolverFactory.get_method_name()
 
         # Запуск расчета
         try:
@@ -234,8 +267,10 @@ class DietApp:
             self.txt_output.insert(tk.END, json.dumps(result, ensure_ascii=False, indent=2))
             
             if result.get('status') == 'success':
+                method_used = result.get('method', 'Unknown')
                 messagebox.showinfo("Готово", 
                     f"Диета рассчитана!\n"
+                    f"Метод: {method_used}\n"
                     f"Общая цена: {result.get('total_price', 0)} руб.\n"
                     f"Общий вес: {result.get('total_weight', 0)} г")
             else:
