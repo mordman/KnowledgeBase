@@ -164,6 +164,14 @@ app.UseMiddleware<CustomMiddleware>();
   app.UseHttpsRedirection();
   ```
 
+### 9. **UseHealthChecks**
+- Позволяет настроить **проверку состояния приложения** (health checks).
+- Используется для мониторинга состояния приложения, например, в Kubernetes или других системах оркестрации.
+- **Пример:**
+  ```csharp
+  app.UseHealthChecks("/health");
+  ```
+
 ---
 
 ## Порядок регистрации Middleware
@@ -423,6 +431,25 @@ graph TD
 
 ---
 
+## 8. **UseHealthChecks**
+**Назначение:** Проверка состояния приложения.
+
+### Настройка
+1. Установите пакет для проверки состояния (если еще не установлен):
+   ```bash
+   dotnet add package Microsoft.AspNetCore.Diagnostics.HealthChecks
+   ```
+
+2. Добавьте middleware в конвейер:
+   ```csharp
+   app.UseHealthChecks("/health");
+   ```
+
+### Использование
+- Теперь ваше приложение будет отвечать на запросы к `/health` статусом 200 OK, если все в порядке.
+
+---
+
 ## Пример полного конвейера в `Program.cs`
 
 ```csharp
@@ -457,6 +484,7 @@ app.UseRouting();
 app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseHealthChecks("/health");
 app.UseEndpoints(endpoints =>
 {
     endpoints.MapControllers();
