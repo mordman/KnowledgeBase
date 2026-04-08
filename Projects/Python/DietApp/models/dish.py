@@ -63,6 +63,11 @@ class DietTarget:
     fats: float = 80
     carbs: float = 250
     price: float = 500
+    
+    # Проценты от общей калорийности (если указаны, имеют приоритет над абсолютными значениями)
+    proteins_pct: float = 0.0
+    fats_pct: float = 0.0
+    carbs_pct: float = 0.0
 
     def to_dict(self) -> Dict[str, float]:
         return {
@@ -72,6 +77,43 @@ class DietTarget:
             'carbs': self.carbs,
             'price': self.price
         }
+    
+    def resolve_macros(self) -> 'DietTarget':
+        """
+        Если проценты указаны, конвертирует их в граммы на основе калорийности.
+        Калорийность макронутриентов:
+        - Белки: 4 ккал/г
+        - Жиры: 9 ккал/г
+        - Углеводы: 4 ккал/г
+        
+        Returns: новый объект DietTarget с пересчитанными значениями
+        """
+        new_proteins = self.proteins
+        new_fats = self.fats
+        new_carbs = self.carbs
+        
+        # Если указан процент для белков, пересчитываем
+        if self.proteins_pct > 0:
+            new_proteins = (self.calories * self.proteins_pct / 100) / 4
+        
+        # Если указан процент для жиров, пересчитываем
+        if self.fats_pct > 0:
+            new_fats = (self.calories * self.fats_pct / 100) / 9
+        
+        # Если указан процент для углеводов, пересчитываем
+        if self.carbs_pct > 0:
+            new_carbs = (self.calories * self.carbs_pct / 100) / 4
+        
+        return DietTarget(
+            calories=self.calories,
+            proteins=new_proteins,
+            fats=new_fats,
+            carbs=new_carbs,
+            price=self.price,
+            proteins_pct=self.proteins_pct,
+            fats_pct=self.fats_pct,
+            carbs_pct=self.carbs_pct
+        )
 
 
 @dataclass

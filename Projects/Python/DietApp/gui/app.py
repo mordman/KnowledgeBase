@@ -61,7 +61,9 @@ class DietApp:
         # Поля ввода целей
         self.targets_entries: Dict[str, ttk.Entry] = {}
         self.tolerances_entries: Dict[str, ttk.Entry] = {}
-        
+        self.percentages_entries: Dict[str, ttk.Entry] = {}
+        self.percentages_vars: Dict[str, tk.StringVar] = {}
+
         fields = [
             ("Ккал", "calories", "2000"),
             ("Белки (г)", "proteins", "100"),
@@ -73,7 +75,7 @@ class DietApp:
         row = 2
         for label, key, default in fields:
             ttk.Label(left_frame, text=label).grid(row=row, column=0, sticky=tk.W, pady=2)
-            
+
             # Цель
             ent_target = ttk.Entry(left_frame, width=10)
             ent_target.grid(row=row, column=1, padx=5, pady=2)
@@ -81,13 +83,38 @@ class DietApp:
             self.targets_entries[key] = ent_target
 
             # Отклонение %
-            ttk.Label(left_frame, text="%").grid(row=row, column=2, sticky=tk.W)
+            ttk.Label(left_frame, text="±%").grid(row=row, column=2, sticky=tk.W)
             ent_tol = ttk.Entry(left_frame, width=5)
             ent_tol.grid(row=row, column=3, padx=5, pady=2)
             ent_tol.insert(0, "10")
             self.tolerances_entries[key] = ent_tol
-            
+
+            # Поле процента для БЖУ (не для калорий и цены)
+            if key in ['proteins', 'fats', 'carbs']:
+                ttk.Label(left_frame, text="% от ккал").grid(row=row, column=4, sticky=tk.W, padx=(10, 0))
+                
+                # Используем StringVar для отслеживания изменений
+                pct_var = tk.StringVar(value="")
+                self.percentages_vars[key] = pct_var
+                
+                ent_pct = ttk.Entry(left_frame, width=5, textvariable=pct_var)
+                ent_pct.grid(row=row, column=5, padx=5, pady=2)
+                self.percentages_entries[key] = ent_pct
+                
+                # Привязываем событие для динамического обновления суммы
+                pct_var.trace_add('write', self._on_percentage_change)
+
             row += 1
+
+        # Сумма процентов БЖУ
+        sum_frame = ttk.LabelFrame(left_frame, text="Сумма процентов БЖУ", padding=5)
+        sum_frame.grid(row=row, column=0, columnspan=6, sticky=(tk.W, tk.E), pady=10)
+        
+        self.lbl_sum_pct = ttk.Label(sum_frame, text="0%", font=("Arial", 14, "bold"), foreground="green")
+        self.lbl_sum_pct.grid(row=0, column=0, padx=10)
+        
+        self.lbl_sum_pct_bar = ttk.Label(sum_frame, text="", font=("Arial", 10))
+        self.lbl_sum_pct_bar.grid(row=0, column=1, padx=10)
 
         # Структура питания
         struct_frame = ttk.LabelFrame(left_frame, text="Структура питания", padding=5)
@@ -160,8 +187,66 @@ class DietApp:
         else:
             status = "❌ PuLP не установлен (используется эвристика)"
             self.lbl_solver_status.config(foreground="red")
-        
+
         self.lbl_solver_status.config(text=status)
+
+    def _on_percentage_change(self, *args):
+        """Обработчик изменения процентов - обновляет сумму и валидирует"""
+        total = 0
+        for key in ['proteins', 'fats', 'carbs']:
+            if key in self.percentages_vars:
+                val = self.percentages_vars[key].get().strip()
+                if val:
+                    try:
+                        total += float(val)
+                    except ValueError:
+                        pass
+
+        # Обновляем отображение суммы
+        self.lbl_sum_pct.config(text=f"{total:.1f}%")
+
+        # Визуальная индикация
+        if total > 100:
+            self.lbl_sum_pct.config(foreground="red")
+            self.lbl_sum_pct_bar.config(text="❌ Превышено 100%!", foreground="red")
+        elif total == 100:
+            self.lbl_sum_pct.config(foreground="green")
+            self.lbl_sum_pct_bar.config(text="✅ Идеально!", foreground="green")
+        elif total > 0:
+            self.lbl_sum_pct.config(foreground="orange")
+            remaining = 100 - total
+            self.lbl_sum_pct_bar.config(text=f"Осталось: {remaining:.1f}%", foreground="orange")
+        else:
+            self.lbl_sum_pct.config(foreground="gray")
+            self.lbl_sum_pct_bar.config(text="Не указано", foreground="gray")
+
+    def _validate_percentages(self) -> bool:
+        """Проверяет, что сумма процентов не превышает 100%"""
+        total = 0
+        for key in ['proteins', 'fats', 'carbs']:
+            if key in self.percentages_entries:
+                val = self.percentages_entries[key].get().strip()
+                if val:
+                    try:
+                        total += float(val)
+                    except ValueError:
+                        messagebox.showerror("Ошибка ввода", f"Некорректное значение процента для {key}")
+                        return False
+
+        if total > 100:
+            messagebox.showerror("Ошибка валидации", 
+                f"Сумма процентов БЖУ не может превышать 100%!\n"
+                f"Текущая сумма: {total:.1f}%")
+            return False
+
+        if total > 0 and total < 50:
+            # Предупреждение, но не ошибка
+            result = messagebox.askyesno("Предупреждение",
+                f"Сумма процентов БЖУ составляет только {total:.1f}%.\n"
+                f"Обычно рекомендуется 100%. Продолжить?")
+            return result
+
+        return True
 
     def _load_sample_data(self):
         """Загружает пример данных в поле ввода"""
@@ -215,19 +300,40 @@ class DietApp:
             num_meals = int(self.ent_meals.get())
             min_d = int(self.ent_min_dishes.get())
             max_d = int(self.ent_max_dishes.get())
-            
+
+            # Проверяем валидность процентов
+            if not self._validate_percentages():
+                return None
+
+            # Считываем проценты для БЖУ
+            percentages = {}
+            for key in ['proteins', 'fats', 'carbs']:
+                if key in self.percentages_entries:
+                    pct_val = self.percentages_entries[key].get().strip()
+                    percentages[f'{key}_pct'] = float(pct_val) if pct_val else 0.0
+                else:
+                    percentages[f'{key}_pct'] = 0.0
+
             if min_d > max_d:
                 raise ValueError("Мин блюд не может быть больше макс")
-            
+
             if num_meals < 1:
                 raise ValueError("Количество приемов пищи должно быть >= 1")
-            
+
+            # Создаем объект цели с процентами
+            target_params = {**targets, **percentages}
+            target = DietTarget(**target_params)
+
+            # Если проценты указаны, пересчитываем граммы
+            if target.proteins_pct > 0 or target.fats_pct > 0 or target.carbs_pct > 0:
+                target = target.resolve_macros()
+
             return (
-                DietTarget(**targets),
+                target,
                 DietTolerance(**tolerances),
                 MealStructure(num_meals, min_d, max_d)
             )
-            
+
         except ValueError as e:
             messagebox.showerror("Ошибка ввода", str(e))
             return None
