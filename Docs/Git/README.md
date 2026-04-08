@@ -16,3 +16,7 @@
 ## Documentation
 
 ## Files
+
+## Learn
+ - [Oh My Git!](https://ohmygit.org/)
+ - [Learn Git Branching](https://learngitbranching.js.org/?locale=ru_RU)
