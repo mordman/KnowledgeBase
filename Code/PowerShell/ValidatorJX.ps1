@@ -7,13 +7,13 @@ $script:SelectedFile = $null
 $script:ErrorLine    = 0
 
 # --- Цвета для вывода (безопасный синтаксис) ---
-$colBlack   = [System.Drawing.Color]::FromName("Black")
-$colBlue    = [System.Drawing.Color]::FromName("Blue")
-$colCyan    = [System.Drawing.Color]::FromName("DarkCyan")
-$colRed     = [System.Drawing.Color]::FromName("Red")
-$colGreen   = [System.Drawing.Color]::FromName("DarkGreen")
-$colOrange  = [System.Drawing.Color]::FromName("Orange")
-$colGray    = [System.Drawing.Color]::FromName("Gray")
+$colBlack  = [System.Drawing.Color]::FromName("Black")
+$colBlue   = [System.Drawing.Color]::FromName("Blue")
+$colCyan   = [System.Drawing.Color]::FromName("DarkCyan")
+$colRed    = [System.Drawing.Color]::FromName("Red")
+$colGreen  = [System.Drawing.Color]::FromName("DarkGreen")
+$colOrange = [System.Drawing.Color]::FromName("Orange")
+$colGray   = [System.Drawing.Color]::FromName("Gray")
 
 # --- Инициализация формы ---
 $form = New-Object System.Windows.Forms.Form
@@ -50,7 +50,7 @@ $btnOpenEditor.Location = New-Object System.Drawing.Point(150, 65)
 $btnOpenEditor.Size = New-Object System.Drawing.Size(160, 30)
 $btnOpenEditor.Enabled = $false
 $btnOpenEditor.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
-#$btnOpenEditor..ToolTipText = "Откроет файл и перейдёт на строку с ошибкой"
+#$btnOpenEditor.ToolTipText = "Откроет файл и перейдёт на строку с ошибкой"
 
 $rtbOutput = New-Object System.Windows.Forms.RichTextBox
 $rtbOutput.Location = New-Object System.Drawing.Point(20, 115)
@@ -84,18 +84,20 @@ function Open-FileAtLine {
     }
 
     $editors = @(
-        @{Name="VS Code"; Cmd="code.exe"; Args=@("-g", "$FilePath`:$Line")},
-        @{Name="Notepad++"; Cmd="notepad++.exe"; Args=@("-n$Line", $FilePath)},
-        @{Name="Sublime Text"; Cmd="subl.exe"; Args=@("-n", "$Line", $FilePath)},
+        @{Name="VS Code"; Cmd="code.exe"; Args=@("-g", "${FilePath}:$Line")}
+        @{Name="Notepad++"; Cmd="notepad++.exe"; Args=@("-n$Line", $FilePath)}
+        @{Name="Sublime Text"; Cmd="subl.exe"; Args=@("-n", "$Line", $FilePath)}
         @{Name="Notepad"; Cmd="notepad.exe"; Args=@($FilePath); NoLineJump=$true}
     )
 
     foreach ($ed in $editors) {
-        $cmd = Get-Command $ed.Cmd -CommandType Application -ErrorAction SilentlyContinue
-        if ($cmd) {
+        # Берём только первый найденный исполняемый файл, чтобы избежать ошибки "System.Object[]"
+        $cmd = Get-Command $ed.Cmd -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        
+        if ($cmd -and $cmd.Source) {
             Start-Process -FilePath $cmd.Source -ArgumentList $ed.Args
             if ($ed.NoLineJump) {
-                Write-OutputMessage "📂 Открыто в Notepad. Перейдите на строку $Line вручную (Ctrl+G не работает)." -Color $colOrange
+                Write-OutputMessage "📂 Открыто в Notepad. Перейдите на строку $Line вручную (Ctrl+G)." -Color $colOrange
             } else {
                 Write-OutputMessage "📂 Открыто в $($ed.Name) на строке $Line" -Color $colGreen
             }
@@ -103,6 +105,7 @@ function Open-FileAtLine {
         }
     }
 
+    # Фолбэк: открытие ассоциированным приложением
     Start-Process -FilePath $FilePath
     Write-OutputMessage "📂 Открыто в редакторе по умолчанию. Строка: $Line" -Color $colGray
 }
