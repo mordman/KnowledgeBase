@@ -1,0 +1,1757 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Неоновый Тетрис</title>
+<!--
+ИНСТРУКЦИЯ ПО ИСПОЛЬЗОВАНИЮ:
+==============================
+
+1. ИГРА:
+   - Нажмите "Старт" для начала игры.
+   - Управление: ← → — движение, ↑ — вращение, ↓ — мягкое падение, Пробел — жёсткое падение.
+   - Нажмите "Пауза" для暂停, "Сброс" для перезапуска.
+
+2. РЕДАКТОР УРОВНЕЙ:
+   - Нажмите "Редактор уровней" для открытия панели.
+   - Выберите номер уровня (1–100), измените скорость (мс), линии для перехода, множитель очков.
+   - Нажмите "Сохранить" для сохранения отдельного уровня.
+   - "Экспорт" — скачивает JSON-файл всех уровней.
+   - "Импорт" — загружает JSON-файл и заменяет текущие уровни.
+   - "Сброс к дефолтным" — восстанавливает программно сгенерированные 100 уровней.
+
+3. НАСТРОЙКИ ФИГУР:
+   - Нажмите "Настройки фигур" для открытия панели.
+   - Измените процент выпадения каждой из 7 фигур (I, O, T, S, Z, J, L).
+   - Сумма автоматически нормализуется до 100%.
+   - Индикатор сложности рассчитывается автоматически по формуле:
+     Сложность = (Базовая геометрия × 0.3) + (Кол-во уникальных вращений × 0.2) + (100 - шанс%) × 0.3 + (Базовая сложность вращения × 0.2)
+     Результат масштабируется до шкалы 1–10.
+   - "Сброс фигур" — восстанавливает стандартные вероятности и настройки.
+
+4. СОХРАНЕНИЕ:
+   - Все данные автоматически сохраняются в localStorage.
+   - При загрузке страницы восстанавливаются последние настройки.
+   - Экспорт/импорт позволяет переносить конфигурации между устройствами.
+-->
+<style>
+/* ===== СБРОС И БАЗОВЫЕ СТИЛИ ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #111111;
+  color: #39FF14;
+  font-family: 'Courier New', Courier, monospace;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-x: hidden;
+  user-select: none;
+}
+
+/* ===== ОБЩИЙ КОНТЕЙНЕР ===== */
+#app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  gap: 16px;
+  width: 100%;
+  max-width: 900px;
+}
+
+h1 {
+  font-size: 2rem;
+  text-shadow: 0 0 10px #39FF14, 0 0 20px #39FF14, 0 0 40px #39FF14;
+  letter-spacing: 4px;
+  margin-bottom: 4px;
+}
+
+/* ===== ИГРОВАЯ ОБЛАСТЬ ===== */
+#game-area {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Канвас поля */
+#board-wrapper {
+  position: relative;
+  border: 2px solid #39FF14;
+  box-shadow: 0 0 15px #39FF14, inset 0 0 15px rgba(57,255,20,0.1);
+  border-radius: 4px;
+}
+
+#board-canvas {
+  display: block;
+  background: #0a0a0a;
+}
+
+/* Оверлей Game Over / Pause */
+#overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.8);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: 12px;
+  border-radius: 4px;
+}
+#overlay.active { display: flex; }
+#overlay h2 {
+  font-size: 1.8rem;
+  text-shadow: 0 0 10px #00F0FF, 0 0 20px #00F0FF;
+  color: #00F0FF;
+}
+
+/* ===== БОКОВАЯ ПАНЕЛЬ ===== */
+#side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 200px;
+}
+
+.panel-box {
+  background: #2C2C2C;
+  border: 1px solid #808080;
+  border-radius: 6px;
+  padding: 12px;
+  box-shadow: 0 0 8px rgba(57,255,20,0.2);
+}
+
+.panel-box h3 {
+  color: #00F0FF;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+  text-shadow: 0 0 5px #00F0FF;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 0.85rem;
+}
+.stat-label { color: #808080; }
+.stat-value { color: #39FF14; font-weight: bold; }
+
+#next-canvas {
+  display: block;
+  margin: 0 auto;
+  background: #0a0a0a;
+  border: 1px solid #808080;
+  border-radius: 4px;
+}
+
+/* ===== ИНДИКАТОРЫ СЛОЖНОСТИ ФИГУР ===== */
+.difficulty-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.diff-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+}
+
+.diff-name {
+  width: 20px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.diff-bar-bg {
+  flex: 1;
+  height: 10px;
+  background: #111;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.diff-bar-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+
+.diff-value {
+  width: 24px;
+  text-align: right;
+  color: #00F0FF;
+}
+
+/* ===== КНОПКИ ===== */
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+button {
+  background: #2C2C2C;
+  color: #39FF14;
+  border: 1px solid #39FF14;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+  text-shadow: 0 0 3px #39FF14;
+}
+
+button:hover {
+  background: #39FF14;
+  color: #111;
+  box-shadow: 0 0 10px #39FF14;
+  text-shadow: none;
+}
+
+button:active { transform: scale(0.97); }
+
+button.secondary {
+  border-color: #00F0FF;
+  color: #00F0FF;
+  text-shadow: 0 0 3px #00F0FF;
+}
+button.secondary:hover {
+  background: #00F0FF;
+  color: #111;
+  box-shadow: 0 0 10px #00F0FF;
+  text-shadow: none;
+}
+
+button.danger {
+  border-color: #FF3333;
+  color: #FF3333;
+  text-shadow: 0 0 3px #FF3333;
+}
+button.danger:hover {
+  background: #FF3333;
+  color: #111;
+  box-shadow: 0 0 10px #FF3333;
+  text-shadow: none;
+}
+
+/* ===== МОДАЛЬНЫЕ ОКНА ===== */
+.modal-backdrop {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
+.modal-backdrop.active { display: flex; }
+
+.modal {
+  background: #1a1a1a;
+  border: 1px solid #39FF14;
+  box-shadow: 0 0 30px rgba(57,255,20,0.3);
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 700px;
+  width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal h2 {
+  color: #00F0FF;
+  text-shadow: 0 0 10px #00F0FF;
+  margin-bottom: 16px;
+  text-align: center;
+  font-size: 1.4rem;
+}
+
+.modal-close {
+  float: right;
+  background: none;
+  border: none;
+  color: #FF3333;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0 4px;
+  text-shadow: 0 0 5px #FF3333;
+}
+.modal-close:hover { background: none; color: #FF6666; box-shadow: none; }
+
+/* ===== РЕДАКТОР УРОВНЕЙ ===== */
+.editor-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.editor-controls label {
+  font-size: 0.85rem;
+  color: #808080;
+}
+
+.editor-controls input, .editor-controls select {
+  background: #111;
+  border: 1px solid #808080;
+  color: #39FF14;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.85rem;
+}
+
+.level-editor-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field-group label {
+  font-size: 0.8rem;
+  color: #808080;
+}
+
+.field-group input {
+  background: #111;
+  border: 1px solid #808080;
+  color: #39FF14;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.85rem;
+}
+
+.editor-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.level-preview {
+  max-height: 200px;
+  overflow-y: auto;
+  background: #111;
+  border: 1px solid #808080;
+  border-radius: 4px;
+  padding: 8px;
+  margin-top: 12px;
+}
+
+.level-preview-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  padding: 3px 6px;
+  border-bottom: 1px solid #222;
+}
+.level-preview-row:nth-child(odd) { background: #1a1a1a; }
+
+/* ===== НАСТРОЙКИ ФИГУР ===== */
+.figure-config-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #222;
+}
+
+.figure-name {
+  width: 30px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-align: center;
+}
+
+.figure-preview-canvas {
+  border: 1px solid #808080;
+  border-radius: 3px;
+  background: #0a0a0a;
+}
+
+.figure-config-row input[type="range"] {
+  flex: 1;
+  accent-color: #39FF14;
+}
+
+.figure-prob {
+  width: 50px;
+  text-align: right;
+  font-size: 0.85rem;
+  color: #00F0FF;
+}
+
+.figure-diff-display {
+  width: 30px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #FF3333;
+}
+
+.figure-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+/* ===== ТАБЫ ===== */
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #808080;
+  padding-bottom: 8px;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  color: #808080;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+.tab-btn.active {
+  color: #39FF14;
+  border-bottom-color: #39FF14;
+  text-shadow: 0 0 5px #39FF14;
+}
+.tab-btn:hover { color: #39FF14; }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ===== АДАПТИВНОСТЬ ===== */
+@media (max-width: 600px) {
+  #game-area { flex-direction: column; align-items: center; }
+  .modal { padding: 16px; }
+  h1 { font-size: 1.4rem; }
+}
+
+/* ===== СКРОЛЛБАР ===== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #111; }
+::-webkit-scrollbar-thumb { background: #39FF14; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <h1>✦ НЕОНОВЫЙ ТЕТРИС ✦</h1>
+
+  <div id="game-area">
+    <!-- Игровое поле -->
+    <div id="board-wrapper">
+      <canvas id="board-canvas"></canvas>
+      <div id="overlay">
+        <h2 id="overlay-title">ПАУЗА</h2>
+        <p id="overlay-sub" style="color:#808080;font-size:0.9rem;"></p>
+      </div>
+    </div>
+
+    <!-- Боковая панель -->
+    <div id="side-panel">
+      <div class="panel-box">
+        <h3>Статистика</h3>
+        <div class="stat-row"><span class="stat-label">Очки:</span><span class="stat-value" id="stat-score">0</span></div>
+        <div class="stat-row"><span class="stat-label">Уровень:</span><span class="stat-value" id="stat-level">1</span></div>
+        <div class="stat-row"><span class="stat-label">Линии:</span><span class="stat-value" id="stat-lines">0</span></div>
+        <div class="stat-row"><span class="stat-label">Следующий:</span><span class="stat-value" id="stat-speed">—</span></div>
+      </div>
+
+      <div class="panel-box">
+        <h3>Следующая фигура</h3>
+        <canvas id="next-canvas"></canvas>
+      </div>
+
+      <div class="panel-box">
+        <h3>Сложность фигур</h3>
+        <div class="difficulty-bars" id="difficulty-bars"></div>
+      </div>
+
+      <div class="btn-row">
+        <button id="btn-start">▶ Старт</button>
+        <button id="btn-pause" class="secondary">⏸ Пауза</button>
+        <button id="btn-reset" class="danger">↺ Сброс</button>
+      </div>
+      <div class="btn-row">
+        <button id="btn-level-editor" class="secondary">📝 Редактор уровней</button>
+        <button id="btn-figure-settings" class="secondary">⚙ Настройки фигур</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== МОДАЛЬНОЕ ОКНО: РЕДАКТОР УРОВНЕЙ ===== -->
+<div class="modal-backdrop" id="modal-level-editor">
+  <div class="modal">
+    <button class="modal-close" id="close-level-editor">&times;</button>
+    <h2>📝 Редактор уровней</h2>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="tab-edit-level">Редактировать</button>
+      <button class="tab-btn" data-tab="tab-import-export">Импорт / Экспорт</button>
+      <button class="tab-btn" data-tab="tab-all-levels">Все уровни</button>
+    </div>
+
+    <!-- Вкладка: Редактировать -->
+    <div class="tab-content active" id="tab-edit-level">
+      <div class="editor-controls">
+        <label>Уровень:</label>
+        <input type="number" id="editor-level-num" min="1" max="100" value="1" style="width:60px;">
+        <button id="btn-load-level" class="secondary">Загрузить</button>
+      </div>
+
+      <div class="level-editor-fields">
+        <div class="field-group">
+          <label>Скорость падения (мс):</label>
+          <input type="number" id="editor-speed" min="20" max="5000" value="1000">
+        </div>
+        <div class="field-group">
+          <label>Линий для перехода:</label>
+          <input type="number" id="editor-lines-required" min="1" max="50" value="10">
+        </div>
+        <div class="field-group">
+          <label>Бонусный множитель очков:</label>
+          <input type="number" id="editor-score-multiplier" min="0.1" max="10" step="0.1" value="1.0">
+        </div>
+      </div>
+
+      <div class="editor-actions">
+        <button id="btn-save-level">💾 Сохранить уровень</button>
+      </div>
+    </div>
+
+    <!-- Вкладка: Импорт/Экспорт -->
+    <div class="tab-content" id="tab-import-export">
+      <div class="editor-actions" style="margin-bottom:16px;">
+        <button id="btn-export-levels">📤 Экспорт уровней в JSON</button>
+        <button id="btn-import-levels">📥 Импорт из JSON</button>
+        <button id="btn-reset-levels" class="danger">↺ Сброс к дефолтным</button>
+      </div>
+      <input type="file" id="import-file-input" accept=".json" style="display:none;">
+      <div id="import-status" style="color:#808080;font-size:0.85rem;text-align:center;"></div>
+    </div>
+
+    <!-- Вкладка: Все уровни -->
+    <div class="tab-content" id="tab-all-levels">
+      <div class="level-preview" id="level-preview"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== МОДАЛЬНОЕ ОКНО: НАСТРОЙКИ ФИГУР ===== -->
+<div class="modal-backdrop" id="modal-figure-settings">
+  <div class="modal">
+    <button class="modal-close" id="close-figure-settings">&times;</button>
+    <h2>⚙ Настройки фигур</h2>
+
+    <div id="figure-config-list"></div>
+
+    <div class="figure-actions">
+      <button id="btn-save-figures">💾 Сохранить фигуры</button>
+      <button id="btn-reset-figures" class="danger">↺ Сброс фигур</button>
+      <button id="btn-export-figures" class="secondary">📤 Экспорт конфига</button>
+      <button id="btn-import-figures" class="secondary">📥 Импорт конфига</button>
+    </div>
+    <input type="file" id="import-figures-input" accept=".json" style="display:none;">
+    <div id="figures-status" style="color:#808080;font-size:0.85rem;text-align:center;margin-top:8px;"></div>
+  </div>
+</div>
+
+<script>
+// =============================================================================
+// МОДУЛЬ: КОНСТАНТЫ И КОНФИГУРАЦИЯ
+// =============================================================================
+
+/** Стандартные определения фигур (тетромино) */
+const TETROMINOES = {
+  I: { shape: [[1,1,1,1]], color: '#00F0FF' },
+  O: { shape: [[1,1],[1,1]], color: '#FFFF00' },
+  T: { shape: [[0,1,0],[1,1,1]], color: '#FF00FF' },
+  S: { shape: [[0,1,1],[1,1,0]], color: '#39FF14' },
+  Z: { shape: [[1,1,0],[0,1,1]], color: '#FF3333' },
+  J: { shape: [[1,0,0],[1,1,1]], color: '#4444FF' },
+  L: { shape: [[0,0,1],[1,1,1]], color: '#FF8800' }
+};
+
+const FIGURE_KEYS = ['I','O','T','S','Z','J','L'];
+
+/** Базовая сложность вращения каждой фигуры (1–10) */
+const BASE_ROTATION_DIFFICULTY = {
+  I: 7, O: 2, T: 5, S: 6, Z: 6, J: 5, L: 5
+};
+
+/** Количество уникальных вращений для каждой фигуры */
+const UNIQUE_ROTATIONS = {
+  I: 2, O: 1, T: 4, S: 2, Z: 2, J: 4, L: 4
+};
+
+/** Размер клетки канваса */
+const CELL_SIZE = 28;
+const BOARD_COLS = 10;
+const BOARD_ROWS = 20;
+
+// =============================================================================
+// МОДУЛЬ: УТИЛИТЫ
+// =============================================================================
+
+/** Генерация дефолтных 100 уровней */
+function generateDefaultLevels() {
+  const levels = [];
+  for (let i = 1; i <= 100; i++) {
+    // Скорость прогрессивно уменьшается от 1000мс до 50мс
+    const speed = Math.max(50, Math.round(1000 - (i - 1) * 9.5));
+    levels.push({
+      level: i,
+      speed: speed,
+      linesRequired: 10,
+      scoreMultiplier: parseFloat((1 + (i - 1) * 0.05).toFixed(2))
+    });
+  }
+  return levels;
+}
+
+/** Глубокое копирование объекта через JSON */
+function deepClone(obj) {
+  try {
+    return JSON.parse(JSON.stringify(obj));
+  } catch (e) {
+    console.error('deepClone error:', e);
+    return null;
+  }
+}
+
+/** Безопасный парсинг JSON */
+function safeParseJSON(str, fallback) {
+  try {
+    return JSON.parse(str);
+  } catch (e) {
+    console.error('JSON parse error:', e);
+    return fallback;
+  }
+}
+
+/** Валидация схемы уровня */
+function validateLevelSchema(levelObj) {
+  if (!levelObj || typeof levelObj !== 'object') return false;
+  const required = ['level','speed','linesRequired','scoreMultiplier'];
+  for (const key of required) {
+    if (!(key in levelObj)) return false;
+  }
+  if (typeof levelObj.level !== 'number' || levelObj.level < 1 || levelObj.level > 100) return false;
+  if (typeof levelObj.speed !== 'number' || levelObj.speed < 20 || levelObj.speed > 5000) return false;
+  if (typeof levelObj.linesRequired !== 'number' || levelObj.linesRequired < 1 || levelObj.linesRequired > 50) return false;
+  if (typeof levelObj.scoreMultiplier !== 'number' || levelObj.scoreMultiplier < 0.1 || levelObj.scoreMultiplier > 10) return false;
+  return true;
+}
+
+/** Валидация конфига фигур */
+function validateFigureConfig(config) {
+  if (!config || typeof config !== 'object') return false;
+  if (!config.probabilities || typeof config.probabilities !== 'object') return false;
+  for (const key of FIGURE_KEYS) {
+    if (!(key in config.probabilities) || typeof config.probabilities[key] !== 'number') return false;
+  }
+  return true;
+}
+
+/** Нормализация вероятностей до суммы 100% */
+function normalizeProbabilities(probs) {
+  const sum = Object.values(probs).reduce((a, b) => a + b, 0);
+  if (sum === 0) {
+    // Если все нули — равномерное распределение
+    const equal = 100 / FIGURE_KEYS.length;
+    FIGURE_KEYS.forEach(k => probs[k] = equal);
+    return probs;
+  }
+  FIGURE_KEYS.forEach(k => {
+    probs[k] = parseFloat(((probs[k] / sum) * 100).toFixed(2));
+  });
+  // Корректировка округления
+  const currentSum = Object.values(probs).reduce((a, b) => a + b, 0);
+  if (currentSum !== 100) {
+    probs[FIGURE_KEYS[0]] = parseFloat((probs[FIGURE_KEYS[0]] + (100 - currentSum)).toFixed(2));
+  }
+  return probs;
+}
+
+/** Выбор фигуры на основе вероятностей */
+function weightedRandomChoice(probabilities) {
+  const rand = Math.random() * 100;
+  let cumulative = 0;
+  for (const key of FIGURE_KEYS) {
+    cumulative += probabilities[key];
+    if (rand <= cumulative) return key;
+  }
+  return FIGURE_KEYS[FIGURE_KEYS.length - 1];
+}
+
+/** Расчёт сложности фигуры (1–10) */
+function calculateFigureDifficulty(key, probabilities) {
+  const shape = TETROMINOES[key].shape;
+  const cellCount = shape.flat().reduce((a, b) => a + b, 0);
+  const rows = shape.length;
+  const cols = shape[0].length;
+  const aspectRatio = Math.max(rows, cols) / Math.min(rows, cols);
+
+  // Геометрическая сложность
+  const geoDiff = Math.min(10, cellCount * 1.5 + aspectRatio);
+
+  // Сложность вращения
+  const rotDiff = BASE_ROTATION_DIFFICULTY[key];
+
+  // Редкость (чем реже — тем сложнее)
+  const rarity = 100 - (probabilities[key] || 14.29);
+  const rarityDiff = rarity / 10;
+
+  // Количество уникальных позиций
+  const posDiff = UNIQUE_ROTATIONS[key] * 1.5;
+
+  // Итоговая формула
+  let raw = geoDiff * 0.3 + rotDiff * 0.2 + rarityDiff * 0.3 + posDiff * 0.2;
+  return Math.max(1, Math.min(10, Math.round(raw)));
+}
+
+// =============================================================================
+// МОДУЛЬ: МЕНЕДЖЕР ХРАНИЛИЩА (localStorage)
+// =============================================================================
+
+const Storage = {
+  KEYS: {
+    LEVELS: 'tetris_levels',
+    FIGURE_CONFIG: 'tetris_figure_config',
+    SETTINGS: 'tetris_settings'
+  },
+
+  save(key, data) {
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+    } catch (e) {
+      console.error('Storage save error:', e);
+    }
+  },
+
+  load(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw === null) return fallback;
+      return JSON.parse(raw);
+    } catch (e) {
+      console.error('Storage load error:', e);
+      return fallback;
+    }
+  },
+
+  remove(key) {
+    try { localStorage.removeItem(key); } catch(e) {}
+  }
+};
+
+// =============================================================================
+// МОДУЛЬ: ИГРОВОЕ ПОЛЕ
+// =============================================================================
+
+class Board {
+  constructor(cols, rows) {
+    this.cols = cols;
+    this.rows = rows;
+    this.grid = Array.from({ length: rows }, () => Array(cols).fill(0));
+  }
+
+  /** Очистка поля */
+  clear() {
+    this.grid = Array.from({ length: this.rows }, () => Array(this.cols).fill(0));
+  }
+
+  /** Проверка: может ли фигура быть размещена в данной позиции */
+  isValid(shape, offsetX, offsetY) {
+    for (let r = 0; r < shape.length; r++) {
+      for (let c = 0; c < shape[r].length; c++) {
+        if (shape[r][c]) {
+          const newX = offsetX + c;
+          const newY = offsetY + r;
+          if (newX < 0 || newX >= this.cols || newY >= this.rows) return false;
+          if (newY < 0) continue;
+          if (this.grid[newY][newX]) return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  /** Размещение фигуры на поле */
+  place(shape, offsetX, offsetY, color) {
+    for (let r = 0; r < shape.length; r++) {
+      for (let c = 0; c < shape[r].length; c++) {
+        if (shape[r][c]) {
+          const y = offsetY + r;
+          const x = offsetX + c;
+          if (y >= 0 && y < this.rows && x >= 0 && x < this.cols) {
+            this.grid[y][x] = color;
+          }
+        }
+      }
+    }
+  }
+
+  /** Очистка заполненных линий, возврат количества */
+  clearLines() {
+    let cleared = 0;
+    for (let r = this.rows - 1; r >= 0; r--) {
+      if (this.grid[r].every(cell => cell !== 0)) {
+        this.grid.splice(r, 1);
+        this.grid.unshift(Array(this.cols).fill(0));
+        cleared++;
+        r++; // проверить ту же строку снова
+      }
+    }
+    return cleared;
+  }
+
+  /** Проверка Game Over */
+  isGameOver() {
+    return this.grid[0].some(cell => cell !== 0);
+  }
+}
+
+// =============================================================================
+// МОДУЛЬ: ТЕКУЩАЯ ФИГУРА
+// =============================================================================
+
+class Piece {
+  constructor(key, color) {
+    this.key = key;
+    this.color = color;
+    this.shape = deepClone(TETROMINOES[key].shape);
+    this.x = 0;
+    this.y = 0;
+  }
+
+  /** Вращение фигуры по часовой стрелке */
+  rotate() {
+    const rows = this.shape.length;
+    const cols = this.shape[0].length;
+    const rotated = Array.from({ length: cols }, () => Array(rows).fill(0));
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        rotated[c][rows - 1 - r] = this.shape[r][c];
+      }
+    }
+    return rotated;
+  }
+}
+
+// =============================================================================
+// МОДУЛЬ: ОСНОВНАЯ ИГРА
+// =============================================================================
+
+class Game {
+  constructor() {
+    // Канвасы
+    this.boardCanvas = document.getElementById('board-canvas');
+    this.boardCtx = this.boardCanvas.getContext('2d');
+    this.nextCanvas = document.getElementById('next-canvas');
+    this.nextCtx = this.nextCanvas.getContext('2d');
+
+    // Размеры
+    this.boardCanvas.width = BOARD_COLS * CELL_SIZE;
+    this.boardCanvas.height = BOARD_ROWS * CELL_SIZE;
+    this.nextCanvas.width = 4 * CELL_SIZE;
+    this.nextCanvas.height = 4 * CELL_SIZE;
+
+    // Игровое состояние
+    this.board = new Board(BOARD_COLS, BOARD_ROWS);
+    this.currentPiece = null;
+    this.nextPiece = null;
+    this.score = 0;
+    this.level = 1;
+    this.lines = 0;
+    this.linesForCurrentLevel = 0;
+    this.running = false;
+    this.paused = false;
+    this.gameOver = false;
+
+    // Таймер падения
+    this.dropTimer = 0;
+    this.lastTime = 0;
+
+    // Загрузка данных
+    this.levels = Storage.load(Storage.KEYS.LEVELS, generateDefaultLevels());
+    this.figureConfig = Storage.load(Storage.KEYS.FIGURE_CONFIG, this.getDefaultFigureConfig());
+
+    // Валидация загруженных данных
+    if (!Array.isArray(this.levels) || this.levels.length !== 100) {
+      this.levels = generateDefaultLevels();
+    }
+    if (!validateFigureConfig(this.figureConfig)) {
+      this.figureConfig = this.getDefaultFigureConfig();
+    }
+
+    // Привязка событий
+    this.bindEvents();
+    this.renderDifficultyBars();
+
+    // Первый рендер
+    this.render();
+  }
+
+  /** Дефолтный конфиг фигур */
+  getDefaultFigureConfig() {
+    const probs = {};
+    FIGURE_KEYS.forEach(k => probs[k] = parseFloat((100 / 7).toFixed(2)));
+    // Нормализуем
+    probs[FIGURE_KEYS[0]] = parseFloat((100 - 6 * (100/7)).toFixed(2) + (100/7).toFixed(2));
+    // Проще: равномерное
+    const base = 100 / 7;
+    probs.I = parseFloat(base.toFixed(2));
+    probs.O = parseFloat(base.toFixed(2));
+    probs.T = parseFloat(base.toFixed(2));
+    probs.S = parseFloat(base.toFixed(2));
+    probs.Z = parseFloat(base.toFixed(2));
+    probs.J = parseFloat(base.toFixed(2));
+    probs.L = parseFloat((100 - 6 * parseFloat(base.toFixed(2))).toFixed(2));
+    return { probabilities: probs };
+  }
+
+  /** Привязка клавиатурных событий */
+  bindEvents() {
+    document.addEventListener('keydown', (e) => {
+      if (!this.running || this.paused || this.gameOver) return;
+
+      switch (e.code) {
+        case 'ArrowLeft': e.preventDefault(); this.movePiece(-1, 0); break;
+        case 'ArrowRight': e.preventDefault(); this.movePiece(1, 0); break;
+        case 'ArrowDown': e.preventDefault(); this.softDrop(); break;
+        case 'ArrowUp': e.preventDefault(); this.rotatePiece(); break;
+        case 'Space': e.preventDefault(); this.hardDrop(); break;
+      }
+    });
+
+    // Кнопки
+    document.getElementById('btn-start').addEventListener('click', () => this.start());
+    document.getElementById('btn-pause').addEventListener('click', () => this.togglePause());
+    document.getElementById('btn-reset').addEventListener('click', () => this.reset());
+  }
+
+  /** Старт игры */
+  start() {
+    if (this.running && !this.gameOver) return;
+    this.reset();
+    this.running = true;
+    this.gameOver = false;
+    this.paused = false;
+    this.hideOverlay();
+    this.spawnPiece();
+    this.lastTime = performance.now();
+    this.gameLoop();
+  }
+
+  /** Пауза */
+  togglePause() {
+    if (!this.running || this.gameOver) return;
+    this.paused = !this.paused;
+    if (this.paused) {
+      this.showOverlay('ПАУЗА', 'Нажмите "Пауза" для продолжения');
+    } else {
+      this.hideOverlay();
+      this.lastTime = performance.now();
+    }
+  }
+
+  /** Сброс */
+  reset() {
+    this.running = false;
+    this.paused = false;
+    this.gameOver = false;
+    this.board.clear();
+    this.score = 0;
+    this.level = 1;
+    this.lines = 0;
+    this.linesForCurrentLevel = 0;
+    this.dropTimer = 0;
+    this.currentPiece = null;
+    this.nextPiece = null;
+    this.hideOverlay();
+    this.updateStats();
+    this.render();
+  }
+
+  /** Создание новой фигуры */
+  spawnPiece() {
+    if (!this.nextPiece) {
+      const key = weightedRandomChoice(this.figureConfig.probabilities);
+      this.nextPiece = new Piece(key, TETROMINOES[key].color);
+    }
+
+    this.currentPiece = this.nextPiece;
+    const key = weightedRandomChoice(this.figureConfig.probabilities);
+    this.nextPiece = new Piece(key, TETROMINOES[key].color);
+
+    // Центрируем фигуру
+    this.currentPiece.x = Math.floor((BOARD_COLS - this.currentPiece.shape[0].length) / 2);
+    this.currentPiece.y = 0;
+
+    // Проверка Game Over
+    if (!this.board.isValid(this.currentPiece.shape, this.currentPiece.x, this.currentPiece.y)) {
+      this.endGame();
+    }
+
+    this.renderNextPiece();
+  }
+
+  /** Движение фигуры */
+  movePiece(dx, dy) {
+    if (!this.currentPiece) return false;
+    if (this.board.isValid(this.currentPiece.shape, this.currentPiece.x + dx, this.currentPiece.y + dy)) {
+      this.currentPiece.x += dx;
+      this.currentPiece.y += dy;
+      return true;
+    }
+    return false;
+  }
+
+  /** Вращение */
+  rotatePiece() {
+    if (!this.currentPiece) return;
+    const rotated = this.currentPiece.rotate();
+
+    // Пробуем стандартное вращение
+    if (this.board.isValid(rotated, this.currentPiece.x, this.currentPiece.y)) {
+      this.currentPiece.shape = rotated;
+      return;
+    }
+
+    // Wall kick: пробуем сдвинуть влево/вправо
+    for (const offset of [-1, 1, -2, 2]) {
+      if (this.board.isValid(rotated, this.currentPiece.x + offset, this.currentPiece.y)) {
+        this.currentPiece.shape = rotated;
+        this.currentPiece.x += offset;
+        return;
+      }
+    }
+  }
+
+  /** Мягкое падение */
+  softDrop() {
+    if (!this.currentPiece) return;
+    if (this.movePiece(0, 1)) {
+      this.score += 1;
+    }
+  }
+
+  /** Жёсткое падение */
+  hardDrop() {
+    if (!this.currentPiece) return;
+    let dropDistance = 0;
+    while (this.movePiece(0, 1)) {
+      dropDistance++;
+    }
+    this.score += dropDistance * 2;
+    this.lockPiece();
+  }
+
+  /** Фиксация фигуры на поле */
+  lockPiece() {
+    this.board.place(this.currentPiece.shape, this.currentPiece.x, this.currentPiece.y, this.currentPiece.color);
+
+    // Очистка линий
+    const cleared = this.board.clearLines();
+    if (cleared > 0) {
+      this.lines += cleared;
+      this.linesForCurrentLevel += cleared;
+
+      // Подсчёт очков
+      const lineScores = { 1: 100, 2: 300, 3: 500, 4: 800 };
+      const baseScore = lineScores[cleared] || cleared * 200;
+      const levelConfig = this.getLevelConfig(this.level);
+      this.score += Math.round(baseScore * levelConfig.scoreMultiplier * this.level);
+
+      // Проверка перехода на новый уровень
+      if (this.linesForCurrentLevel >= levelConfig.linesRequired) {
+        this.levelUp();
+      }
+    }
+
+    this.updateStats();
+    this.spawnPiece();
+  }
+
+  /** Переход на новый уровень */
+  levelUp() {
+    if (this.level < 100) {
+      this.level++;
+      this.linesForCurrentLevel = 0;
+    }
+  }
+
+  /** Получение конфига уровня */
+  getLevelConfig(level) {
+    const idx = level - 1;
+    if (idx >= 0 && idx < this.levels.length) {
+      return this.levels[idx];
+    }
+    // Fallback
+    return { speed: 1000, linesRequired: 10, scoreMultiplier: 1 };
+  }
+
+  /** Конец игры */
+  endGame() {
+    this.gameOver = true;
+    this.running = false;
+    this.showOverlay('GAME OVER', `Очки: ${this.score}`);
+    this.render();
+  }
+
+  /** Игровой цикл */
+  gameLoop(timestamp = 0) {
+    if (!this.running || this.paused || this.gameOver) return;
+
+    const deltaTime = timestamp - this.lastTime;
+    this.lastTime = timestamp;
+
+    this.dropTimer += deltaTime;
+
+    const levelConfig = this.getLevelConfig(this.level);
+    if (this.dropTimer >= levelConfig.speed) {
+      this.dropTimer = 0;
+      if (!this.movePiece(0, 1)) {
+        this.lockPiece();
+      }
+    }
+
+    this.render();
+    requestAnimationFrame((t) => this.gameLoop(t));
+  }
+
+  /** Обновление статистики */
+  updateStats() {
+    document.getElementById('stat-score').textContent = this.score;
+    document.getElementById('stat-level').textContent = this.level;
+    document.getElementById('stat-lines').textContent = this.lines;
+    const lvl = this.getLevelConfig(this.level);
+    document.getElementById('stat-speed').textContent = `${lvl.speed}мс`;
+  }
+
+  /** Отображение оверлея */
+  showOverlay(title, sub) {
+    const overlay = document.getElementById('overlay');
+    document.getElementById('overlay-title').textContent = title;
+    document.getElementById('overlay-sub').textContent = sub || '';
+    overlay.classList.add('active');
+  }
+
+  hideOverlay() {
+    document.getElementById('overlay').classList.remove('active');
+  }
+
+  /** Отрисовка игрового поля */
+  render() {
+    const ctx = this.boardCtx;
+    ctx.clearRect(0, 0, this.boardCanvas.width, this.boardCanvas.height);
+
+    // Сетка
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.lineWidth = 0.5;
+    for (let r = 0; r <= BOARD_ROWS; r++) {
+      ctx.beginPath();
+      ctx.moveTo(0, r * CELL_SIZE);
+      ctx.lineTo(BOARD_COLS * CELL_SIZE, r * CELL_SIZE);
+      ctx.stroke();
+    }
+    for (let c = 0; c <= BOARD_COLS; c++) {
+      ctx.beginPath();
+      ctx.moveTo(c * CELL_SIZE, 0);
+      ctx.lineTo(c * CELL_SIZE, BOARD_ROWS * CELL_SIZE);
+      ctx.stroke();
+    }
+
+    // Размещённые блоки
+    for (let r = 0; r < BOARD_ROWS; r++) {
+      for (let c = 0; c < BOARD_COLS; c++) {
+        if (this.board.grid[r][c]) {
+          this.drawCell(ctx, c, r, this.board.grid[r][c]);
+        }
+      }
+    }
+
+    // Текущая фигура
+    if (this.currentPiece) {
+      for (let r = 0; r < this.currentPiece.shape.length; r++) {
+        for (let c = 0; c < this.currentPiece.shape[r].length; c++) {
+          if (this.currentPiece.shape[r][c]) {
+            this.drawCell(ctx, this.currentPiece.x + c, this.currentPiece.y + r, this.currentPiece.color);
+          }
+        }
+      }
+
+      // Призрак (ghost piece)
+      this.drawGhost();
+    }
+  }
+
+  /** Отрисовка призрака */
+  drawGhost() {
+    let ghostY = this.currentPiece.y;
+    while (this.board.isValid(this.currentPiece.shape, this.currentPiece.x, ghostY + 1)) {
+      ghostY++;
+    }
+    if (ghostY !== this.currentPiece.y) {
+      const ctx = this.boardCtx;
+      ctx.globalAlpha = 0.2;
+      for (let r = 0; r < this.currentPiece.shape.length; r++) {
+        for (let c = 0; c < this.currentPiece.shape[r].length; c++) {
+          if (this.currentPiece.shape[r][c]) {
+            this.drawCell(ctx, this.currentPiece.x + c, ghostY + r, this.currentPiece.color);
+          }
+        }
+      }
+      ctx.globalAlpha = 1.0;
+    }
+  }
+
+  /** Отрисовка одной клетки */
+  drawCell(ctx, x, y, color) {
+    const px = x * CELL_SIZE;
+    const py = y * CELL_SIZE;
+    const pad = 1;
+
+    // Основной цвет
+    ctx.fillStyle = color;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 8;
+    ctx.fillRect(px + pad, py + pad, CELL_SIZE - pad * 2, CELL_SIZE - pad * 2);
+    ctx.shadowBlur = 0;
+
+    // Блик
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.fillRect(px + pad, py + pad, CELL_SIZE - pad * 2, 3);
+    ctx.fillRect(px + pad, py + pad, 3, CELL_SIZE - pad * 2);
+  }
+
+  /** Отрисовка следующей фигуры */
+  renderNextPiece() {
+    const ctx = this.nextCtx;
+    ctx.clearRect(0, 0, this.nextCanvas.width, this.nextCanvas.height);
+
+    if (!this.nextPiece) return;
+
+    const shape = this.nextPiece.shape;
+    const offsetX = Math.floor((4 - shape[0].length) / 2);
+    const offsetY = Math.floor((4 - shape.length) / 2);
+
+    for (let r = 0; r < shape.length; r++) {
+      for (let c = 0; c < shape[r].length; c++) {
+        if (shape[r][c]) {
+          const px = (offsetX + c) * CELL_SIZE;
+          const py = (offsetY + r) * CELL_SIZE;
+          ctx.fillStyle = this.nextPiece.color;
+          ctx.shadowColor = this.nextPiece.color;
+          ctx.shadowBlur = 6;
+          ctx.fillRect(px + 1, py + 1, CELL_SIZE - 2, CELL_SIZE - 2);
+          ctx.shadowBlur = 0;
+        }
+      }
+    }
+  }
+
+  /** Отрисовка индикаторов сложности */
+  renderDifficultyBars() {
+    const container = document.getElementById('difficulty-bars');
+    container.innerHTML = '';
+
+    FIGURE_KEYS.forEach(key => {
+      const diff = calculateFigureDifficulty(key, this.figureConfig.probabilities);
+      const row = document.createElement('div');
+      row.className = 'diff-row';
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'diff-name';
+      nameSpan.textContent = key;
+      nameSpan.style.color = TETROMINOES[key].color;
+
+      const barBg = document.createElement('div');
+      barBg.className = 'diff-bar-bg';
+
+      const barFill = document.createElement('div');
+      barFill.className = 'diff-bar-fill';
+      barFill.style.width = `${diff * 10}%`;
+
+      // Цвет в зависимости от сложности
+      if (diff <= 3) barFill.style.background = '#39FF14';
+      else if (diff <= 6) barFill.style.background = '#FFFF00';
+      else barFill.style.background = '#FF3333';
+
+      barBg.appendChild(barFill);
+
+      const valSpan = document.createElement('span');
+      valSpan.className = 'diff-value';
+      valSpan.textContent = diff;
+
+      row.appendChild(nameSpan);
+      row.appendChild(barBg);
+      row.appendChild(valSpan);
+      container.appendChild(row);
+    });
+  }
+
+  /** Экспорт уровней в JSON */
+  exportLevels() {
+    const data = JSON.stringify(this.levels, null, 2);
+    this.downloadFile(data, 'tetris_levels.json', 'application/json');
+  }
+
+  /** Импорт уровней из JSON */
+  importLevels(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const parsed = safeParseJSON(e.target.result, null);
+        if (!parsed || !Array.isArray(parsed)) {
+          reject(new Error('Неверный формат JSON. Ожидается массив уровней.'));
+          return;
+        }
+
+        // Валидация каждого уровня
+        const validLevels = [];
+        for (const item of parsed) {
+          if (validateLevelSchema(item)) {
+            validLevels.push(item);
+          }
+        }
+
+        if (validLevels.length === 0) {
+          reject(new Error('Не найдено валидных уровней в файле.'));
+          return;
+        }
+
+        // Дополняем до 100 если нужно
+        while (validLevels.length < 100) {
+          const nextNum = validLevels.length + 1;
+          validLevels.push({
+            level: nextNum,
+            speed: Math.max(50, Math.round(1000 - (nextNum - 1) * 9.5)),
+            linesRequired: 10,
+            scoreMultiplier: parseFloat((1 + (nextNum - 1) * 0.05).toFixed(2))
+          });
+        }
+
+        // Обрезаем до 100
+        const finalLevels = validLevels.slice(0, 100);
+        // Перенумеруем
+        finalLevels.forEach((l, i) => l.level = i + 1);
+
+        this.levels = finalLevels;
+        Storage.save(Storage.KEYS.LEVELS, this.levels);
+        this.updateStats();
+        resolve(finalLevels);
+      };
+      reader.onerror = () => reject(new Error('Ошибка чтения файла.'));
+      reader.readAsText(file);
+    });
+  }
+
+  /** Сброс уровней к дефолтным */
+  resetLevels() {
+    this.levels = generateDefaultLevels();
+    Storage.save(Storage.KEYS.LEVELS, this.levels);
+    this.updateStats();
+  }
+
+  /** Сохранение конфига фигур */
+  saveFigureConfig(config) {
+    if (!validateFigureConfig(config)) {
+      throw new Error('Неверная структура конфига фигур.');
+    }
+    config.probabilities = normalizeProbabilities(config.probabilities);
+    this.figureConfig = config;
+    Storage.save(Storage.KEYS.FIGURE_CONFIG, config);
+    this.renderDifficultyBars();
+  }
+
+  /** Экспорт конфига фигур */
+  exportFigureConfig() {
+    const data = JSON.stringify(this.figureConfig, null, 2);
+    this.downloadFile(data, 'tetris_figures.json', 'application/json');
+  }
+
+  /** Импорт конфига фигур */
+  importFigureConfig(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const parsed = safeParseJSON(e.target.result, null);
+        if (!validateFigureConfig(parsed)) {
+          reject(new Error('Неверный формат конфига фигур.'));
+          return;
+        }
+        this.saveFigureConfig(parsed);
+        resolve(parsed);
+      };
+      reader.onerror = () => reject(new Error('Ошибка чтения файла.'));
+      reader.readAsText(file);
+    });
+  }
+
+  /** Скачивание файла */
+  downloadFile(content, filename, mime) {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+}
+
+// =============================================================================
+// МОДУЛЬ: UI — РЕДАКТОР УРОВНЕЙ
+// =============================================================================
+
+function initLevelEditor(game) {
+  const modal = document.getElementById('modal-level-editor');
+
+  // Открытие
+  document.getElementById('btn-level-editor').addEventListener('click', () => {
+    modal.classList.add('active');
+    populateLevelPreview();
+  });
+
+  // Закрытие
+  document.getElementById('close-level-editor').addEventListener('click', () => {
+    modal.classList.remove('active');
+  });
+
+  // Клик по фону
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.classList.remove('active');
+  });
+
+  // Загрузка уровня
+  document.getElementById('btn-load-level').addEventListener('click', () => {
+    const num = parseInt(document.getElementById('editor-level-num').value);
+    if (num < 1 || num > 100) return;
+    const lvl = game.levels[num - 1];
+    document.getElementById('editor-speed').value = lvl.speed;
+    document.getElementById('editor-lines-required').value = lvl.linesRequired;
+    document.getElementById('editor-score-multiplier').value = lvl.scoreMultiplier;
+  });
+
+  // Сохранение уровня
+  document.getElementById('btn-save-level').addEventListener('click', () => {
+    const num = parseInt(document.getElementById('editor-level-num').value);
+    if (num < 1 || num > 100) {
+      alert('Номер уровня должен быть от 1 до 100');
+      return;
+    }
+
+    const speed = parseInt(document.getElementById('editor-speed').value);
+    const linesReq = parseInt(document.getElementById('editor-lines-required').value);
+    const multiplier = parseFloat(document.getElementById('editor-score-multiplier').value);
+
+    if (isNaN(speed) || speed < 20 || speed > 5000) {
+      alert('Скорость: 20–5000 мс');
+      return;
+    }
+    if (isNaN(linesReq) || linesReq < 1 || linesReq > 50) {
+      alert('Линий для перехода: 1–50');
+      return;
+    }
+    if (isNaN(multiplier) || multiplier < 0.1 || multiplier > 10) {
+      alert('Множитель: 0.1–10');
+      return;
+    }
+
+    game.levels[num - 1] = {
+      level: num,
+      speed,
+      linesRequired: linesReq,
+      scoreMultiplier: parseFloat(multiplier.toFixed(2))
+    };
+
+    Storage.save(Storage.KEYS.LEVELS, game.levels);
+    game.updateStats();
+    populateLevelPreview();
+    alert(`Уровень ${num} сохранён!`);
+  });
+
+  // Экспорт
+  document.getElementById('btn-export-levels').addEventListener('click', () => {
+    game.exportLevels();
+  });
+
+  // Импорт
+  document.getElementById('btn-import-levels').addEventListener('click', () => {
+    document.getElementById('import-file-input').click();
+  });
+
+  document.getElementById('import-file-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    game.importLevels(file)
+      .then(() => {
+        document.getElementById('import-status').textContent = '✅ Уровни успешно импортированы!';
+        document.getElementById('import-status').style.color = '#39FF14';
+        populateLevelPreview();
+      })
+      .catch(err => {
+        document.getElementById('import-status').textContent = `❌ ${err.message}`;
+        document.getElementById('import-status').style.color = '#FF3333';
+      });
+    e.target.value = '';
+  });
+
+  // Сброс
+  document.getElementById('btn-reset-levels').addEventListener('click', () => {
+    if (confirm('Сбросить все уровни к дефолтным?')) {
+      game.resetLevels();
+      populateLevelPreview();
+      document.getElementById('import-status').textContent = '✅ Уровни сброшены!';
+      document.getElementById('import-status').style.color = '#39FF14';
+    }
+  });
+
+  // Заполнение превью всех уровней
+  function populateLevelPreview() {
+    const container = document.getElementById('level-preview');
+    container.innerHTML = '';
+    game.levels.forEach(lvl => {
+      const row = document.createElement('div');
+      row.className = 'level-preview-row';
+      row.innerHTML = `
+        <span style="color:#00F0FF;">Ур. ${lvl.level}</span>
+        <span style="color:#39FF14;">${lvl.speed}мс</span>
+        <span style="color:#808080;">${lvl.linesRequired} линий</span>
+        <span style="color:#FF8800;">×${lvl.scoreMultiplier}</span>
+      `;
+      container.appendChild(row);
+    });
+  }
+
+  // Табы
+  document.querySelectorAll('#modal-level-editor .tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#modal-level-editor .tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('#modal-level-editor .tab-content').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tab).classList.add('active');
+      if (btn.dataset.tab === 'tab-all-levels') populateLevelPreview();
+    });
+  });
+}
+
+// =============================================================================
+// МОДУЛЬ: UI — НАСТРОЙКИ ФИГУР
+// =============================================================================
+
+function initFigureSettings(game) {
+  const modal = document.getElementById('modal-figure-settings');
+
+  // Открытие
+  document.getElementById('btn-figure-settings').addEventListener('click', () => {
+    modal.classList.add('active');
+    populateFigureList();
+  });
+
+  // Закрытие
+  document.getElementById('close-figure-settings').addEventListener('click', () => {
+    modal.classList.remove('active');
+  });
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.classList.remove('active');
+  });
+
+  /** Заполнение списка настроек фигур */
+  function populateFigureList() {
+    const container = document.getElementById('figure-config-list');
+    container.innerHTML = '';
+
+    FIGURE_KEYS.forEach(key => {
+      const row = document.createElement('div');
+      row.className = 'figure-config-row';
+
+      // Имя
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'figure-name';
+      nameSpan.textContent = key;
+      nameSpan.style.color = TETROMINOES[key].color;
+      row.appendChild(nameSpan);
+
+      // Мини-превью
+      const previewCanvas = document.createElement('canvas');
+      previewCanvas.className = 'figure-preview-canvas';
+      const shape = TETROMINOES[key].shape;
+      previewCanvas.width = shape[0].length * 16;
+      previewCanvas.height = shape.length * 16;
+      const pCtx = previewCanvas.getContext('2d');
+      for (let r = 0; r < shape.length; r++) {
+        for (let c = 0; c < shape[r].length; c++) {
+          if (shape[r][c]) {
+            pCtx.fillStyle = TETROMINOES[key].color;
+            pCtx.shadowColor = TETROMINOES[key].color;
+            pCtx.shadowBlur = 4;
+            pCtx.fillRect(c * 16 + 1, r * 16 + 1, 14, 14);
+            pCtx.shadowBlur = 0;
+          }
+        }
+      }
+      row.appendChild(previewCanvas);
+
+      // Слайдер вероятности
+      const slider = document.createElement('input');
+      slider.type = 'range';
+      slider.min = '1';
+      slider.max = '50';
+      slider.value = game.figureConfig.probabilities[key];
+      slider.dataset.key = key;
+      slider.addEventListener('input', onProbChange);
+      row.appendChild(slider);
+
+      // Значение вероятности
+      const probSpan = document.createElement('span');
+      probSpan.className = 'figure-prob';
+      probSpan.id = `prob-${key}`;
+      probSpan.textContent = `${game.figureConfig.probabilities[key]}%`;
+      row.appendChild(probSpan);
+
+      // Сложность
+      const diffSpan = document.createElement('span');
+      diffSpan.className = 'figure-diff-display';
+      diffSpan.id = `diff-${key}`;
+      const diff = calculateFigureDifficulty(key, game.figureConfig.probabilities);
+      diffSpan.textContent = diff;
+      diffSpan.style.color = diff <= 3 ? '#39FF14' : diff <= 6 ? '#FFFF00' : '#FF3333';
+      row.appendChild(diffSpan);
+
+      container.appendChild(row);
+    });
+  }
+
+  /** Обработка изменения вероятности */
+  function onProbChange(e) {
+    const key = e.target.dataset.key;
+    const val = parseInt(e.target.value);
+
+    // Обновляем значение
+    game.figureConfig.probabilities[key] = val;
+
+    // Нормализуем
+    normalizeProbabilities(game.figureConfig.probabilities);
+
+    // Обновляем UI
+    FIGURE_KEYS.forEach(k => {
+      const probSpan = document.getElementById(`prob-${k}`);
+      const slider = document.querySelector(`input[data-key="${k}"]`);
+      const diffSpan = document.getElementById(`diff-${k}`);
+      if (probSpan) probSpan.textContent = `${game.figureConfig.probabilities[k]}%`;
+      if (slider) slider.value = game.figureConfig.probabilities[k];
+      if (diffSpan) {
+        const d = calculateFigureDifficulty(k, game.figureConfig.probabilities);
+        diffSpan.textContent = d;
+        diffSpan.style.color = d <= 3 ? '#39FF14' : d <= 6 ? '#FFFF00' : '#FF3333';
+      }
+    });
+  }
+
+  // Сохранение
+  document.getElementById('btn-save-figures').addEventListener('click', () => {
+    try {
+      game.saveFigureConfig(deepClone(game.figureConfig));
+      game.renderDifficultyBars();
+      document.getElementById('figures-status').textContent = '✅ Конфиг фигур сохранён!';
+      document.getElementById('figures-status').style.color = '#39FF14';
+      populateFigureList();
+    } catch (e) {
+      document.getElementById('figures-status').textContent = `❌ ${e.message}`;
+      document.getElementById('figures-status').style.color = '#FF3333';
+    }
+  });
+
+  // Сброс
+  document.getElementById('btn-reset-figures').addEventListener('click', () => {
+    if (confirm('Сбросить настройки фигур к дефолтным?')) {
+      game.figureConfig = game.getDefaultFigureConfig();
+      Storage.save(Storage.KEYS.FIGURE_CONFIG, game.figureConfig);
+      game.renderDifficultyBars();
+      populateFigureList();
+      document.getElementById('figures-status').textContent = '✅ Настройки фигур сброшены!';
+      document.getElementById('figures-status').style.color = '#39FF14';
+    }
+  });
+
+  // Экспорт
+  document.getElementById('btn-export-figures').addEventListener('click', () => {
+    game.exportFigureConfig();
+  });
+
+  // Импорт
+  document.getElementById('btn-import-figures').addEventListener('click', () => {
+    document.getElementById('import-figures-input').click();
+  });
+
+  document.getElementById('import-figures-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    game.importFigureConfig(file)
+      .then(() => {
+        populateFigureList();
+        document.getElementById('figures-status').textContent = '✅ Конфиг фигур импортирован!';
+        document.getElementById('figures-status').style.color = '#39FF14';
+      })
+      .catch(err => {
+        document.getElementById('figures-status').textContent = `❌ ${err.message}`;
+        document.getElementById('figures-status').style.color = '#FF3333';
+      });
+    e.target.value = '';
+  });
+}
+
+// =============================================================================
+// ТОЧКА ВХОДА
+// =============================================================================
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Инициализация игры
+  const game = new Game();
+
+  // Инициализация UI модулей
+  initLevelEditor(game);
+  initFigureSettings(game);
+
+  console.log('🎮 Неоновый Тетрис загружен!');
+});
+</script>
+</body>
+</html>
