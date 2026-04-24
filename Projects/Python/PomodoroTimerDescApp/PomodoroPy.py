@@ -12,7 +12,9 @@ class Pomodoro:
         "work_time": 25, "break_time": 5, "opacity": 0.95,
         "pos_x": 100, "pos_y": 100, "width": 240, "height": 100,
         "theme": "dark", "sound": True, "auto_start": True,
-        "work_text": "WORK", "break_text": "BREAK"
+        "work_text": "WORK", "break_text": "BREAK",
+        # ➕ НОВОЕ: настройки уведомлений
+        "notify_enabled": True, "notify_pos": "center"
     }
 
     def __init__(self):
@@ -187,6 +189,7 @@ class Pomodoro:
             self.running = False
             if self.job: self.root.after_cancel(self.job)
             self.lbl_time.config(fg=self.theme['fg_pause'])
+            self.show_notification("⏸️ Пауза", "Таймер остановлен")
         else:
             self.running = True
             if not self.start_time: self.start_time = datetime.now()
@@ -195,8 +198,10 @@ class Pomodoro:
                 step = self.schedule[self.schedule_index]
                 color = self.theme['fg_accent'] if step['type'] == 'work' else self.theme['fg_break']
                 self.lbl_time.config(fg=color)
+                self.show_notification("▶️ Старт", step['label'])
             else:
                 self.lbl_time.config(fg=self.theme['fg_accent'] if self.work_mode else self.theme['fg_break'])
+                self.show_notification("▶️ Старт", self.config['work_text' if self.work_mode else 'break_text'])
 
     def countdown(self):
         if self.running and self.time > 0:
@@ -222,6 +227,12 @@ class Pomodoro:
         self.lbl_mode.config(text=self.config['work_text' if self.work_mode else 'break_text'])
         self.lbl_time.config(fg=self.theme['fg_accent' if self.work_mode else 'fg_break'])
         self.update_display()
+        
+        # ➕ Уведомление при смене режима
+        title = "🍅 Работа" if self.work_mode else "☕ Отдых"
+        msg = "Время сосредоточиться!" if self.work_mode else "Сделайте перерыв."
+        self.show_notification(title, msg)
+        
         if self.config['auto_start']: self.countdown()
 
     def reset(self):
@@ -284,7 +295,6 @@ class Pomodoro:
     # 🔊 ВОСПРОИЗВЕДЕНИЕ ЗВУКА
     # ==========================================
     def _play_sound(self, sound_path):
-        """Проигрывает звуковой файл для шага расписания"""
         if not sound_path or not os.path.exists(sound_path):
             if self.config.get('sound', True):
                 self.root.bell()
@@ -313,6 +323,46 @@ class Pomodoro:
             self.root.bell()
 
     # ==========================================
+    # 🔔 СИСТЕМА УВЕДОМЛЕНИЙ
+    # ==========================================
+    def show_notification(self, title, message, duration_ms=4500):
+        """Показывает всплывающее уведомление в заданной позиции"""
+        if not self.config.get("notify_enabled", True):
+            return
+
+        win = Toplevel(self.root)
+        win.overrideredirect(True)
+        win.attributes('-topmost', True)
+        win.configure(bg=self.theme['bg_secondary'])
+        win.bind("<Button-1>", lambda e: win.destroy())  # Клик закрывает уведомление
+
+        frm = tk.Frame(win, bg=self.theme['bg_primary'], padx=18, pady=12, relief=tk.FLAT, bd=1)
+        frm.pack(fill=tk.BOTH, expand=True)
+
+        tk.Label(frm, text=title, font=("Arial", 12, "bold"), bg=self.theme['bg_primary'], fg=self.theme['fg_accent'], anchor='w').pack(fill=tk.X)
+        tk.Label(frm, text=message, font=("Arial", 10), bg=self.theme['bg_primary'], fg=self.theme['fg_secondary'], wraplength=320, justify=tk.LEFT, anchor='w').pack(fill=tk.X, pady=(6, 0))
+
+        win.update_idletasks()
+        w, h = win.winfo_width(), win.winfo_height()
+        sw, sh = self.root.winfo_screenwidth(), self.root.winfo_screenheight()
+        pad = 25
+        pos = self.config.get("notify_pos", "center")
+
+        positions = {
+            "center": ((sw - w)//2, (sh - h)//2),
+            "top_left": (pad, pad),
+            "top_right": (sw - w - pad, pad),
+            "bottom_left": (pad, sh - h - pad),
+            "bottom_right": (sw - w - pad, sh - h - pad),
+            "bottom_center": ((sw - w)//2, sh - h - pad),
+            "top_center": ((sw - w)//2, pad)
+        }
+        x, y = positions.get(pos, positions["center"])
+        win.geometry(f"{w}x{h}+{x}+{y}")
+
+        win.after(duration_ms, win.destroy)
+
+    # ==========================================
     # 📋 РАСПИСАНИЕ
     # ==========================================
     def open_schedule_menu(self):
@@ -328,7 +378,7 @@ class Pomodoro:
         tk.Label(win, text="📋 Управление расписанием", bg=self.theme['bg_secondary'],
                  fg=self.theme['fg_primary'], font=("Arial", 13, "bold")).pack(pady=10)
         
-        info = tk.Label(win, text="Формат JSON: {\"name\": \"...\", \"steps\": [{\"duration\": секунды, \"label\": \"...\", \"type\": \"work|break\", \"sound\": \"path.wav\"}]}", 
+        info = tk.Label(win, text="Формат JSON: {\"name\": \"...\", \"steps\": [{\"duration\": секунды, \"label\": \"...\", \"type\": \"work|break\", \"sound\": \"path\"}]}", 
                         bg=self.theme['bg_secondary'], fg=self.theme['fg_secondary'], font=("Arial", 9), justify=tk.LEFT)
         info.pack(pady=5)
         
@@ -363,10 +413,10 @@ class Pomodoro:
             messagebox.showerror("Ошибка чтения", str(e))
 
     def load_example_schedule(self):
-        # ➕ Все duration указаны в СЕКУНДАХ. sound: путь к файлу или пустая строка.
         example = {
             "name": "Рабочий день (Пример)",
             "steps": [
+                {"duration": 600, "label": "📅 Планирование дня", "type": "plan", "sound": ""},
                 {"duration": 1500, "label": "🍅 Помидор №1 (Глубокая работа)", "type": "work", "sound": ""},
                 {"duration": 300, "label": "✅ Перерыв (разминка)", "type": "break", "sound": ""},
                 {"duration": 1500, "label": "🍅 Помидор №2", "type": "work", "sound": ""},
@@ -415,7 +465,6 @@ class Pomodoro:
         if index < len(self.schedule):
             self.schedule_index = index
             step = self.schedule[index]
-            # ➕ Время берётся напрямую в секундах
             self.time = step["duration"]
             self.max_time = self.time
             self.start_time = None
@@ -425,8 +474,9 @@ class Pomodoro:
             self.lbl_time.config(fg=color)
             self.update_display()
             
-            # ➕ Проигрываем звук при старте шага
             self._play_sound(step.get("sound"))
+            # ➕ Уведомление при старте нового шага расписания
+            self.show_notification(f"⏱ Шаг {index+1}", step['label'])
         else:
             self.schedule_active = False
             self.lbl_mode.config(text="Расписание завершено")
@@ -480,17 +530,38 @@ class Pomodoro:
             e.pack()
             entries[key] = e
         
-        tk.Label(f, text="Тема:", bg=self.theme['bg_secondary'], fg=self.theme['fg_primary']).pack(pady=5)
+        tk.Label(f, text="Тема:", bg=self.theme['bg_secondary'], fg=self.theme['fg_primary']).pack(pady=(10, 2))
         theme_names = [(k, v['name']) for k, v in self.themes.items()]
         theme_var = tk.StringVar(value=f"{self.themes[self.config['theme']]['name']} ({self.config['theme']})")
         ttk.Combobox(f, textvariable=theme_var, values=[f"{n} ({k})" for k, n in theme_names],
-            state="readonly", font=("Arial", 11), width=25).pack(pady=5)
+            state="readonly", font=("Arial", 11), width=25).pack(pady=2)
         
         for txt, var, val in [("Звук", tk.BooleanVar(value=self.config['sound']), 'sound'),
                                ("Автозапуск", tk.BooleanVar(value=self.config['auto_start']), 'auto_start')]:
             tk.Checkbutton(f, text=txt, variable=var, bg=self.theme['bg_secondary'],
                 fg=self.theme['fg_primary'], selectcolor=self.theme['bg_button']).pack(pady=2)
             entries[val] = var
+
+        # ➕ Настройки уведомлений
+        tk.Label(f, text="Уведомления:", bg=self.theme['bg_secondary'], fg=self.theme['fg_primary']).pack(pady=(10, 2))
+        notify_var = tk.BooleanVar(value=self.config.get('notify_enabled', True))
+        tk.Checkbutton(f, text="Включить всплывающие уведомления", variable=notify_var, 
+                       bg=self.theme['bg_secondary'], fg=self.theme['fg_primary'], 
+                       selectcolor=self.theme['bg_button']).pack(pady=2)
+        entries['notify_enabled'] = notify_var
+
+        tk.Label(f, text="Позиция уведомлений:", bg=self.theme['bg_secondary'], fg=self.theme['fg_primary']).pack(pady=5)
+        POS_MAP = {"Центр": "center", "Верх-Лево": "top_left", "Верх-Право": "top_right",
+                   "Низ-Лево": "bottom_left", "Низ-Право": "bottom_right", 
+                   "Низ-Центр": "bottom_center", "Верх-Центр": "top_center"}
+        
+        current_pos_key = self.config.get('notify_pos', 'center')
+        current_pos_name = [k for k, v in POS_MAP.items() if v == current_pos_key][0]
+        pos_var = tk.StringVar(value=current_pos_name)
+        
+        ttk.Combobox(f, textvariable=pos_var, values=list(POS_MAP.keys()), 
+                     state="readonly", font=("Arial", 11), width=25).pack(pady=2)
+        entries['notify_pos_var'] = (pos_var, POS_MAP)
         
         status = tk.Label(f, text="", bg=self.theme['bg_secondary'], fg=self.theme['fg_accent'])
         status.pack(pady=5)
@@ -503,6 +574,10 @@ class Pomodoro:
                     self.config[k] = entries[k].get().strip()
                 self.config['sound'] = entries['sound'].get()
                 self.config['auto_start'] = entries['auto_start'].get()
+                self.config['notify_enabled'] = notify_var.get()
+                
+                p_var, p_map = entries['notify_pos_var']
+                self.config['notify_pos'] = p_map.get(p_var.get(), 'center')
                 
                 sel = theme_var.get()
                 for k, n in theme_names:
@@ -527,6 +602,8 @@ class Pomodoro:
                         if isinstance(v, bool): entries[k].set(v)
                         else: entries[k].delete(0, tk.END); entries[k].insert(0, str(v))
                 theme_var.set(f"{self.themes['dark']['name']} (dark)")
+                notify_var.set(True)
+                pos_var.set("Центр")
                 status.config(text="Сброшено", fg=self.theme['fg_pause'])
         
         bf = tk.Frame(f, bg=self.theme['bg_secondary'])
