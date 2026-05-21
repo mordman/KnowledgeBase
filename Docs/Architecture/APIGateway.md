@@ -77,6 +77,144 @@
 
 ---
 
+## 🌍 Популярные кроссплатформенные API Gateways
+
+Помимо .NET решений, существует множество мощных, независимых от платформы API Gateways, которые часто используются в гетерогенных архитектурах или запускаются в контейнерах/Kubernetes.
+
+### 1. **Tyk** 
+- **Веб-сайт**: [https://tyk.io](https://tyk.io)
+- **Тип**: Open-source + SaaS облачная версия
+- **Язык**: Go (высокая производительность)
+- **Конфигурация**: JSON, YAML, Dashboard UI, REST API
+- **Возможности**:
+  - Маршрутизация, rate limiting, кэширование, трансформация заголовков/тела
+  - OAuth2, OpenID Connect, JWT, API Key, HMAC аутентификация
+  - GraphQL поддержка, WebSocket, gRPC
+  - Версионирование API, аналитика, monitoring
+  - Middleware system (написание на Go или JavaScript)
+  - Service discovery (Consul, Eureka)
+  - Интеграция с Kubernetes
+- ✅ **Плюсы**: Отличная производительность (Go), богатая функциональность, хороший UI Dashboard, мощное API, поддержка сложных сценариев, flexible pricing
+- ❌ **Минусы**: Документация местами недостаточна, меньше примеров для Java/C# интеграции, требует отдельного deployment
+- 📦 **Развёртывание**: Docker, Kubernetes, on-premises, SaaS облако
+
+### 2. **Kong**
+- **Веб-сайт**: [https://konghq.com](https://konghq.com)
+- **Тип**: Open-source + коммерческие версии (Enterprise)
+- **Язык**: Lua + OpenResty (NGINX-based)
+- **Конфигурация**: Declarative YAML (Kong Ingress Controller), Admin API, UI (Kong Manager)
+- **Возможности**:
+  - Построен на NGINX, используется в production у крупных корпораций
+  - Plugins экосистема (100+ готовых), возможность писать на Lua/JavaScript
+  - JWT, OAuth2, LDAP, OIDC аутентификация
+  - Rate limiting, request transformation, кэширование
+  - Load balancing, health checks, failover
+  - Service mesh интеграция (Kuma)
+  - Отличная поддержка Kubernetes (Kong Ingress Controller)
+- ✅ **Плюсы**: Зрелое решение, огромная экосистема plugins, отличная документация, активное сообщество, used by Netflix, Stripe и др., Enterprise поддержка
+- ❌ **Минусы**: Конфигурация может быть многословной, требует Cassandra/PostgreSQL для state, требует отдельной инфраструктуры
+- 📦 **Развёртывание**: Docker, Kubernetes (Kong Ingress), on-premises, SaaS (Kong Konnect)
+
+### 3. **Envoy Proxy**
+- **Веб-сайт**: [https://www.envoyproxy.io](https://www.envoyproxy.io)
+- **Тип**: Open-source (CNCF)
+- **Язык**: C++ (экстремальная производительность)
+- **Конфигурация**: YAML, protobuf, gRPC Management API
+- **Возможности**:
+  - Изначально разработан для service mesh (Istio использует Envoy)
+  - L4 и L7 proxy, маршрутизация на основе заголовков, пути, методов
+  - Advanced load balancing (round-robin, ring hash, random, etc.)
+  - Retry, circuit breaker, outlier detection (встроены)
+  - Compression, rate limiting, request transformation
+  - WebSocket, gRPC, HTTP/2, HTTP/3 поддержка
+  - Observability (metrics, tracing, logging)
+- ✅ **Плюсы**: Производительность близка к железу, может использоваться как API Gateway и service mesh, CNCF проект, используется Google, AWS, Lyft
+- ❌ **Минусы**: Крутая кривая обучения, конфиг сложный для новичков, требует больше ресурсов для простых задач, лучше всего в Kubernetes
+- 📦 **Развёртывание**: Docker, Kubernetes, on-premises
+
+### 4. **Traefik**
+- **Веб-сайт**: [https://traefik.io](https://traefik.io)
+- **Тип**: Open-source (Apache 2.0)
+- **Язык**: Go
+- **Конфигурация**: YAML, TOML, Kubernetes Ingress/CRD, Docker labels, Consul, Nomad и др.
+- **Возможности**:
+  - Reverse proxy и load balancer, может использоваться как API Gateway
+  - Автоматическая конфигурация через Service Discovery (Docker, Kubernetes, Consul, AWS ECS)
+  - Let's Encrypt SSL/TLS (автоматическое обновление)
+  - Middleware (authentication, rate limiting, compression, redirect, etc.)
+  - HTTP routing, WebSocket поддержка
+  - Metrics (Prometheus), трассировка (Jaeger, Zipkin, DataDog)
+  - Dashboard для мониторинга
+- ✅ **Плюсы**: Очень простой старт в Docker/Kubernetes, автоматический HTTPS (Let's Encrypt), мало boilerplate кода, отличная для контейнеризованных сред, активная поддержка
+- ❌ **Минусы**: Не так богат функциями как Kong, меньше готовых middleware, лучше всего для динамических окружений, может быть медленнее на огромных нагрузках
+- 📦 **Развёртывание**: Docker, Kubernetes (k3s идеален), on-premises
+
+### 5. **NGINX / NGINX Plus**
+- **Веб-сайт**: [https://nginx.org](https://nginx.org) / [https://www.nginx.com](https://www.nginx.com)
+- **Тип**: Open-source (NGINX) + коммерческая версия (NGINX Plus)
+- **Язык**: C (максимальная производительность)
+- **Конфигурация**: nginx.conf (текстовый формат), модули, Lua scripting (через ngx_http_lua_module)
+- **Возможности**:
+  - De facto стандарт reverse proxy в интернете
+  - Balancing, SSL/TLS termination, кэширование, compression
+  - URL rewriting, request limiting, access control
+  - gRPC поддержка (в plus версии и новых open-source)
+  - Lua scripting для кастомной логики (open-source требует перекомпиляции)
+  - Metrics и мониторинг (через third-party экосистему или Plus)
+- ✅ **Плюсы**: Максимальная производительность, минимальный footprint памяти, огромное сообщество, множество примеров
+- ❌ **Минусы**: Конфиг требует изучения синтаксиса, сложнее с динамической конфигурацией, требует перезагрузки для смены конфига (без plus версии)
+- 📦 **Развёртывание**: On-premises, Docker, Kubernetes (часто как Ingress controller)
+
+### 6. **AWS API Gateway**
+- **Веб-сайт**: [https://aws.amazon.com/api-gateway](https://aws.amazon.com/api-gateway)
+- **Тип**: Полностью управляемое облачное решение (PaaS) от AWS
+- **Конфигурация**: AWS Console, CloudFormation, CDK, Terraform, REST/HTTP API создание
+- **Возможности**:
+  - Создание REST и HTTP API, WebSocket поддержка
+  - Авторизация (IAM, Lambda, Cognito, OAuth)
+  - Rate limiting, throttling, caching
+  - Request/response transformation, CORS handling
+  - Интеграция с Lambda, ELB, HTTP endpoints, AWS сервисами
+  - Мониторинг через CloudWatch, X-Ray tracing
+  - API версионирование, stages (dev, staging, prod)
+- ✅ **Плюсы**: Нет инфраструктуры, масштабируется автоматически, интеграция с AWS экосистемой, хорошая SLA
+- ❌ **Минусы**: Платный, вендор-лок на AWS, может быть дороговато на больших объёмах, меньше контроля над низкоуровневой логикой
+- 📦 **Развёртывание**: Облако (AWS only)
+
+### 7. **Google Cloud Apigee**
+- **Веб-сайт**: [https://cloud.google.com/apigee](https://cloud.google.com/apigee)
+- **Тип**: Enterprise API Management платформа (PaaS)
+- **Конфигурация**: Web console, REST Management API, XML policies
+- **Возможности**:
+  - Управление жизненным циклом API, портал разработчика
+  - Advanced security (OAuth, mutual TLS, WAF)
+  - Analytics и monitoring (встроены)
+  - Monetization (тарификация)
+  - Rate limiting, traffic management, transformations
+  - Caching, offloading
+  - Интеграция с Google Cloud сервисами
+- ✅ **Плюсы**: Enterprise-уровень, лучшая аналитика в индустрии, поддержка мегакорпораций (Google uses internally)
+- ❌ **Минусы**: Дорого, вендор-лок на Google Cloud, нужны опытные специалисты
+- 📦 **Развёртывание**: Google Cloud (также есть on-prem версия)
+
+---
+
+## 📊 Расширенная сравнительная таблица (all API Gateways)
+
+| Критерий | Tyk | Kong | Envoy | Traefik | NGINX | AWS APIGW |
+|----------|-----|------|-------|---------|-------|-----------|
+| **Лицензия** | Open/SaaS | Open/Enterprise | Open (CNCF) | Open | Open/Plus | Платный (SaaS) |
+| **Язык** | Go | Lua+OpenResty | C++ | Go | C | Управляемый |
+| **Производительность** | Высокая | Высокая | Экстремальная | Высокая | Максимальная | Высокая (облако) |
+| **Готовые функции** | ✅ Много | ✅ Много (plugins) | ⚠️ Базовые | ✅ Средне | ✅ Много | ✅ Много |
+| **Кастомизация** | Хорошая (Go, JS) | Отличная (Lua, plugins) | Сложная (C++) | Средняя | Средняя (Lua) | Ограничена |
+| **Сложность** | Средняя | Средняя | Высокая | Низкая | Средняя | Низкая (облако) |
+| **Kubernetes** | ✅ Поддержка | ✅ Ingress | ✅ Отличная | ✅✅ Идеален | ✅ Ingress | ✅ Облако |
+| **Dashboard/UI** | ✅ Есть | ✅ Kong Manager | ❌ Нет | ✅ Простой | ❌ Нет | ✅ Console |
+| **Лучше для** | Гибкость, мидл-уровень | Большие системы, plugins | Service mesh, высокая нагрузка | Docker/K8s, микро | Максимум perf | AWS экосистема |
+
+---
+
 ## 💻 Пример минимальной настройки YARP (.NET 8/9)
 
 **`Program.cs`**
