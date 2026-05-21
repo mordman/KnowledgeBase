@@ -57,7 +57,7 @@
 **Команда:**  
 6 Fullstack, 1 TeamLead
 
-**Инструменты и технологии:** PL/SQL, Oracle Forms, C#, JAVA, .NET 6+, Oracle, Docker, GitLab  
+**Инструменты и технологии:** PL/SQL, Oracle Forms, C#, JAVA, Oracle, Docker, GitLab  
 **Период и длительность:** Июнь 2025 - работаю
 
 ---

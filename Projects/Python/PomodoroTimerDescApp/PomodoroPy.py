@@ -13,7 +13,6 @@ class Pomodoro:
         "pos_x": 100, "pos_y": 100, "width": 240, "height": 100,
         "theme": "dark", "sound": True, "auto_start": True,
         "work_text": "WORK", "break_text": "BREAK",
-        # ➕ НОВОЕ: настройки уведомлений
         "notify_enabled": True, "notify_pos": "center"
     }
 
@@ -144,6 +143,14 @@ class Pomodoro:
             font=self.theme['font_text'], bg=self.theme['bg_primary'], fg=self.theme['fg_secondary'])
         self.lbl_mode.pack(pady=(0, 5))
 
+        # ➕ Кнопка пропуска шага (слева от таймера, компактная)
+        self.btn_skip = tk.Button(self.root, text="⏭", font=("Arial", 9),
+            bg=self.theme['bg_button'], fg=self.theme['fg_secondary'], bd=0,
+            activebackground=self.theme['bg_button_active'], command=self.skip_step,
+            cursor="hand2", width=3, height=1)
+        self.btn_skip.place(relx=0.02, rely=0.5, anchor='w')
+        self.tooltip(self.btn_skip, "Пропустить шаг (Space)")
+
         self.lbl_uptime = tk.Label(self.root, text="", 
             font=("Arial", 8), bg=self.theme['bg_primary'], fg=self.theme['fg_secondary'])
         self.lbl_uptime.place(relx=1.0, rely=1.0, anchor='se', x=-5, y=-5)
@@ -155,6 +162,8 @@ class Pomodoro:
         self.lbl_time.bind("<ButtonRelease-1>", lambda e: self.toggle())
         self.root.bind("<Button-3>", lambda e: self.reset())
         self.root.bind("<Double-Button-1>", lambda e: self.close_app())
+        # ➕ Горячая клавиша пропуска
+        self.root.bind("<space>", lambda e: self.skip_step())
 
     def tooltip(self, widget, text):
         def show(e):
@@ -203,6 +212,35 @@ class Pomodoro:
                 self.lbl_time.config(fg=self.theme['fg_accent'] if self.work_mode else self.theme['fg_break'])
                 self.show_notification("▶️ Старт", self.config['work_text' if self.work_mode else 'break_text'])
 
+    def skip_step(self):
+        """Пропустить текущий шаг таймера"""
+        was_running = self.running
+        self.running = False
+        if self.job:
+            self.root.after_cancel(self.job)
+        
+        if self.schedule_active and self.schedule_index >= 0:
+            # В режиме расписания — переходим к следующему шагу
+            self.save_session()
+            self.advance_schedule()
+        else:
+            # В обычном режиме — переключаем режим работы/отдыха
+            self.save_session()
+            self.work_mode = not self.work_mode
+            self.time = (self.config['work_time'] if self.work_mode else self.config['break_time']) * 60
+            self.max_time = self.time
+            self.start_time = None
+            self.lbl_mode.config(text=self.config['work_text' if self.work_mode else 'break_text'])
+            self.lbl_time.config(fg=self.theme['fg_accent' if self.work_mode else 'fg_break'])
+            self.update_display()
+            # Уведомление о пропуске
+            self.show_notification("⏭️ Пропущено", self.config['work_text' if self.work_mode else 'break_text'])
+        
+        # Если таймер был запущен и включён автозапуск — продолжаем отсчёт
+        if was_running and self.config['auto_start']:
+            self.running = True
+            self.countdown()
+
     def countdown(self):
         if self.running and self.time > 0:
             self.time -= 1
@@ -228,7 +266,6 @@ class Pomodoro:
         self.lbl_time.config(fg=self.theme['fg_accent' if self.work_mode else 'fg_break'])
         self.update_display()
         
-        # ➕ Уведомление при смене режима
         title = "🍅 Работа" if self.work_mode else "☕ Отдых"
         msg = "Время сосредоточиться!" if self.work_mode else "Сделайте перерыв."
         self.show_notification(title, msg)
@@ -291,9 +328,6 @@ class Pomodoro:
             self.lbl_uptime.config(text=f"⏱ {uptime_str}")
         self.job_uptime = self.root.after(1000, self.update_uptime)
 
-    # ==========================================
-    # 🔊 ВОСПРОИЗВЕДЕНИЕ ЗВУКА
-    # ==========================================
     def _play_sound(self, sound_path):
         if not sound_path or not os.path.exists(sound_path):
             if self.config.get('sound', True):
@@ -322,9 +356,6 @@ class Pomodoro:
             print(f"Ошибка звука: {e}")
             self.root.bell()
 
-    # ==========================================
-    # 🔔 СИСТЕМА УВЕДОМЛЕНИЙ
-    # ==========================================
     def show_notification(self, title, message, duration_ms=4500):
         """Показывает всплывающее уведомление в заданной позиции"""
         if not self.config.get("notify_enabled", True):
@@ -334,7 +365,7 @@ class Pomodoro:
         win.overrideredirect(True)
         win.attributes('-topmost', True)
         win.configure(bg=self.theme['bg_secondary'])
-        win.bind("<Button-1>", lambda e: win.destroy())  # Клик закрывает уведомление
+        win.bind("<Button-1>", lambda e: win.destroy())
 
         frm = tk.Frame(win, bg=self.theme['bg_primary'], padx=18, pady=12, relief=tk.FLAT, bd=1)
         frm.pack(fill=tk.BOTH, expand=True)
@@ -362,9 +393,6 @@ class Pomodoro:
 
         win.after(duration_ms, win.destroy)
 
-    # ==========================================
-    # 📋 РАСПИСАНИЕ
-    # ==========================================
     def open_schedule_menu(self):
         win = Toplevel(self.root)
         win.overrideredirect(True)
@@ -432,7 +460,7 @@ class Pomodoro:
                 {"duration": 1500, "label": "🍅 Помидор №7", "type": "work", "sound": ""},
                 {"duration": 300, "label": "✅ Перерыв", "type": "break", "sound": ""},
                 {"duration": 1500, "label": "🍅 Помидор №8", "type": "work", "sound": ""},
-                {"duration": 3000, "label": "🍝 Обед", "type": "break", "sound": ""},
+                {"duration": 3600, "label": "🍝 Обед", "type": "break", "sound": ""},
                 {"duration": 1500, "label": "🍅 Помидор №9", "type": "work", "sound": ""},
                 {"duration": 300, "label": "✅ Перерыв", "type": "break", "sound": ""},
                 {"duration": 1500, "label": "🍅 Помидор №10", "type": "work", "sound": ""},
@@ -475,7 +503,6 @@ class Pomodoro:
             self.update_display()
             
             self._play_sound(step.get("sound"))
-            # ➕ Уведомление при старте нового шага расписания
             self.show_notification(f"⏱ Шаг {index+1}", step['label'])
         else:
             self.schedule_active = False
@@ -542,7 +569,6 @@ class Pomodoro:
                 fg=self.theme['fg_primary'], selectcolor=self.theme['bg_button']).pack(pady=2)
             entries[val] = var
 
-        # ➕ Настройки уведомлений
         tk.Label(f, text="Уведомления:", bg=self.theme['bg_secondary'], fg=self.theme['fg_primary']).pack(pady=(10, 2))
         notify_var = tk.BooleanVar(value=self.config.get('notify_enabled', True))
         tk.Checkbutton(f, text="Включить всплывающие уведомления", variable=notify_var, 
@@ -692,6 +718,13 @@ class Pomodoro:
             fg=self.theme['fg_secondary'])
         if hasattr(self, 'lbl_uptime'):
             self.lbl_uptime.configure(bg=self.theme['bg_primary'], fg=self.theme['fg_secondary'])
+        # ➕ Обновление кнопки пропуска
+        if hasattr(self, 'btn_skip'):
+            self.btn_skip.configure(
+                bg=self.theme['bg_button'],
+                fg=self.theme['fg_secondary'],
+                activebackground=self.theme['bg_button_active']
+            )
 
     def close_app(self):
         self.save_session()

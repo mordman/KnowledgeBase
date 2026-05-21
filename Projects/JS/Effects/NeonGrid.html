@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Sticky Grid</title>
+    <style>
+        :root {
+            --bg-color: #0a0a0a;
+            --panel-bg: rgba(10, 10, 10, 0.95);
+            --neon-pink: #ff2d95;
+            --neon-blue: #00f5ff;
+            --neon-green: #39ff14;
+            --neon-purple: #b026ff;
+            --neon-yellow: #ffe600;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg-color);
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+        }
+
+        canvas { display: block; cursor: none; }
+
+        /* ── Top bar ── */
+        #top-bar {
+            position: fixed; top: 20px; left: 20px; z-index: 100;
+            display: flex; gap: 10px; flex-wrap: wrap;
+        }
+
+        .bar-btn {
+            background: rgba(0,0,0,0.7); border: 2px solid;
+            padding: 10px 18px; border-radius: 8px;
+            font-size: 15px; cursor: pointer; transition: all 0.3s;
+            color: #fff; font-weight: bold; white-space: nowrap;
+        }
+
+        #settings-toggle {
+            border-color: var(--neon-blue); color: var(--neon-blue);
+            box-shadow: 0 0 10px var(--neon-blue);
+        }
+        #settings-toggle:hover {
+            background: var(--neon-blue); color: #000;
+            box-shadow: 0 0 25px var(--neon-blue);
+        }
+
+        #clear-btn {
+            border-color: var(--neon-pink); color: var(--neon-pink);
+            box-shadow: 0 0 10px var(--neon-pink);
+        }
+        #clear-btn:hover {
+            background: var(--neon-pink); color: #000;
+            box-shadow: 0 0 25px var(--neon-pink);
+        }
+
+        #reset-view-btn {
+            border-color: var(--neon-yellow); color: var(--neon-yellow);
+            box-shadow: 0 0 10px var(--neon-yellow);
+        }
+        #reset-view-btn:hover {
+            background: var(--neon-yellow); color: #000;
+            box-shadow: 0 0 25px var(--neon-yellow);
+        }
+
+        /* ── Settings Panel ── */
+        #settings-panel {
+            position: fixed; top: 70px; left: 20px; width: 340px;
+            max-height: calc(100vh - 100px); overflow-y: auto;
+            background: var(--panel-bg); border: 1px solid var(--neon-purple);
+            border-radius: 12px; padding: 24px; z-index: 99;
+            box-shadow: 0 0 30px rgba(176, 38, 255, 0.3);
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        #settings-panel.hidden {
+            transform: translateX(-400px); opacity: 0; pointer-events: none;
+        }
+
+        #settings-panel h2 {
+            font-size: 20px; color: var(--neon-pink); margin-bottom: 20px;
+            text-shadow: 0 0 10px var(--neon-pink); text-align: center;
+        }
+
+        .section-title {
+            font-size: 11px; text-transform: uppercase; letter-spacing: 2px;
+            color: var(--neon-purple); margin: 16px 0 10px;
+            text-shadow: 0 0 8px var(--neon-purple);
+        }
+
+        .setting-group {
+            margin-bottom: 18px; padding-bottom: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .setting-group:last-child { border-bottom: none; }
+
+        .setting-group label {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 8px; font-size: 13px; color: var(--neon-green);
+            text-shadow: 0 0 5px var(--neon-green);
+        }
+        .setting-group label span.value {
+            color: var(--neon-yellow); font-weight: bold;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none; width: 100%; height: 6px;
+            background: rgba(255,255,255,0.15); border-radius: 3px; outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 18px; height: 18px;
+            background: var(--neon-blue); border-radius: 50%;
+            box-shadow: 0 0 10px var(--neon-blue); cursor: pointer;
+        }
+
+        input[type="color"] {
+            -webkit-appearance: none; border: none; width: 50px; height: 30px;
+            border-radius: 6px; cursor: pointer; background: transparent;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
+        input[type="color"]::-webkit-color-swatch { border-radius: 4px; }
+
+        .checkbox-group {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 13px; color: var(--neon-green);
+        }
+        .checkbox-group input[type="checkbox"] {
+            accent-color: var(--neon-pink); width: 18px; height: 18px;
+        }
+
+        .color-row {
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .color-row label { margin-bottom: 0 !important; }
+
+        .hint-text {
+            margin-top: 6px; font-size: 11px; color: #888; line-height: 1.4;
+        }
+
+        select {
+            width: 100%; padding: 8px 10px; background: rgba(255,255,255,0.08);
+            border: 1px solid var(--neon-purple); border-radius: 6px;
+            color: #fff; font-size: 13px; outline: none; cursor: pointer;
+        }
+        select option { background: #1a1a2e; color: #fff; }
+
+        /* ── Info overlay ── */
+        #cursor-info {
+            position: fixed; bottom: 20px; right: 20px;
+            background: rgba(0,0,0,0.8); border: 1px solid var(--neon-green);
+            border-radius: 8px; padding: 12px 18px; font-size: 13px;
+            color: var(--neon-green); font-family: 'Courier New', monospace;
+            z-index: 50; box-shadow: 0 0 15px rgba(57, 255, 20, 0.2);
+        }
+        #cursor-info div { margin: 3px 0; }
+
+        /* ── Tooltip ── */
+        #edu-hint {
+            position: fixed; bottom: 20px; left: 20px;
+            background: rgba(0,0,0,0.8); border: 1px solid var(--neon-yellow);
+            border-radius: 8px; padding: 14px 20px; max-width: 350px;
+            font-size: 12px; color: #ccc; z-index: 50;
+            box-shadow: 0 0 15px rgba(255, 230, 0, 0.15); line-height: 1.5;
+        }
+        #edu-hint strong { color: var(--neon-yellow); }
+
+        /* ── Constellation label ── */
+        .constellation-label {
+            position: fixed; top: 20px; right: 20px; z-index: 50;
+            background: rgba(0,0,0,0.85); border: 1px solid;
+            border-radius: 10px; padding: 14px 22px;
+            font-size: 16px; font-weight: bold; text-shadow: 0 0 15px currentColor;
+            pointer-events: none; transition: opacity 0.4s;
+        }
+        .constellation-label .latin {
+            font-size: 12px; font-weight: normal; opacity: 0.7;
+            display: block; margin-top: 4px;
+        }
+
+        /* ── Pan hint ── */
+        #pan-hint {
+            position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+            z-index: 50; background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px; padding: 6px 14px; font-size: 12px;
+            color: #888; pointer-events: none; transition: opacity 1s;
+        }
+
+        /* ── Scrollbar ── */
+        #settings-panel::-webkit-scrollbar { width: 6px; }
+        #settings-panel::-webkit-scrollbar-track { background: transparent; }
+        #settings-panel::-webkit-scrollbar-thumb {
+            background: var(--neon-purple); border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="grid-canvas"></canvas>
+
+<!-- Top bar -->
+<div id="top-bar">
+    <button id="settings-toggle" class="bar-btn">⚙ Настройки</button>
+    <button id="clear-btn" class="bar-btn">🗑 Очистить</button>
+    <button id="reset-view-btn" class="bar-btn">🏠 Сброс вида</button>
+</div>
+
+<div id="pan-hint">Колёсико = прокрутка · Зажмите ЛКМ в пустом месте = перемещение · Созвездия привязаны к вершинам сетки</div>
+
+<!-- Settings Panel -->
+<div id="settings-panel">
+    <h2>⚙ Настройки сетки</h2>
+
+    <div class="section-title">📐 Геометрия</div>
+
+    <div class="setting-group">
+        <label>Длина ребра (px) <span class="value" id="val-edge">60</span></label>
+        <input type="range" id="edge-length" min="20" max="200" value="60" step="5">
+    </div>
+
+    <div class="setting-group">
+        <label>Диаметр вершины (px) <span class="value" id="val-vertex">12</span></label>
+        <input type="range" id="vertex-size" min="4" max="40" value="12" step="1">
+    </div>
+
+    <div class="setting-group">
+        <label>Толщина линии (px) <span class="value" id="val-line">1.5</span></label>
+        <input type="range" id="line-width" min="0.5" max="8" value="1.5" step="0.5">
+    </div>
+
+    <div class="section-title">🔗 Отображение рёбер</div>
+
+    <div class="setting-group">
+        <label>Длина ребра от вершины (%) <span class="value" id="val-edge-pct">100%</span></label>
+        <input type="range" id="edge-percent" min="5" max="100" value="100" step="5">
+        <div class="hint-text" id="edge-mode-hint">
+            📏 <b>Обычный:</b> линия в центре ячейки, укорочена с обоих концов
+        </div>
+        <div class="checkbox-group" style="margin-top:10px;">
+            <input type="checkbox" id="edge-reverse">
+            <label for="edge-reverse" style="margin-bottom:0">Рисовать от вершин</label>
+        </div>
+        <div class="hint-text" id="edge-reverse-hint" style="display:none;">
+            🔙 <b>Обратный:</b> линия идёт от кружочков к центру
+        </div>
+    </div>
+
+    <div class="section-title">🎯 Прилипание</div>
+
+    <div class="setting-group">
+        <label>Радиус прилипания (px) <span class="value" id="val-snap">40</span></label>
+        <input type="range" id="snap-radius" min="10" max="150" value="40" step="5">
+    </div>
+
+    <div class="setting-group">
+        <label>Размер курсора (px) <span class="value" id="val-cursor">8</span></label>
+        <input type="range" id="cursor-size" min="3" max="25" value="8" step="1">
+    </div>
+
+    <div class="section-title">🌟 Созвездия</div>
+
+    <div class="setting-group">
+        <label>Выбрать созвездие</label>
+        <select id="constellation-select">
+            <option value="none">— Не выбрано —</option>
+            <option value="ursa-major">🐻 Большая Медведица</option>
+            <option value="cassiopeia">👑 Кассиопея</option>
+            <option value="orion">🗡 Орион</option>
+            <option value="cygnus">🦢 Лебедь (Денеб)</option>
+            <option value="lyra">🎵 Лира (Вега)</option>
+            <option value="scorpius">🦂 Скорпион</option>
+            <option value="leo">🦁 Лев</option>
+            <option value="crux">✝ Южный Крест</option>
+            <option value="aquila">🦅 Орёл (Альтаир)</option>
+            <option value="gemini">👬 Близнецы</option>
+        </select>
+    </div>
+
+    <div class="setting-group">
+        <label>Масштаб созвездия <span class="value" id="val-const-scale">1.0</span></label>
+        <input type="range" id="const-scale" min="0.5" max="3" value="1" step="0.1">
+        <div class="hint-text">Множитель расстояния между звёздами в единицах сетки</div>
+    </div>
+
+    <div class="setting-group">
+        <label>Яркость созвездия <span class="value" id="val-const-brightness">80%</span></label>
+        <input type="range" id="const-brightness" min="10" max="100" value="80" step="5">
+    </div>
+
+    <div class="setting-group">
+        <label>Пульсация <span class="value" id="val-const-pulse">Выкл</span></label>
+        <input type="range" id="const-pulse" min="0" max="100" value="0" step="5">
+    </div>
+
+    <div class="setting-group">
+        <label>Смещение по X (ячейки) <span class="value" id="val-const-offx">0</span></label>
+        <input type="range" id="const-offx" min="-20" max="20" value="0" step="1">
+    </div>
+
+    <div class="setting-group">
+        <label>Смещение по Y (ячейки) <span class="value" id="val-const-offy">0</span></label>
+        <input type="range" id="const-offy" min="-20" max="20" value="0" step="1">
+    </div>
+
+    <div class="setting-group">
+        <div class="color-row">
+            <label>Цвет созвездия</label>
+            <input type="color" id="color-constellation" value="#ffe600">
+        </div>
+    </div>
+
+    <div class="section-title">🎨 Цвета</div>
+
+    <div class="setting-group">
+        <div class="color-row">
+            <label>Цвет линий</label>
+            <input type="color" id="color-line" value="#00f5ff">
+        </div>
+    </div>
+
+    <div class="setting-group">
+        <div class="color-row">
+            <label>Цвет вершин</label>
+            <input type="color" id="color-vertex" value="#ff2d95">
+        </div>
+    </div>
+
+    <div class="setting-group">
+        <div class="color-row">
+            <label>Цвет курсора</label>
+            <input type="color" id="color-cursor" value="#39ff14">
+        </div>
+    </div>
+
+    <div class="setting-group">
+        <div class="color-row">
+            <label>Цвет фона</label>
+            <input type="color" id="color-bg" value="#0a0a0a">
+        </div>
+    </div>
+
+    <div class="section-title">👁 Видимость</div>
+
+    <div class="setting-group">
+        <div class="checkbox-group">
+            <input type="checkbox" id="show-edges" checked>
+            <label for="show-edges" style="margin-bottom:0">Показывать рёбра</label>
+        </div>
+    </div>
+
+    <div class="setting-group">
+        <div class="checkbox-group">
+            <input type="checkbox" id="show-vertices" checked>
+            <label for="show-vertices" style="margin-bottom:0">Показывать вершины</label>
+        </div>
+    </div>
+
+    <div class="setting-group">
+        <div class="checkbox-group">
+            <input type="checkbox" id="show-glow" checked>
+            <label for="show-glow" style="margin-bottom:0">Неоновое свечение</label>
+        </div>
+    </div>
+
+    <div class="setting-group">
+        <div class="checkbox-group">
+            <input type="checkbox" id="show-coords" checked>
+            <label for="show-coords" style="margin-bottom:0">Показывать координаты</label>
+        </div>
+    </div>
+
+    <div class="setting-group">
+        <div class="checkbox-group">
+            <input type="checkbox" id="highlight-path" checked>
+            <label for="highlight-path" style="margin-bottom:0">Подсвечивать путь</label>
+        </div>
+    </div>
+
+    <div class="setting-group">
+        <div class="checkbox-group">
+            <input type="checkbox" id="show-constellation-lines" checked>
+            <label for="show-constellation-lines" style="margin-bottom:0">Линии созвездия</label>
+        </div>
+    </div>
+
+    <div class="setting-group">
+        <div class="checkbox-group">
+            <input type="checkbox" id="show-constellation-labels" checked>
+            <label for="show-constellation-labels" style="margin-bottom:0">Метки звёзд</label>
+        </div>
+    </div>
+</div>
+
+<div id="cursor-info">
+    <div>🖱 x: <span id="info-x">—</span></div>
+    <div>🖱 y: <span id="info-y">—</span></div>
+    <div>📌 grid: <span id="info-grid">—</span></div>
+</div>
+
+<div id="constellation-label" class="constellation-label" style="display:none;"></div>
+
+<div id="edu-hint">
+    <strong>💡 Образовательные идеи:</strong><br>
+    • Координатная плоскость — изучение декартовых координат<br>
+    • Графы и сети — обход вершин, алгоритмы поиска пути<br>
+    • Пиксель-арт — рисование по узлам сетки<br>
+    • Геометрия — построение фигур, углов, симметрии<br>
+    • Астрономия — созвездия на координатной сетке
+</div>
+
+<script>
+// ─── Canvas Setup ───
+const canvas = document.getElementById('grid-canvas');
+const ctx = canvas.getContext('2d');
+
+// Camera offset
+let offsetX = 0, offsetY = 0;
+let isPanning = false;
+let panStartX = 0, panStartY = 0;
+let panStartOffsetX = 0, panStartOffsetY = 0;
+let hasPanned = false;
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    draw();
+}
+window.addEventListener('resize', resizeCanvas);
+
+// ─── Constellations Data ───
+// Координаты в единицах сетки: {x: col, y: row}
+// Центр относительно начала координат (0,0)
+const CONSTELLATIONS = {
+    'ursa-major': {
+        name: 'Большая Медведица', latin: 'Ursa Major',
+        points: [
+            {x:-3,y:-2},{x:-1,y:-3},{x:1,y:-3},{x:2,y:-1.5},
+            {x:0,y:-0.5},{x:-1,y:1},{x:0,y:2}
+        ],
+        lines: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6]],
+        labels: ['α Дубхе','β Мерак','γ Фекда','δ Мегрец','ε Алиот','ζ Мицар','η Алькаид']
+    },
+    'cassiopeia': {
+        name: 'Кассиопея', latin: 'Cassiopeia',
+        points: [
+            {x:-4,y:-1},{x:-2,y:2},{x:0,y:-1},{x:2,y:2},{x:4,y:0}
+        ],
+        lines: [[0,1],[1,2],[2,3],[3,4]],
+        labels: ['ε Сегин','δ Рукбах','γ Нави','α Шедар','β Каф']
+    },
+    'orion': {
+        name: 'Орион', latin: 'Orion',
+        points: [
+            {x:-2,y:-4},{x:2,y:-3},{x:-1,y:0},{x:0,y:-0.5},
+            {x:1,y:0},{x:-1,y:3},{x:2,y:4}
+        ],
+        lines: [[0,4],[1,2],[2,3],[3,4],[2,5],[4,6]],
+        labels: ['α Бетельгейзе','γ Беллатрикс','δ Минтака','ε Альнилам','ζ Альнитак','β Ригель','κ Саиф']
+    },
+    'cygnus': {
+        name: 'Лебедь', latin: 'Cygnus',
+        points: [
+            {x:0,y:-4},{x:-2,y:0},{x:2,y:0},{x:-3,y:-1},
+            {x:3,y:-1},{x:0,y:3}
+        ],
+        lines: [[0,2],[0,4],[1,3],[2,5],[4,5],[1,5]],
+        labels: ['α Денеб','ε Джанах','δ Гьена','γ Сидр','β Альбирео','ι']
+    },
+    'lyra': {
+        name: 'Лира', latin: 'Lyra',
+        points: [
+            {x:0,y:-3},{x:-2,y:0},{x:2,y:0},{x:-1,y:2},{x:1,y:2},{x:0,y:3}
+        ],
+        lines: [[0,1],[0,2],[1,3],[2,4],[3,5],[4,5]],
+        labels: ['α Вега','ε¹','ε²','ζ','δ','γ Сулафат']
+    },
+    'scorpius': {
+        name: 'Скорпион', latin: 'Scorpius',
+        points: [
+            {x:-2,y:-4},{x:-1,y:-2},{x:0,y:-3},{x:1,y:-1},{x:0,y:1},
+            {x:-1,y:2},{x:1,y:3},{x:2,y:2},{x:2,y:4},{x:1,y:4}
+        ],
+        lines: [[0,1],[0,2],[1,3],[2,3],[3,4],[4,5],[5,6],[6,8],[6,9]],
+        labels: ['α Антарес','τ','σ','π','ρ','δ','μ','ζ','η','θ']
+    },
+    'leo': {
+        name: 'Лев', latin: 'Leo',
+        points: [
+            {x:-3,y:-2},{x:-2,y:0},{x:-1,y:2},{x:0,y:0},
+            {x:1,y:-2},{x:2,y:1},{x:3,y:3}
+        ],
+        lines: [[0,1],[1,2],[2,3],[3,4],[3,5],[5,6]],
+        labels: ['α Регул','η','γ Альгиеба','δ','ε','β Денебола','ζ']
+    },
+    'crux': {
+        name: 'Южный Крест', latin: 'Crux',
+        points: [
+            {x:0,y:-3},{x:-2,y:0},{x:2,y:0},{x:0,y:3},{x:0,y:0}
+        ],
+        lines: [[0,3],[1,2],[4,0]],
+        labels: ['α Акрукс','β Бекрукс','γ','δ','ε']
+    },
+    'aquila': {
+        name: 'Орёл', latin: 'Aquila',
+        points: [
+            {x:0,y:-3},{x:-2,y:-1},{x:2,y:-1},{x:-3,y:1},
+            {x:3,y:1},{x:0,y:2},{x:0,y:4}
+        ],
+        lines: [[0,1],[0,2],[1,3],[2,4],[3,5],[4,5],[5,6]],
+        labels: ['α Альтаир','β Альшаин','γ Таразед','δ','ε','ζ','η']
+    },
+    'gemini': {
+        name: 'Близнецы', latin: 'Gemini',
+        points: [
+            {x:-1,y:-4},{x:1,y:-4},{x:-2,y:-1},{x:2,y:-1},
+            {x:-1,y:1},{x:1,y:1},{x:-2,y:3},{x:2,y:3}
+        ],
+        lines: [[0,1],[0,2],[1,3],[2,4],[3,5],[4,6],[5,7]],
+        labels: ['α Кастор','β Поллукс','γ','δ','ε','ζ','η','θ']
+    }
+};
+
+// ─── Settings ───
+const settings = {
+    edgeLength: 60,
+    vertexDiameter: 12,
+    lineWidth: 1.5,
+    edgePercent: 100,
+    edgeReverse: false,
+    snapRadius: 40,
+    cursorSize: 8,
+    constellation: 'none',
+    constellationScale: 1.0,
+    constellationOffsetX: 0,
+    constellationOffsetY: 0,
+    constellationBrightness: 80,
+    constellationPulse: 0,
+    colorConstellation: '#ffe600',
+    colorLine: '#00f5ff',
+    colorVertex: '#ff2d95',
+    colorCursor: '#39ff14',
+    colorBg: '#0a0a0a',
+    showEdges: true,
+    showVertices: true,
+    showGlow: true,
+    showCoords: true,
+    highlightPath: true,
+    showConstellationLines: true,
+    showConstellationLabels: true
+};
+
+// ─── Mouse State ───
+let mouseX = -1000, mouseY = -1000;
+let worldMouseX = -1000, worldMouseY = -1000;
+let snappedX = -1000, snappedY = -1000;
+let isSnapped = false;
+let path = [];
+let animTime = 0;
+
+// ─── Bind UI ───
+function bindSlider(id, key, valueId, formatter) {
+    const el = document.getElementById(id);
+    const valEl = document.getElementById(valueId);
+    el.addEventListener('input', () => {
+        settings[key] = parseFloat(el.value);
+        valEl.textContent = formatter ? formatter(el.value) : el.value;
+        draw();
+    });
+}
+
+bindSlider('edge-length', 'edgeLength', 'val-edge');
+bindSlider('vertex-size', 'vertexDiameter', 'val-vertex');
+bindSlider('line-width', 'lineWidth', 'val-line');
+bindSlider('edge-percent', 'edgePercent', 'val-edge-pct', v => v + '%');
+bindSlider('snap-radius', 'snapRadius', 'val-snap');
+bindSlider('cursor-size', 'cursorSize', 'val-cursor');
+bindSlider('const-scale', 'constellationScale', 'val-const-scale', v => parseFloat(v).toFixed(1));
+bindSlider('const-offx', 'constellationOffsetX', 'val-const-offx');
+bindSlider('const-offy', 'constellationOffsetY', 'val-const-offy');
+bindSlider('const-brightness', 'constellationBrightness', 'val-const-brightness', v => v + '%');
+bindSlider('const-pulse', 'constellationPulse', 'val-const-pulse', v => v == 0 ? 'Выкл' : v + '%');
+
+function bindColor(id, key) {
+    const el = document.getElementById(id);
+    el.addEventListener('input', () => { settings[key] = el.value; draw(); });
+}
+bindColor('color-line', 'colorLine');
+bindColor('color-vertex', 'colorVertex');
+bindColor('color-cursor', 'colorCursor');
+bindColor('color-bg', 'colorBg');
+bindColor('color-constellation', 'colorConstellation');
+
+function bindCheckbox(id, key) {
+    const el = document.getElementById(id);
+    el.addEventListener('change', () => { settings[key] = el.checked; draw(); });
+}
+bindCheckbox('show-edges', 'showEdges');
+bindCheckbox('show-vertices', 'showVertices');
+bindCheckbox('show-glow', 'showGlow');
+bindCheckbox('show-coords', 'showCoords');
+bindCheckbox('highlight-path', 'highlightPath');
+bindCheckbox('show-constellation-lines', 'showConstellationLines');
+bindCheckbox('show-constellation-labels', 'showConstellationLabels');
+
+const edgeReverseCheckbox = document.getElementById('edge-reverse');
+const normalHint = document.getElementById('edge-mode-hint');
+const reverseHint = document.getElementById('edge-reverse-hint');
+edgeReverseCheckbox.addEventListener('change', () => {
+    settings.edgeReverse = edgeReverseCheckbox.checked;
+    normalHint.style.display = settings.edgeReverse ? 'none' : 'block';
+    reverseHint.style.display = settings.edgeReverse ? 'block' : 'none';
+    draw();
+});
+
+const constSelect = document.getElementById('constellation-select');
+const constLabelEl = document.getElementById('constellation-label');
+constSelect.addEventListener('change', () => {
+    settings.constellation = constSelect.value;
+    const constData = CONSTELLATIONS[settings.constellation];
+    if (constData) {
+        constLabelEl.style.display = 'block';
+        constLabelEl.innerHTML = `⭐ ${constData.name}<span class="latin">${constData.latin}</span>`;
+        constLabelEl.style.borderColor = settings.colorConstellation;
+        constLabelEl.style.color = settings.colorConstellation;
+        constLabelEl.style.boxShadow = `0 0 20px ${settings.colorConstellation}44`;
+    } else {
+        constLabelEl.style.display = 'none';
+    }
+    draw();
+});
+
+// ─── Buttons ───
+const panel = document.getElementById('settings-panel');
+document.getElementById('settings-toggle').addEventListener('click', () => panel.classList.toggle('hidden'));
+
+document.getElementById('clear-btn').addEventListener('click', () => {
+    path = [];
+    offsetX = 0;
+    offsetY = 0;
+    draw();
+});
+
+document.getElementById('reset-view-btn').addEventListener('click', () => {
+    offsetX = 0;
+    offsetY = 0;
+    draw();
+});
+
+// ─── Panning ───
+canvas.addEventListener('mousedown', (e) => {
+    if (e.button === 0 && !isSnapped) {
+        isPanning = true;
+        hasPanned = false;
+        panStartX = e.clientX;
+        panStartY = e.clientY;
+        panStartOffsetX = offsetX;
+        panStartOffsetY = offsetY;
+        canvas.style.cursor = 'grabbing';
+    }
+});
+
+canvas.addEventListener('mousemove', (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+
+    if (isPanning) {
+        const dx = e.clientX - panStartX;
+        const dy = e.clientY - panStartY;
+        offsetX = panStartOffsetX + dx;
+        offsetY = panStartOffsetY + dy;
+        hasPanned = true;
+        draw();
+    } else {
+        worldMouseX = mouseX - offsetX;
+        worldMouseY = mouseY - offsetY;
+        calculateSnap();
+        draw();
+    }
+});
+
+canvas.addEventListener('mouseup', () => {
+    if (isPanning) {
+        isPanning = false;
+        canvas.style.cursor = 'none';
+    }
+});
+
+canvas.addEventListener('mouseleave', () => {
+    if (isPanning) {
+        isPanning = false;
+        canvas.style.cursor = 'none';
+    }
+});
+
+canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    offsetX -= e.deltaX;
+    offsetY -= e.deltaY;
+    draw();
+}, { passive: false });
+
+canvas.addEventListener('click', (e) => {
+    if (!hasPanned && isSnapped) {
+        path.push({ x: snappedX, y: snappedY });
+        draw();
+    }
+    hasPanned = false;
+});
+
+canvas.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    path = [];
+    draw();
+});
+
+// ─── Snap Calculation ───
+function calculateSnap() {
+    const { edgeLength, snapRadius } = settings;
+    const wx = worldMouseX;
+    const wy = worldMouseY;
+
+    const gridX = Math.round(wx / edgeLength) * edgeLength;
+    const gridY = Math.round(wy / edgeLength) * edgeLength;
+    const dist = Math.hypot(wx - gridX, wy - gridY);
+
+    if (dist <= snapRadius) {
+        isSnapped = true;
+        snappedX = gridX;
+        snappedY = gridY;
+    } else {
+        isSnapped = false;
+        snappedX = wx;
+        snappedY = wy;
+    }
+
+    if (settings.showCoords) {
+        document.getElementById('info-x').textContent = Math.round(worldMouseX);
+        document.getElementById('info-y').textContent = Math.round(worldMouseY);
+        document.getElementById('info-grid').textContent = isSnapped
+            ? `(${Math.round(gridX / edgeLength)}, ${Math.round(gridY / edgeLength)})`
+            : 'нет';
+    }
+}
+
+// ─── Animation Loop ───
+function animate() {
+    animTime += 0.02;
+    draw();
+    requestAnimationFrame(animate);
+}
+
+// ─── Drawing ───
+function draw() {
+    const {
+        edgeLength, vertexDiameter, lineWidth, edgePercent, edgeReverse,
+        snapRadius, cursorSize,
+        colorLine, colorVertex, colorCursor, colorBg, colorConstellation,
+        showEdges, showVertices, showGlow,
+        constellationScale, constellationBrightness, constellationPulse,
+        showConstellationLines, showConstellationLabels
+    } = settings;
+
+    ctx.save();
+
+    // Clear
+    ctx.fillStyle = colorBg;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Camera offset — всё рисуется относительно камеры
+    ctx.translate(offsetX, offsetY);
+
+    // Visible range
+    const viewLeft = -offsetX;
+    const viewTop = -offsetY;
+    const viewRight = canvas.width - offsetX;
+    const viewBottom = canvas.height - offsetY;
+
+    const startCol = Math.floor(viewLeft / edgeLength) - 1;
+    const endCol = Math.ceil(viewRight / edgeLength) + 1;
+    const startRow = Math.floor(viewTop / edgeLength) - 1;
+    const endRow = Math.ceil(viewBottom / edgeLength) + 1;
+
+    // ── Edges ──
+    if (showEdges) {
+        ctx.lineWidth = lineWidth;
+        if (showGlow) { ctx.shadowColor = colorLine; ctx.shadowBlur = 6; }
+        else { ctx.shadowBlur = 0; }
+
+        if (!edgeReverse) {
+            const off = edgeLength * (1 - edgePercent / 100) / 2;
+            for (let j = startRow; j <= endRow; j++) {
+                const y = j * edgeLength;
+                for (let i = startCol; i < endCol; i++) {
+                    const x1 = i * edgeLength + off;
+                    const x2 = (i + 1) * edgeLength - off;
+                    if (x1 >= x2) continue;
+                    ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y);
+                    ctx.strokeStyle = colorLine + '88'; ctx.stroke();
+                }
+            }
+            for (let i = startCol; i <= endCol; i++) {
+                const x = i * edgeLength;
+                for (let j = startRow; j < endRow; j++) {
+                    const y1 = j * edgeLength + off;
+                    const y2 = (j + 1) * edgeLength - off;
+                    if (y1 >= y2) continue;
+                    ctx.beginPath(); ctx.moveTo(x, y1); ctx.lineTo(x, y2);
+                    ctx.strokeStyle = colorLine + '88'; ctx.stroke();
+                }
+            }
+        } else {
+            const segLen = edgeLength * edgePercent / 100;
+            for (let j = startRow; j <= endRow; j++) {
+                const y = j * edgeLength;
+                for (let i = startCol; i < endCol; i++) {
+                    const ox = i * edgeLength;
+                    ctx.beginPath(); ctx.moveTo(ox, y); ctx.lineTo(ox + segLen, y);
+                    ctx.strokeStyle = colorLine + '88'; ctx.stroke();
+                    const dx = (i + 1) * edgeLength;
+                    ctx.beginPath(); ctx.moveTo(dx, y); ctx.lineTo(dx - segLen, y);
+                    ctx.strokeStyle = colorLine + '88'; ctx.stroke();
+                }
+            }
+            for (let i = startCol; i <= endCol; i++) {
+                const x = i * edgeLength;
+                for (let j = startRow; j < endRow; j++) {
+                    const oy = j * edgeLength;
+                    ctx.beginPath(); ctx.moveTo(x, oy); ctx.lineTo(x, oy + segLen);
+                    ctx.strokeStyle = colorLine + '88'; ctx.stroke();
+                    const dy = (j + 1) * edgeLength;
+                    ctx.beginPath(); ctx.moveTo(x, dy); ctx.lineTo(x, dy - segLen);
+                    ctx.strokeStyle = colorLine + '88'; ctx.stroke();
+                }
+            }
+        }
+    }
+
+    ctx.shadowBlur = 0;
+
+    // ── Vertices ──
+    if (showVertices) {
+        const radius = vertexDiameter / 2;
+        for (let i = startCol; i <= endCol; i++) {
+            for (let j = startRow; j <= endRow; j++) {
+                const vx = i * edgeLength;
+                const vy = j * edgeLength;
+                ctx.beginPath();
+                ctx.arc(vx, vy, radius, 0, Math.PI * 2);
+                ctx.fillStyle = colorVertex;
+                if (showGlow) { ctx.shadowColor = colorVertex; ctx.shadowBlur = 10; }
+                else { ctx.shadowBlur = 0; }
+                ctx.fill();
+            }
+        }
+    }
+
+    ctx.shadowBlur = 0;
+
+    // ── Constellation ─
+    const constData = CONSTELLATIONS[settings.constellation];
+    if (constData) {
+        const scale = constellationScale;
+        // Смещение в пикселях (в единицах сетки)
+        const offXPx = settings.constellationOffsetX * edgeLength;
+        const offYPx = settings.constellationOffsetY * edgeLength;
+
+        // Координаты в пикселях: gridCol * edgeLength * scale + offset
+        const points = constData.points.map(p => ({
+            x: p.x * edgeLength * scale + offXPx,
+            y: p.y * edgeLength * scale + offYPx
+        }));
+
+        const pulseFactor = constellationPulse > 0
+            ? 0.5 + 0.5 * Math.sin(animTime * (constellationPulse / 10))
+            : 1;
+
+        const brightness = constellationBrightness / 100 * pulseFactor;
+        const alpha = Math.round(brightness * 255).toString(16).padStart(2, '0');
+        const alphaBright = Math.round(brightness * 0.9 * 255).toString(16).padStart(2, '0');
+        const glowIntensity = showGlow ? 15 * brightness : 0;
+
+        // Lines
+        if (showConstellationLines) {
+            ctx.shadowColor = colorConstellation;
+            ctx.shadowBlur = glowIntensity;
+
+            // Тусклый фоновый слой
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = colorConstellation + '33';
+            constData.lines.forEach(([a, b]) => {
+                if (points[a] && points[b]) {
+                    ctx.beginPath();
+                    ctx.moveTo(points[a].x, points[a].y);
+                    ctx.lineTo(points[b].x, points[b].y);
+                    ctx.stroke();
+                }
+            });
+
+            // Яркий слой
+            ctx.strokeStyle = colorConstellation + alpha;
+            ctx.lineWidth = 2.5;
+            constData.lines.forEach(([a, b]) => {
+                if (points[a] && points[b]) {
+                    ctx.beginPath();
+                    ctx.moveTo(points[a].x, points[a].y);
+                    ctx.lineTo(points[b].x, points[b].y);
+                    ctx.stroke();
+                }
+            });
+        }
+
+        // Stars
+        const starRadius = vertexDiameter * 0.7 * (0.8 + 0.2 * pulseFactor);
+
+        points.forEach((p, idx) => {
+            if (showGlow) {
+                const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, starRadius * 4);
+                gradient.addColorStop(0, colorConstellation + '44');
+                gradient.addColorStop(1, 'transparent');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, starRadius * 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, starRadius, 0, Math.PI * 2);
+            ctx.fillStyle = colorConstellation;
+            ctx.shadowColor = colorConstellation;
+            ctx.shadowBlur = glowIntensity;
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, starRadius * 0.4, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff' + Math.round(brightness * 200).toString(16).padStart(2, '0');
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            if (showConstellationLabels && constData.labels && constData.labels[idx]) {
+                ctx.font = '10px "Courier New", monospace';
+                ctx.fillStyle = colorConstellation + alphaBright;
+                ctx.shadowColor = colorConstellation;
+                ctx.shadowBlur = showGlow ? 6 : 0;
+                ctx.fillText(constData.labels[idx], p.x + starRadius + 6, p.y + 3);
+            }
+        });
+
+        ctx.shadowBlur = 0;
+    }
+
+    // ── Highlight Path ──
+    if (settings.highlightPath && path.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(path[0].x, path[0].y);
+        for (let i = 1; i < path.length; i++) ctx.lineTo(path[i].x, path[i].y);
+        ctx.strokeStyle = colorCursor;
+        ctx.lineWidth = 2.5;
+        ctx.shadowColor = colorCursor;
+        ctx.shadowBlur = showGlow ? 12 : 0;
+        ctx.stroke();
+
+        path.forEach(p => {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, vertexDiameter * 0.6, 0, Math.PI * 2);
+            ctx.fillStyle = colorCursor;
+            ctx.shadowColor = colorCursor;
+            ctx.shadowBlur = showGlow ? 15 : 0;
+            ctx.fill();
+        });
+    }
+
+    ctx.shadowBlur = 0;
+
+    // ── Snap Zone ──
+    if (isSnapped) {
+        ctx.beginPath();
+        ctx.arc(snappedX, snappedY, snapRadius, 0, Math.PI * 2);
+        ctx.strokeStyle = colorCursor + '33';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 5]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    // ── Cursor ──
+    const cx = isSnapped ? snappedX : worldMouseX;
+    const cy = isSnapped ? snappedY : worldMouseY;
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, cursorSize, 0, Math.PI * 2);
+    ctx.fillStyle = colorCursor;
+    ctx.shadowColor = colorCursor;
+    ctx.shadowBlur = showGlow ? 20 : 0;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, cursorSize + 4, 0, Math.PI * 2);
+    ctx.strokeStyle = colorCursor;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(cx - cursorSize - 8, cy); ctx.lineTo(cx + cursorSize + 8, cy);
+    ctx.moveTo(cx, cy - cursorSize - 8); ctx.lineTo(cx, cy + cursorSize + 8);
+    ctx.strokeStyle = colorCursor + '66';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+
+    // ── Coord label ──
+    if (settings.showCoords && isSnapped) {
+        const gx = Math.round(snappedX / edgeLength);
+        const gy = Math.round(snappedY / edgeLength);
+        ctx.font = '12px "Courier New", monospace';
+        ctx.fillStyle = colorCursor;
+        ctx.shadowColor = colorCursor;
+        ctx.shadowBlur = 8;
+        ctx.fillText(`(${gx}, ${gy})`, cx + cursorSize + 12, cy - 5);
+    }
+
+    ctx.restore();
+
+    // ── Pan indicator ──
+    if (Math.abs(offsetX) > 1 || Math.abs(offsetY) > 1) {
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.font = '11px "Courier New", monospace';
+        ctx.fillText(`панорама: (${Math.round(offsetX)}, ${Math.round(offsetY)})`, 10, canvas.height - 10);
+    }
+}
+
+// ─── Init ───
+resizeCanvas();
+animate();
+
+// Hide pan hint
+setTimeout(() => {
+    const hint = document.getElementById('pan-hint');
+    if (hint) hint.style.opacity = '0';
+    setTimeout(() => { const h = document.getElementById('pan-hint'); if (h) h.remove(); }, 1000);
+}, 5000);
+</script>
+
+</body>
+</html>
