@@ -1,0 +1,22 @@
+{
+    "name": "Интенсивный день (50/10)",
+    "steps": [
+        {"duration": 600, "label": "📅 Планирование дня", "type": "plan", "sound": ""},
+        {"duration": 3000, "label": "🍅 Помидор №1 (Глубокая работа)", "type": "work", "sound": ""},
+        {"duration": 600, "label": "✅ Отдых (10 мин)", "type": "break", "sound": ""},
+        {"duration": 3000, "label": "🍅 Помидор №2", "type": "work", "sound": ""},
+        {"duration": 600, "label": "✅ Отдых", "type": "break", "sound": ""},
+        {"duration": 3000, "label": "🍅 Помидор №3", "type": "work", "sound": ""},
+        {"duration": 600, "label": "✅ Отдых", "type": "break", "sound": ""},
+        {"duration": 3000, "label": "🍅 Помидор №4", "type": "work", "sound": ""},
+        {"duration": 3600, "label": "🍝 Обед", "type": "break", "sound": ""},
+        {"duration": 3000, "label": "🍅 Помидор №5", "type": "work", "sound": ""},
+        {"duration": 600, "label": "✅ Отдых", "type": "break", "sound": ""},
+        {"duration": 3000, "label": "🍅 Помидор №6", "type": "work", "sound": ""},
+        {"duration": 600, "label": "✅ Отдых", "type": "break", "sound": ""},
+        {"duration": 3000, "label": "🍅 Помидор №7", "type": "work", "sound": ""},
+        {"duration": 600, "label": "✅ Отдых", "type": "break", "sound": ""},
+        {"duration": 3000, "label": "🍅 Помидор №8", "type": "work", "sound": ""},
+        {"duration": 600, "label": "📝 Итоги дня", "type": "plan", "sound": ""}
+    ]
+}

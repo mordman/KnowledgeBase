@@ -1,0 +1,28 @@
+{
+    "name": "Творческий поток (45 / 20)",
+    "steps": [
+        {"duration": 600, "label": "📅 Планирование и приоритеты", "type": "plan", "sound": ""},
+        {"duration": 2700, "label": "🍅 Глубокий фокус №1 (45 мин)", "type": "work", "sound": ""},
+        {"duration": 900, "label": "🧘 Длинный отдых (15 мин)", "type": "break", "sound": ""},
+        {"duration": 2700, "label": "🍅 Глубокий фокус №2", "type": "work", "sound": ""},
+        {"duration": 900, "label": "🧘 Длинный отдых", "type": "break", "sound": ""},
+        {"duration": 2700, "label": "🍅 Глубокий фокус №3", "type": "work", "sound": ""},
+        {"duration": 1200, "label": "☕ Перезагрузка (20 мин)", "type": "break", "sound": ""},
+        {"duration": 2700, "label": "🍅 Глубокий фокус №4", "type": "work", "sound": ""},
+        {"duration": 3600, "label": "🍝 Обед", "type": "break", "sound": ""},
+        {"duration": 1200, "label": "⚡ Спринт №1 (20 мин)", "type": "work", "sound": ""},
+        {"duration": 600, "label": "✅ Мини-перерыв (10 мин)", "type": "break", "sound": ""},
+        {"duration": 1200, "label": "⚡ Спринт №2", "type": "work", "sound": ""},
+        {"duration": 600, "label": "✅ Мини-перерыв", "type": "break", "sound": ""},
+        {"duration": 1200, "label": "⚡ Спринт №3", "type": "work", "sound": ""},
+        {"duration": 600, "label": "✅ Мини-перерыв", "type": "break", "sound": ""},
+        {"duration": 1200, "label": "⚡ Спринт №4", "type": "work", "sound": ""},
+        {"duration": 1500, "label": "🚶 Прогулка (25 мин)", "type": "break", "sound": ""},
+        {"duration": 1200, "label": "⚡ Спринт №5", "type": "work", "sound": ""},
+        {"duration": 600, "label": "✅ Мини-перерыв", "type": "break", "sound": ""},
+        {"duration": 1200, "label": "⚡ Спринт №6", "type": "work", "sound": ""},
+        {"duration": 600, "label": "✅ Мини-перерыв", "type": "break", "sound": ""},
+        {"duration": 1200, "label": "⚡ Спринт №7", "type": "work", "sound": ""},
+        {"duration": 900, "label": "📝 Итоги дня", "type": "plan", "sound": ""}
+    ]
+}
