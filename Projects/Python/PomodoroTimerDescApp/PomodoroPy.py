@@ -126,6 +126,7 @@ class Pomodoro:
                 activebackground=self.theme['bg_button_active'], command=cmd, cursor="hand2", width=2)
             btn.pack(side=tk.LEFT, padx=2)
             self.tooltip(btn, tip)
+            btn.bind("<Double-Button-1>", lambda e: "break")
         
         tk.Frame(top, bg=self.theme['bg_primary']).pack(side=tk.LEFT, fill=tk.X, expand=True)
         
@@ -135,6 +136,27 @@ class Pomodoro:
         close.pack(side=tk.RIGHT)
         self.tooltip(close, "Закрыть")
         
+        # Кнопки коррекции времени (+5/-5 секунд)
+        adjust_frame = tk.Frame(self.root, bg=self.theme['bg_primary'])
+        adjust_frame.pack(pady=(0, 4))
+        
+        self.btn_time_minus = tk.Button(adjust_frame, text="−", font=self.theme['font_button'],
+            bg=self.theme['bg_button'], fg=self.theme['fg_primary'], bd=0,
+            activebackground=self.theme['bg_button_active'], cursor="hand2", width=3,
+            state=tk.NORMAL, command=self._adjust_minus)
+        self.btn_time_minus.pack(side=tk.LEFT, padx=8)
+        self.tooltip(self.btn_time_minus, "−5 секунд")
+        self.btn_time_minus.bind("<Double-Button-1>", lambda e: "break")
+        
+        self.btn_time_plus = tk.Button(adjust_frame, text="+", font=self.theme['font_button'],
+            bg=self.theme['bg_button'], fg=self.theme['fg_primary'], bd=0,
+            activebackground=self.theme['bg_button_active'], cursor="hand2", width=3,
+            state=tk.NORMAL, command=self._adjust_plus)
+        self.btn_time_plus.pack(side=tk.LEFT, padx=8)
+        self.tooltip(self.btn_time_plus, "+5 секунд")
+        self.btn_time_plus.bind("<Double-Button-1>", lambda e: "break")
+
+        # Основной дисплей таймера
         self.lbl_time = tk.Label(self.root, text="25:00", font=self.theme['font_time'],
             bg=self.theme['bg_primary'], fg=self.theme['fg_accent'])
         self.lbl_time.pack(expand=True)
@@ -143,17 +165,24 @@ class Pomodoro:
             font=self.theme['font_text'], bg=self.theme['bg_primary'], fg=self.theme['fg_secondary'])
         self.lbl_mode.pack(pady=(0, 5))
 
-        # ➕ Кнопка пропуска шага (слева от таймера, компактная)
+        # Кнопка пропуска шага
         self.btn_skip = tk.Button(self.root, text="⏭", font=("Arial", 9),
             bg=self.theme['bg_button'], fg=self.theme['fg_secondary'], bd=0,
             activebackground=self.theme['bg_button_active'], command=self.skip_step,
             cursor="hand2", width=3, height=1)
         self.btn_skip.place(relx=0.02, rely=0.5, anchor='w')
         self.tooltip(self.btn_skip, "Пропустить шаг (Space)")
+        self.btn_skip.bind("<Double-Button-1>", lambda e: "break")
 
         self.lbl_uptime = tk.Label(self.root, text="", 
             font=("Arial", 8), bg=self.theme['bg_primary'], fg=self.theme['fg_secondary'])
         self.lbl_uptime.place(relx=1.0, rely=1.0, anchor='se', x=-5, y=-5)
+
+    def _adjust_minus(self):
+        self.adjust_time(-5)
+
+    def _adjust_plus(self):
+        self.adjust_time(5)
 
     def setup_bindings(self):
         for widget in [self.root, self.lbl_time]:
@@ -162,8 +191,9 @@ class Pomodoro:
         self.lbl_time.bind("<ButtonRelease-1>", lambda e: self.toggle())
         self.root.bind("<Button-3>", lambda e: self.reset())
         self.root.bind("<Double-Button-1>", lambda e: self.close_app())
-        # ➕ Горячая клавиша пропуска
         self.root.bind("<space>", lambda e: self.skip_step())
+        self.root.bind("<Up>", lambda e: self.adjust_time(5))
+        self.root.bind("<Down>", lambda e: self.adjust_time(-5))
 
     def tooltip(self, widget, text):
         def show(e):
@@ -193,6 +223,14 @@ class Pomodoro:
             if not isinstance(child, (tk.Button, tk.Entry, ttk.Combobox, tk.Text, tk.Checkbutton)):
                 self.make_draggable(widget, child)
 
+    def adjust_time(self, delta):
+        """Корректировка времени таймера на заданное количество секунд"""
+        # Убрана блокировка if self.running or self.schedule_active: return
+        new_time = max(0, self.time + delta)
+        self.time = new_time
+        self.max_time = max(0, self.max_time + delta)
+        self.update_display()
+
     def toggle(self):
         if self.running:
             self.running = False
@@ -213,18 +251,15 @@ class Pomodoro:
                 self.show_notification("▶️ Старт", self.config['work_text' if self.work_mode else 'break_text'])
 
     def skip_step(self):
-        """Пропустить текущий шаг таймера"""
         was_running = self.running
         self.running = False
         if self.job:
             self.root.after_cancel(self.job)
         
         if self.schedule_active and self.schedule_index >= 0:
-            # В режиме расписания — переходим к следующему шагу
             self.save_session()
             self.advance_schedule()
         else:
-            # В обычном режиме — переключаем режим работы/отдыха
             self.save_session()
             self.work_mode = not self.work_mode
             self.time = (self.config['work_time'] if self.work_mode else self.config['break_time']) * 60
@@ -233,10 +268,8 @@ class Pomodoro:
             self.lbl_mode.config(text=self.config['work_text' if self.work_mode else 'break_text'])
             self.lbl_time.config(fg=self.theme['fg_accent' if self.work_mode else 'fg_break'])
             self.update_display()
-            # Уведомление о пропуске
             self.show_notification("⏭️ Пропущено", self.config['work_text' if self.work_mode else 'break_text'])
         
-        # Если таймер был запущен и включён автозапуск — продолжаем отсчёт
         if was_running and self.config['auto_start']:
             self.running = True
             self.countdown()
@@ -357,7 +390,6 @@ class Pomodoro:
             self.root.bell()
 
     def show_notification(self, title, message, duration_ms=4500):
-        """Показывает всплывающее уведомление в заданной позиции"""
         if not self.config.get("notify_enabled", True):
             return
 
@@ -400,27 +432,21 @@ class Pomodoro:
         win.configure(bg=self.theme['bg_secondary'])
         win.config(cursor="fleur")
         self.make_draggable(win)
-        
         win.geometry(f"+{self.root.winfo_x() + 50}+{self.root.winfo_y() + 50}")
         
         tk.Label(win, text="📋 Управление расписанием", bg=self.theme['bg_secondary'],
                  fg=self.theme['fg_primary'], font=("Arial", 13, "bold")).pack(pady=10)
-        
         info = tk.Label(win, text="Формат JSON: {\"name\": \"...\", \"steps\": [{\"duration\": секунды, \"label\": \"...\", \"type\": \"work|break\", \"sound\": \"path\"}]}", 
                         bg=self.theme['bg_secondary'], fg=self.theme['fg_secondary'], font=("Arial", 9), justify=tk.LEFT)
         info.pack(pady=5)
-        
         status = tk.Label(win, text=f"Текущее: {self.schedule_name or 'Не выбрано'}", 
                           bg=self.theme['bg_secondary'], fg=self.theme['fg_accent'], font=("Arial", 10))
         status.pack(pady=5)
-        
         bf = tk.Frame(win, bg=self.theme['bg_secondary'])
         bf.pack(pady=15)
-        
         self.create_btn(bf, "Загрузить JSON", self.load_schedule_file, self.theme['fg_accent']).pack(side=tk.LEFT, padx=5)
         self.create_btn(bf, "Пример дня", self.load_example_schedule, self.theme['fg_break']).pack(side=tk.LEFT, padx=5)
         self.create_btn(bf, "Отключить", self.disable_schedule, self.theme['fg_pause']).pack(side=tk.LEFT, padx=5)
-        
         tk.Button(win, text="✕", command=win.destroy, bg=self.theme['btn_close_bg'],
                   fg='#ffffff', bd=0, font=("Arial", 8), cursor="hand2").place(x=375, y=2)
         win.geometry("450x200")
@@ -436,7 +462,7 @@ class Pomodoro:
             elif isinstance(data, list):
                 self.activate_schedule(os.path.basename(path), data)
             else:
-                messagebox.showerror("Ошибка", "Неверный формат. Ожидается объект с ключом 'steps' или список шагов.")
+                messagebox.showerror("Ошибка", "Неверный формат.")
         except Exception as e:
             messagebox.showerror("Ошибка чтения", str(e))
 
@@ -497,11 +523,9 @@ class Pomodoro:
             self.max_time = self.time
             self.start_time = None
             self.lbl_mode.config(text=f"[{index+1}/{len(self.schedule)}] {step['label']}")
-            
             color = self.theme['fg_accent'] if step['type'] == 'work' else self.theme['fg_break']
             self.lbl_time.config(fg=color)
             self.update_display()
-            
             self._play_sound(step.get("sound"))
             self.show_notification(f"⏱ Шаг {index+1}", step['label'])
         else:
@@ -535,7 +559,6 @@ class Pomodoro:
         win.configure(bg=self.theme['bg_secondary'])
         win.config(cursor="fleur")
         self.make_draggable(win)
-        
         x, y = self.root.winfo_x() + 50, self.root.winfo_y() + 50
         win.geometry(f"+{x}+{y}")
         
@@ -562,6 +585,22 @@ class Pomodoro:
         theme_var = tk.StringVar(value=f"{self.themes[self.config['theme']]['name']} ({self.config['theme']})")
         ttk.Combobox(f, textvariable=theme_var, values=[f"{n} ({k})" for k, n in theme_names],
             state="readonly", font=("Arial", 11), width=25).pack(pady=2)
+
+        tk.Label(f, text="Прозрачность:", bg=self.theme['bg_secondary'], fg=self.theme['fg_primary']).pack(pady=(10, 2))
+        opacity_var = tk.DoubleVar(value=self.config['opacity'])
+        self.opacity_lbl = tk.Label(f, text=f"{int(self.config['opacity']*100)}%", 
+                                    bg=self.theme['bg_secondary'], fg=self.theme['fg_secondary'], font=("Arial", 9))
+        self.opacity_lbl.pack()
+        
+        def update_opacity_label(val):
+            self.opacity_lbl.config(text=f"{int(float(val)*100)}%")
+            self.root.attributes('-alpha', float(val))
+            
+        tk.Scale(f, from_=0.3, to=1.0, resolution=0.05, orient=tk.HORIZONTAL,
+                 variable=opacity_var, bg=self.theme['bg_secondary'],
+                 fg=self.theme['fg_primary'], highlightthickness=0,
+                 command=lambda v: update_opacity_label(v)).pack(fill=tk.X, padx=20)
+        entries['opacity'] = opacity_var
         
         for txt, var, val in [("Звук", tk.BooleanVar(value=self.config['sound']), 'sound'),
                                ("Автозапуск", tk.BooleanVar(value=self.config['auto_start']), 'auto_start')]:
@@ -601,7 +640,8 @@ class Pomodoro:
                 self.config['sound'] = entries['sound'].get()
                 self.config['auto_start'] = entries['auto_start'].get()
                 self.config['notify_enabled'] = notify_var.get()
-                
+                self.config['opacity'] = round(entries['opacity'].get(), 2)
+
                 p_var, p_map = entries['notify_pos_var']
                 self.config['notify_pos'] = p_map.get(p_var.get(), 'center')
                 
@@ -624,7 +664,10 @@ class Pomodoro:
         def reset():
             if messagebox.askyesno("Сброс", "Вернуть настройки?"):
                 for k, v in self.DEFAULTS.items():
-                    if k in entries:
+                    if k == 'opacity' and k in entries:
+                        entries[k].set(v)
+                        self.opacity_lbl.config(text=f"{int(v*100)}%")
+                    elif k in entries:
                         if isinstance(v, bool): entries[k].set(v)
                         else: entries[k].delete(0, tk.END); entries[k].insert(0, str(v))
                 theme_var.set(f"{self.themes['dark']['name']} (dark)")
@@ -718,11 +761,22 @@ class Pomodoro:
             fg=self.theme['fg_secondary'])
         if hasattr(self, 'lbl_uptime'):
             self.lbl_uptime.configure(bg=self.theme['bg_primary'], fg=self.theme['fg_secondary'])
-        # ➕ Обновление кнопки пропуска
         if hasattr(self, 'btn_skip'):
             self.btn_skip.configure(
                 bg=self.theme['bg_button'],
                 fg=self.theme['fg_secondary'],
+                activebackground=self.theme['bg_button_active']
+            )
+        if hasattr(self, 'btn_time_minus'):
+            self.btn_time_minus.configure(
+                bg=self.theme['bg_button'],
+                fg=self.theme['fg_primary'],
+                activebackground=self.theme['bg_button_active']
+            )
+        if hasattr(self, 'btn_time_plus'):
+            self.btn_time_plus.configure(
+                bg=self.theme['bg_button'],
+                fg=self.theme['fg_primary'],
                 activebackground=self.theme['bg_button_active']
             )
 
