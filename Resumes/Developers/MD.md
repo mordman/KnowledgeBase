@@ -29,6 +29,8 @@
 
 **Version Control & Task Tracking:** Git, TFS, Jira, GitLab
 
+**AI:** Copilot, Deepseek, Qwen
+
 **Soft skills**
 
 - **Лидерство и менторинг:** Проведение код-ревью, обучение и поддержка коллег, улучшение архитектуры и процессов разработки.
