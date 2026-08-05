@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C# под микроскопом — часть 2: потоки, память, SIMD</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0f1c; --panel:#111a2e; --panel2:#0d1524; --line:#22304a; --line2:#31456d;
+  --tx:#e7edf7; --mut:#93a3bd; --dim:#647591;
+  --amber:#ffb454; --teal:#3fe0c5; --lime:#a5e86f; --rose:#ff5d7d; --sky:#6fc3ff; --vio:#c08bff;
+  --disp:'Unbounded',sans-serif; --body:'IBM Plex Sans',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font:400 16px/1.65 var(--body);color:var(--tx);background:
+  radial-gradient(900px 520px at 88% -5%, rgba(255,180,84,.08), transparent 60%),
+  radial-gradient(820px 620px at -12% 32%, rgba(63,224,197,.06), transparent 60%),
+  radial-gradient(760px 540px at 55% 112%, rgba(192,139,255,.06), transparent 60%),
+  var(--bg);overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(111,195,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(111,195,255,.045) 1px,transparent 1px);
+  background-size:46px 46px}
+::selection{background:rgba(255,180,84,.35)}
+main,header,footer{position:relative;z-index:1}
+.wrap{max-width:1180px;margin:0 auto;padding:0 26px}
+h1,h2,h3{font-family:var(--disp)}
+#prog{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--amber),var(--teal));z-index:99}
+#rail{position:fixed;left:14px;top:50%;transform:translateY(-50%);z-index:50;display:flex;flex-direction:column;gap:2px}
+#rail a{display:flex;gap:8px;align-items:baseline;color:var(--dim);font:500 10.5px var(--mono);padding:4px 8px;border-radius:7px;text-decoration:none;border:1px solid transparent;transition:.25s}
+#rail a:hover{color:var(--tx);transform:translateX(3px)}
+#rail a.on{color:var(--amber);background:rgba(255,180,84,.09);border-color:rgba(255,180,84,.28)}
+@media(max-width:1280px){#rail{display:none}}
+.hero{max-width:1240px;margin:0 auto;padding:58px 28px 38px;display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:center}
+@media(max-width:1000px){.hero{grid-template-columns:1fr;padding-top:40px}}
+.kick{display:inline-flex;align-items:center;gap:8px;font:600 12px var(--mono);letter-spacing:.14em;color:var(--teal);text-transform:uppercase;border:1px solid rgba(63,224,197,.3);padding:6px 12px;border-radius:6px;background:rgba(63,224,197,.06)}
+.kick::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 10px var(--teal);animation:blink 1.8s infinite}
+@keyframes blink{50%{opacity:.35}}
+h1{font-weight:800;font-size:clamp(29px,4vw,50px);line-height:1.1;margin:20px 0 16px}
+h1 .v{color:var(--amber);font-family:var(--mono);font-size:.82em}
+.lead{color:var(--mut);font-size:16.5px;max-width:560px}
+.hstats{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
+.hchip{font:500 12px var(--mono);color:var(--mut);border:1px solid var(--line);padding:7px 12px;border-radius:8px;background:rgba(255,255,255,.02);transition:.2s}
+.hchip:hover{color:var(--tx);transform:translateY(-2px)}
+.hchip b{color:var(--amber)}
+.ide{background:#0b1222;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 30px 70px rgba(0,0,0,.45)}
+.ide-bar{display:flex;align-items:center;gap:7px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.ide-bar .d{width:10px;height:10px;border-radius:50%}
+.ide-bar .fn{font:500 11.5px var(--mono);color:var(--dim);margin-left:8px}
+#heroCode{margin:0;padding:16px 18px;font:400 13.5px/1.75 var(--mono);color:#c9daf0;min-height:88px;white-space:pre-wrap}
+#heroCode .caret{display:inline-block;width:8px;height:15px;background:var(--amber);vertical-align:-2px;animation:blink 1s infinite}
+.ide-out{border-top:1px dashed var(--line);padding:12px 18px;font:400 12.5px/1.7 var(--mono);color:var(--lime);min-height:52px}
+.ide-out::before{content:'▸ взгляд сквозь код';display:block;color:var(--dim);font-size:10px;letter-spacing:.14em;margin-bottom:4px}
+.ticker{overflow:hidden;border-block:1px solid var(--line);background:#0b1220}
+.tk{display:flex;gap:36px;width:max-content;padding:12px 0;animation:tk 36s linear infinite;font:500 12px var(--mono);color:var(--dim);white-space:nowrap}
+.tk i{font-style:normal;color:var(--amber)}
+@keyframes tk{to{transform:translateX(-50%)}}
+@media(prefers-reduced-motion:reduce){.tk{animation:none}}
+section{padding:70px 0;scroll-margin-top:20px}
+.shead{display:flex;gap:20px;align-items:flex-start;margin-bottom:30px}
+.snum{font:800 clamp(52px,7.5vw,100px)/0.9 var(--disp);color:transparent;-webkit-text-stroke:1.5px rgba(255,180,84,.3);user-select:none}
+.skick{font:600 11px var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--teal);margin-bottom:8px}
+h2{font-weight:600;font-size:clamp(23px,3vw,38px);line-height:1.15}
+h3{font-size:17px;font-weight:600;margin:24px 0 10px}
+p.tx{color:var(--mut);max-width:840px;margin:11px 0}
+p.tx b,li b{color:var(--tx)}
+code.inline{font:500 .86em var(--mono);color:var(--amber);background:rgba(255,180,84,.09);border:1px solid rgba(255,180,84,.18);padding:1px 6px;border-radius:5px;white-space:nowrap}
+.note{border-left:3px solid var(--amber);background:rgba(255,180,84,.06);padding:13px 18px;border-radius:0 10px 10px 0;color:var(--mut);margin:18px 0;max-width:840px}
+.note b{color:var(--amber)}
+.note.teal{border-color:var(--teal);background:rgba(63,224,197,.06)}.note.teal b{color:var(--teal)}
+.note.rose{border-color:var(--rose);background:rgba(255,93,125,.07)}.note.rose b{color:var(--rose)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+.grid2.wide{grid-template-columns:1.15fr .85fr}
+.grid2.wide2{grid-template-columns:.9fr 1.1fr}
+@media(max-width:880px){.grid2,.grid2.wide,.grid2.wide2{grid-template-columns:1fr}}
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .7s,transform .7s}
+.reveal.in{opacity:1;transform:none}
+.codewrap{background:#0b1222;border:1px solid var(--line);border-radius:12px;overflow:hidden;transition:border-color .25s}
+.codewrap:hover{border-color:var(--line2)}
+.codebar{display:flex;gap:7px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--line)}
+.codebar .d{width:9px;height:9px;border-radius:50%}
+.codebar .fn{margin-left:8px;font:500 11px var(--mono);color:var(--dim)}
+.codebar .tag{margin-left:auto;font:600 10px var(--mono);letter-spacing:.1em;padding:3px 8px;border-radius:5px}
+.tag.bad{color:var(--rose);background:rgba(255,93,125,.12)}
+.tag.good{color:var(--lime);background:rgba(165,232,111,.12)}
+.tag.info{color:var(--sky);background:rgba(111,195,255,.12)}
+pre.code{margin:0;padding:15px 18px;overflow:auto;font:400 12.8px/1.7 var(--mono);color:#c9daf0;white-space:pre;tab-size:4}
+.c-kw{color:#ff9e64}.c-ty{color:#7cc7ff}.c-st{color:#a5e86f}.c-cm{color:#5c6f8e;font-style:italic}.c-nu{color:#ffd479}.c-fn{color:#4fe3c1}
+.demo{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.demo-h{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.02)}
+.demo-h .live{width:8px;height:8px;border-radius:50%;background:var(--lime);box-shadow:0 0 10px var(--lime);animation:blink 1.6s infinite}
+.demo-h .ttl{font:600 13px var(--mono);color:var(--tx);margin-right:auto}
+.demo-b{padding:18px}
+.btn{font:700 12.5px var(--mono);color:#141005;background:var(--amber);border:0;padding:9px 15px;border-radius:8px;cursor:pointer;transition:.18s;box-shadow:0 3px 0 rgba(0,0,0,.4)}
+.btn:hover{transform:translateY(-2px);box-shadow:0 9px 20px rgba(255,180,84,.28)}
+.btn:active{transform:translateY(1px);box-shadow:none}
+.btn[disabled]{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn.ghost{background:transparent;color:var(--tx);border:1px solid var(--line2);box-shadow:none}
+.btn.ghost:hover{border-color:var(--amber);color:var(--amber);box-shadow:none}
+.btn.teal{background:var(--teal)}.btn.rose{background:var(--rose);color:#2a0510}.btn.lime{background:var(--lime)}
+.btn.sm{padding:6px 11px;font-size:11.5px}
+.log{font:12px/1.75 var(--mono);background:#0a1020;border:1px solid var(--line);border-radius:10px;padding:10px 13px;max-height:210px;overflow:auto}
+.ll{white-space:pre-wrap;word-break:break-word;color:var(--mut)}
+.l-ok{color:var(--lime)}.l-err{color:var(--rose)}.l-warn{color:var(--amber)}.l-info{color:var(--sky)}.l-tea{color:var(--teal)}
+.tbl{width:100%;border-collapse:collapse;font-size:14px;margin:14px 0}
+.tbl th{font:600 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--amber);text-align:left;padding:10px 12px;border-bottom:2px solid var(--line2)}
+.tbl td{padding:9px 12px;border-bottom:1px solid var(--line);color:var(--mut);vertical-align:top}
+.tbl tr:hover td{background:rgba(255,255,255,.025);color:var(--tx)}
+.tbl td:first-child{color:var(--tx);font-weight:600}
+.tbl .m{font:600 12.5px var(--mono);color:var(--teal)}
+.varrow{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:8px 0}
+@keyframes pop{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.chip{font:700 11px var(--mono);color:#10131c;padding:5px 9px;border-radius:6px;animation:pop .3s}
+
+/* thread pool */
+.gq{display:flex;flex-wrap:wrap;gap:6px;min-height:46px;border:1px dashed var(--line2);border-radius:10px;padding:8px;background:#0a1020}
+.wcols{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+@media(max-width:680px){.wcols{grid-template-columns:1fr}}
+.wcol{border:1px solid var(--line);border-radius:11px;background:#0c1424;padding:11px;transition:.25s;min-height:130px}
+.wcol.active{border-color:var(--lime);background:rgba(165,232,111,.07)}
+.wcol.steal{border-color:var(--rose);background:rgba(255,93,125,.08)}
+.wcol .wt{font:700 12px var(--mono);margin-bottom:8px;display:flex;justify-content:space-between}
+.wcol .wt span{color:var(--dim);font-weight:500}
+.wdeque{display:flex;flex-direction:column-reverse;gap:5px}
+
+/* память */
+.cores{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:680px){.cores{grid-template-columns:1fr}}
+.core{border:1px solid var(--line);border-radius:11px;background:#0c1424;padding:13px}
+.core .ct{font:700 12.5px var(--mono)}
+.cline{display:flex;justify-content:space-between;font:500 12px var(--mono);color:var(--mut);border:1px solid var(--line);border-radius:7px;padding:6px 10px;margin-top:7px;transition:.35s}
+.cline b{color:var(--tx)}
+.cline.flush{border-color:var(--teal);background:rgba(63,224,197,.1)}
+.cline.stale{border-color:var(--rose);background:rgba(255,93,125,.1)}
+.trials{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.tr{font:700 11px var(--mono);padding:5px 9px;border-radius:6px;animation:pop .3s}
+.tr.ok{background:rgba(165,232,111,.15);color:var(--lime)}
+.tr.bad{background:rgba(255,93,125,.15);color:var(--rose);animation:shake .45s}
+
+/* simd */
+.cells{display:flex;gap:5px;flex-wrap:wrap}
+.cell{font:700 13px var(--mono);color:var(--mut);background:#0c1424;border:1px solid var(--line);border-radius:7px;padding:10px 12px;transition:.25s;min-width:46px;text-align:center}
+.cell.hit{border-color:var(--amber);color:var(--amber);transform:translateY(-3px)}
+.cell.simd{border-color:var(--teal);color:var(--teal);background:rgba(63,224,197,.09);transform:translateY(-3px)}
+.lane{font:600 11px var(--mono);color:var(--dim);margin-top:4px;text-align:center}
+.simgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:680px){.simgrid{grid-template-columns:1fr}}
+
+/* пулы */
+.poolcol{border:1px solid var(--line);border-radius:11px;background:#0c1424;padding:14px}
+.poolcol .pt{font:700 12.5px var(--mono)}
+.metric{display:flex;justify-content:space-between;font:500 12px var(--mono);color:var(--dim);padding:6px 0;border-bottom:1px dashed var(--line)}
+.metric b{color:var(--tx)}
+.metric b.bad{color:var(--rose)}.metric b.good{color:var(--lime)}
+.bar{height:14px;border-radius:6px;background:#0a1020;border:1px solid var(--line);overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;width:0;transition:width .5s;border-radius:5px}
+
+/* квиз */
+.qz{border:1px solid var(--line);border-radius:13px;background:var(--panel2);padding:19px;margin-bottom:16px;transition:border-color .25s}
+.qz:hover{border-color:var(--line2)}
+.qz .qt{font:600 15px var(--body);margin:11px 0}
+.opts{display:grid;gap:8px;margin-top:11px}
+.opt{text-align:left;font:400 13.5px var(--body);color:var(--mut);background:#0c1424;border:1px solid var(--line);border-radius:9px;padding:11px 14px;cursor:pointer;transition:.2s}
+.opt:hover{border-color:var(--line2);color:var(--tx);transform:translateX(4px)}
+.opt.ok{border-color:var(--lime);background:rgba(165,232,111,.12);color:var(--tx)}
+.opt.bad{border-color:var(--rose);background:rgba(255,93,125,.1);animation:shake .4s}
+.qz .expl{display:none;margin-top:11px;font-size:13.5px;color:var(--mut);border-left:3px solid var(--teal);padding:10px 14px;background:rgba(63,224,197,.05);border-radius:0 8px 8px 0}
+.qz.done .expl{display:block}
+.score{font:700 13px var(--mono);color:var(--amber);border:1px solid rgba(255,180,84,.35);padding:8px 14px;border-radius:8px;background:rgba(255,180,84,.08)}
+footer{border-top:1px solid var(--line);padding:32px 0 42px;margin-top:40px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;font:400 12.5px var(--mono);color:var(--dim)}
+</style>
+</head>
+<body>
+<div id="prog"></div>
+<nav id="rail">
+  <a href="#p15"><span>15</span>ThreadPool</a>
+  <a href="#p16"><span>16</span>Модель памяти</a>
+  <a href="#p17"><span>17</span>SIMD</a>
+  <a href="#p18"><span>18</span>Пулы</a>
+  <a href="#p19"><span>19</span>Экзамен</a>
+</nav>
+
+<header class="hero">
+  <div>
+    <span class="kick">Часть 2 · Ближе к железу</span>
+    <h1>C# под микроскопом: <span class="v">ближе к железу</span></h1>
+    <p class="lead">Продолжение разборки внутренностей: как пул потоков крадёт задачи, почему без барьеров другие ядра видят старые данные, что SIMD делает одной инструкцией вместо восьми, и как пулы буферов убирают давление на сборщик. Всё — с живыми симуляциями.</p>
+    <div class="hstats">
+      <span class="hchip"><b>4</b> новые главы</span>
+      <span class="hchip"><b>work-stealing</b> вживую</span>
+      <span class="hchip"><b>SIMD</b> против скаляра</span>
+      <span class="hchip"><b>8</b> вопросов экзамена</span>
+    </div>
+  </div>
+  <div class="ide">
+    <div class="ide-bar"><span class="d" style="background:var(--rose)"></span><span class="d" style="background:var(--amber)"></span><span class="d" style="background:var(--lime)"></span><span class="fn">продолжаем препарировать…</span></div>
+    <pre id="heroCode"><span class="caret"></span></pre>
+    <div class="ide-out" id="heroOut"></div>
+  </div>
+</header>
+
+<div class="ticker"><div class="tk">
+  <span>ThreadPool</span><span><i>work-stealing queue</i></span><span>hill climbing</span><span>thread starvation</span><span>memory barrier</span><span>volatile</span><span>Interlocked = fence</span><span>cache coherence</span><span>Vector256&lt;T&gt;</span><span>AVX2 · SSE · NEON</span><span>Span + SIMD</span><span>ArrayPool&lt;T&gt;</span><span>ObjectPool</span><span>stackalloc</span><span>ValueTask</span><span>LOH fragmentation</span>
+  <span>ThreadPool</span><span><i>work-stealing queue</i></span><span>hill climbing</span><span>thread starvation</span><span>memory barrier</span><span>volatile</span><span>Interlocked = fence</span><span>cache coherence</span><span>Vector256&lt;T&gt;</span><span>AVX2 · SSE · NEON</span><span>Span + SIMD</span><span>ArrayPool&lt;T&gt;</span><span>ObjectPool</span><span>stackalloc</span><span>ValueTask</span><span>LOH fragmentation</span>
+</div></div>
+
+<main>
+
+<!-- ================= 15 THREADPOOL ================= -->
+<section id="p15">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">15</span><div><p class="skick">планирование</p><h2>ThreadPool и work-stealing изнутри</h2></div></div>
+    <p class="tx reveal">У пула потоков одна <b>глобальная очередь</b> (под замком) и по <b>локальному двустороннему deque</b> на каждый поток. Свой поток берёт задачи с <b>головы</b> своего deque (LIFO — дружит с кэшем); когда deque пуст — <b>крадёт</b> с <b>хвоста</b> чужого. Если все потоки заняты блокирующим ожиданием, CLR медленно добавляет новые (hill climbing, ~500 мс на шаг) — поэтому блокировки в пуле так болезненны. Наблюдайте за кражами:</p>
+    <div class="demo reveal">
+      <div class="demo-h"><span class="live"></span><span class="ttl">3 рабочих потока · глобальная очередь</span>
+        <button class="btn sm" id="tpAdd6">+6 задач</button>
+        <button class="btn sm" id="tpAdd1">+1 задача (сразу в чей-то deque)</button>
+        <button class="btn ghost" id="tpAuto">▶ Авто-нагрузка</button></div>
+      <div class="demo-b">
+        <div class="mono" style="font-size:11px;color:var(--dim);margin-bottom:5px">ГЛОБАЛЬНАЯ ОЧЕРЕДЬ (под lock)</div>
+        <div class="gq" id="tpGq"></div>
+        <div class="wcols">
+          <div class="wcol" id="tw0"><div class="wt">Поток-1 <span id="td0">deque: 0</span></div><div class="wdeque" id="twq0"></div></div>
+          <div class="wcol" id="tw1"><div class="wt">Поток-2 <span id="td1">deque: 0</span></div><div class="wdeque" id="twq1"></div></div>
+          <div class="wcol" id="tw2"><div class="wt">Поток-3 <span id="td2">deque: 0</span></div><div class="wdeque" id="twq2"></div></div>
+        </div>
+        <div class="varrow" style="margin-top:12px">
+          <div class="chip" style="background:var(--lime)">выполнено: <span id="tpDone">0</span></div>
+          <div class="chip" style="background:var(--rose)">краж: <span id="tpSteal">0</span></div>
+        </div>
+        <div class="log" id="tpLog" style="margin-top:10px"></div>
+      </div>
+    </div>
+    <div class="grid2 reveal" style="margin-top:20px">
+      <div class="codewrap">
+        <div class="codebar"><span class="fn">Pool.cs</span><span class="tag info">ручки настройки</span></div>
+<pre class="code">ThreadPool.QueueUserWorkItem(_ => Work());
+Task.Run(() => Work());           // то же самое, но удобнее
+
+ThreadPool.GetMinThreads(out var w, out var io);
+ThreadPool.SetMinThreads(32, 32); // старт без «прогрева»
+ThreadPool.GetAvailableThreads(out var a, out var a2);
+
+// Задачи Task.Run идут в глобальную очередь;
+// длинные синхронные блокировки → thread starvation:
+// новые потоки добавляются с задержкой hill climbing.</pre>
+      </div>
+      <div class="note rose" style="margin:0"><b>Главный урок:</b> поток пула, заблокированный на <code class="inline">.Wait()</code>, <code class="inline">lock</code> или синхронном HTTP-вызове, не выполняет ничего, а замена ему приходит через сотни миллисекунд. Это и есть причина «всё тормозит под нагрузкой» в sync-over-async коде. Лечение: async I/O, либо выделенные потоки для блокирующей работы.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 16 MEMORY MODEL ================= -->
+<section id="p16">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">16</span><div><p class="skick">много ядер</p><h2>Модель памяти: почему другие ядра видят старое</h2></div></div>
+    <p class="tx reveal">У каждого ядра свой кэш, а CPU и компилятор <b>имеют право переставлять операции</b> чтения/записи, если поток однопоточен. Поэтому запись <code class="inline">data = 42; flag = true;</code> может стать видимой другому ядру <b>в обратном порядке</b>: флаг уже true, а данные ещё 0. Барьеры (fence) запрещают такие переносы. Прогоните серию испытаний:</p>
+    <div class="demo reveal">
+      <div class="demo-h"><span class="live"></span><span class="ttl">T1: data=42; flag=true &nbsp;·&nbsp; T2: if (flag) print(data)</span>
+        <button class="btn rose" id="mmBad">Серия ×10 без барьера</button>
+        <button class="btn lime" id="mmGood">Серия ×10 с volatile</button>
+        <button class="btn ghost" id="mmRst">Сброс</button></div>
+      <div class="demo-b">
+        <div class="cores">
+          <div class="core"><div class="ct" style="color:var(--amber)">Ядро 0 — поток T1 (пишет)</div>
+            <div class="cline" id="mc1d">кэш: data <b id="mc1dv">—</b></div>
+            <div class="cline" id="mc1f">кэш: flag <b id="mc1fv">—</b></div>
+            <div class="cline" id="mc1m">память: data <b id="mc1dm">0</b> · flag <b id="mc1fm">false</b></div>
+          </div>
+          <div class="core"><div class="ct" style="color:var(--teal)">Ядро 1 — поток T2 (читает)</div>
+            <div class="cline" id="mc2f">читает flag <b id="mc2fv">false</b></div>
+            <div class="cline" id="mc2d">читает data <b id="mc2dv">0</b></div>
+          </div>
+        </div>
+        <div class="trials" id="mmTrials"></div>
+        <div class="gres mono" id="mmSum" style="margin-top:12px;font-size:13px"></div>
+      </div>
+    </div>
+    <div class="grid2 reveal" style="margin-top:20px">
+      <div class="codewrap">
+        <div class="codebar"><span class="fn">Visibility.cs</span><span class="tag bad">классический баг</span></div>
+<pre class="code">int data = 0;  bool flag = false;
+
+// T1:                          // T2:
+data = 42;                      if (flag)               // увидели true
+flag = true;                        Console.WriteLine(data);
+// без барьера T2 может вывести 0:
+// CPU переставил записи / кэш ядра ещё не синхронизирован
+
+// Инструменты барьеров:
+volatile bool flag;      // барьеры вокруг чтения/записи
+Interlocked.Increment(ref x);  // полный fence
+lock (sync) { }          // барьеры на входе и выходе
+Thread.MemoryBarrier();  // явный fence</pre>
+      </div>
+      <div class="note teal" style="margin:0"><b>Тонкость:</b> <code class="inline">volatile</code> гарантирует <b>видимость</b> и запрещает переносы вокруг доступа, но <b>не делает операции атомарными</b> — <code class="inline">volatile int n; n++</code> всё равно гонка. Атомарность дают Interlocked/lock, видимость — барьеры, и в x86-мире она «почти бесплатная», а на ARM — заметно строже.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 17 SIMD ================= -->
+<section id="p17">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">17</span><div><p class="skick">векторные инструкции</p><h2>SIMD: одна инструкция — восемь чисел</h2></div></div>
+    <p class="tx reveal">SIMD (Single Instruction, Multiple Data) обрабатывает <b>вектор из нескольких чисел за один такт</b>: Vector128 — 4 int, Vector256 — 8 int (AVX2), Vector512 — 16 (AVX-512). Сложение двух массивов на 8 элементов скалярно — 8 операций, вектором — одна. Сравните:</p>
+    <div class="demo reveal">
+      <div class="demo-h"><span class="live"></span><span class="ttl">result[i] = a[i] + b[i] для 8 элементов</span>
+        <button class="btn" id="svScalar">▶ Скаляр (8 шагов)</button>
+        <button class="btn teal" id="svSimd">▶ Vector256 (1 шаг)</button>
+        <button class="btn ghost" id="svRst">Сброс</button></div>
+      <div class="demo-b">
+        <div class="simgrid">
+          <div><div class="mono" style="font-size:11px;color:var(--dim);margin-bottom:5px">a[]</div><div class="cells" id="svA"></div>
+            <div class="mono" style="font-size:11px;color:var(--dim);margin:8px 0 5px">b[]</div><div class="cells" id="svB"></div></div>
+          <div><div class="mono" style="font-size:11px;color:var(--dim);margin-bottom:5px">result[]</div><div class="cells" id="svR"></div>
+            <div class="varrow" style="margin-top:12px">
+              <div class="chip" style="background:var(--amber)">инструкций: <span id="svIns">0</span></div>
+              <div class="chip" style="background:var(--teal)" id="svSpd">ускорение: —</div>
+            </div>
+          </div>
+        </div>
+        <div class="log" id="svLog" style="margin-top:12px"></div>
+      </div>
+    </div>
+    <div class="grid2 reveal" style="margin-top:20px">
+      <div class="codewrap">
+        <div class="codebar"><span class="fn">Simd.cs</span><span class="tag info">железо и переносимость</span></div>
+<pre class="code">using System.Runtime.Intrinsics;
+
+if (Vector256.IsHardwareAccelerated)          // AVX2?
+{
+    var va = Vector256.Load(a);               // 8 int за раз
+    var vb = Vector256.Load(b);
+    (va + vb).Store(result);                  // одна инструкция
+}
+
+// Переносимый вариант — JIT сам выберет ширину:
+var v = new Vector&lt;int&gt;(spanA);
+Vector.Add(v, new Vector&lt;int&gt;(spanB)).CopyTo(spanR);
+
+// А если очень хочется вручную: Sse2.Add, Avx2.Multiply,
+// AdvSimd (ARM)… и [MethodImpl(AggressiveInlining)].</pre>
+      </div>
+      <div class="codewrap">
+        <div class="codebar"><span class="fn">AutoVectorize.cs</span><span class="tag good">JIT сам</span></div>
+<pre class="code">// JIT умеет ВЕКТОРИЗОВАТЬ простые циклы:
+int Sum(ReadOnlySpan&lt;int&gt; data)
+{
+    int sum = 0;
+    for (int i = 0; i &lt; data.Length; i++)
+        sum += data[i];          // → SIMD-суммирование
+    return sum;
+}
+// LINQ .Sum() над int[] тоже использует SIMD внутри.
+// Условия: простые типы, без ветвлений и исключений в цикле,
+// предсказуемые границы — поэтому Span так дружит с SIMD.</pre>
+      </div>
+    </div>
+    <div class="note reveal"><b>Реальное ускорение</b> редко равно ×8: упирается в пропускную способность памяти. Но для CPU-bound обработки изображений, JSON-парсеров, сжатия и математики SIMD — это разы. <code class="inline">Vector&lt;T&gt;.Count</code> подскажет ширину вектора на текущем железе.</div>
+  </div>
+</section>
+
+<!-- ================= 18 ПОЛЫ ================= -->
+<section id="p18">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">18</span><div><p class="skick">аллокации</p><h2>Пулы буферов: ArrayPool и ObjectPool</h2></div></div>
+    <p class="tx reveal">Каждый <code class="inline">new byte[100_000]</code> — это аллокация в куче и будущая работа GC; такие объекты идут в <b>LOH</b> и не уплотняются. Если буфер нужен на миллисекунды — берите его в аренду у <code class="inline">ArrayPool&lt;T&gt;.Shared</code> и возвращайте обратно: аллокация происходит один раз. Прогоните 20 «запросов» в двух режимах:</p>
+    <div class="demo reveal">
+      <div class="demo-h"><span class="live"></span><span class="ttl">20 запросов, каждому нужен буфер 100 КБ</span>
+        <button class="btn" id="apRun">▶ Прогнать оба режима</button>
+        <button class="btn ghost" id="apRst">Сброс</button></div>
+      <div class="demo-b grid2">
+        <div class="poolcol">
+          <div class="pt" style="color:var(--rose)">var buf = new byte[100_000]</div>
+          <div class="metric"><span>аллокаций</span><b id="apA1" class="bad">0</b></div>
+          <div class="metric"><span>выделено памяти</span><b id="apB1" class="bad">0 МБ</b></div>
+          <div class="metric"><span>сборок GC</span><b id="apG1" class="bad">0</b></div>
+          <div class="bar"><i id="apBar1" style="background:var(--rose)"></i></div>
+          <div class="mono" style="font-size:11px;color:var(--dim)">давление на GC растёт с каждым запросом</div>
+        </div>
+        <div class="poolcol">
+          <div class="pt" style="color:var(--lime)">ArrayPool&lt;byte&gt;.Shared.Rent(…)</div>
+          <div class="metric"><span>аллокаций</span><b id="apA2" class="good">0</b></div>
+          <div class="metric"><span>выделено памяти</span><b id="apB2" class="good">0 МБ</b></div>
+          <div class="metric"><span>сборок GC</span><b id="apG2" class="good">0</b></div>
+          <div class="bar"><i id="apBar2" style="background:var(--lime)"></i></div>
+          <div class="mono" style="font-size:11px;color:var(--dim)">один буфер арендован и возвращён 20 раз</div>
+        </div>
+      </div>
+    </div>
+    <div class="grid2 reveal" style="margin-top:20px">
+      <div class="codewrap">
+        <div class="codebar"><span class="fn">Rent.cs</span><span class="tag good">аренда/возврат</span></div>
+<pre class="code">byte[] buf = ArrayPool&lt;byte&gt;.Shared.Rent(100_000);
+try
+{
+    // ВНИМАНИЕ: массив может быть БОЛЬШЕ запрошенного —
+    // работаем только с первыми 100_000 элементов
+    Process(buf.AsSpan(0, 100_000));
+}
+finally
+{
+    ArrayPool&lt;byte&gt;.Shared.Return(buf, clearArray: true);
+}
+// Пул хранит массивы по «бакетам» размеров и переиспользует.
+// Для объектов: ObjectPool&lt;T&gt; (Microsoft.Extensions.ObjectPool),
+// для памяти: MemoryPool&lt;T&gt; из System.Buffers.</pre>
+      </div>
+      <div class="codewrap">
+        <div class="codebar"><span class="fn">StackOnly.cs</span><span class="tag info">маленькие буферы</span></div>
+<pre class="code">// До ~1 КБ часто выгоднее стек — ноль аллокаций вообще:
+Span&lt;char&gt; buf = stackalloc char[256];
+writer.Write(buf);
+
+// Другие источники «нулевых аллокаций»:
+// string.Create — сборка строки по месту
+// MemoryMarshal / Unsafe — низкоуровневые трюки
+// ValueTask — async без объекта Task в горячем пути
+// Span-срезы вместо копий массивов и подстрок</pre>
+      </div>
+    </div>
+    <div class="note teal reveal"><b>Правило выбора:</b> буфер живёт дольше метода → <code class="inline">ArrayPool</code>; меньше 1 КБ и метод короткий → <code class="inline">stackalloc</code>; переиспользуемый сложный объект → <code class="inline">ObjectPool</code>. И всегда измеряйте: пул без нужды — лишняя сложность.</div>
+  </div>
+</section>
+
+<!-- ================= 19 ЭКЗАМЕН ================= -->
+<section id="p19">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">19</span><div><p class="skick">проверка</p><h2>Экзамен второй части</h2></div></div>
+    <p class="tx reveal"><span class="score">Счёт: <span id="quizScore">0</span>/8</span></p>
+
+    <div class="qz reveal"><p class="qt">1. Все потоки пула заняты блокирующим ожиданием, а задачи продолжают поступать. Что сделает CLR?</p>
+      <div class="opts">
+        <button class="opt">Ничего — задачи будут ждать вечно</button>
+        <button class="opt" data-ok>Начнёт добавлять новые потоки, но с задержками (~500 мс на шаг, hill climbing)</button>
+        <button class="opt">Бросит ThreadPoolExhaustedException</button>
+        <button class="opt">Перенесёт задачи на другой процесс</button>
+      </div><div class="expl">Hill climbing вводит потоки постепенно, чтобы не пересоздать их сотни. Отсюда латентность при резкой нагрузке и польза SetMinThreads для latency-сценариев — и главная причина не блокировать потоки пула.</div></div>
+
+    <div class="qz reveal"><p class="qt">2. Work-stealing: как поток берёт задачи из локального deque и как крадёт у других?</p>
+      <div class="opts">
+        <button class="opt">Свои FIFO, крадёт FIFO</button>
+        <button class="opt" data-ok>Свои — LIFO с головы (push/pop), крадёт — с хвоста, чтобы меньше конфликтовать с владельцем</button>
+        <button class="opt">Всегда из глобальной очереди, локальных нет</button>
+        <button class="opt">Случайным образом из любого конца</button>
+      </div><div class="expl">LIFO у себя = свежие задачи в кэше; кража с противоположного конца снижает конкуренцию с владельцем. Глобальная очередь нужна только для «чужих» задач.</div></div>
+
+    <div class="qz reveal"><p class="qt">3. Что гарантирует volatile bool flag?</p>
+      <div class="opts">
+        <button class="opt">Атомарность любых операций с flag</button>
+        <button class="opt" data-ok>Видимость записи другим потокам и запрет переноса операций вокруг доступа — но не атомарность составных операций</button>
+        <button class="opt">Отсутствие дедлоков</button>
+        <button class="opt">Что JIT не заинлайнит переменную в регистр навсегда</button>
+      </div><div class="expl">volatile — про барьеры и видимость. flag = true увидят все, но n++ над volatile-полем всё равно гонка: чтение-изменение-запись не атомарны.</div></div>
+
+    <div class="qz reveal"><p class="qt">4. Какая операция включает полный барьер памяти (full fence)?</p>
+      <div class="opts">
+        <button class="opt">Обычная запись x = 1</button>
+        <button class="opt" data-ok>Interlocked.Increment(ref x)</button>
+        <button class="opt">Чтение ссылочной переменной</button>
+        <button class="opt">Любой вызов метода</button>
+      </div><div class="expl">Операции Interlocked — это атомарность + полный барьер. Барьеры также ставят lock (на входе/выходе), volatile-доступы (половинные) и явный Thread.MemoryBarrier().</div></div>
+
+    <div class="qz reveal"><p class="qt">5. Vector256&lt;float&gt; на машине с AVX2 обрабатывает за одну инструкцию…</p>
+      <div class="opts">
+        <button class="opt">4 float</button>
+        <button class="opt" data-ok>8 float (256 бит = 8 × 32 бита)</button>
+        <button class="opt">16 float</button>
+        <button class="opt">Только double</button>
+      </div><div class="expl">256 бит / 32 бита на float = 8 дорожек. Vector128 — 4 float, Vector512 — 16. Реальная выгода упирается в скорость памяти, поэтому SIMD особенно хорош, когда данные уже в кэше.</div></div>
+
+    <div class="qz reveal"><p class="qt">6. Вы вызвали ArrayPool&lt;byte&gt;.Shared.Rent(1000). Что важно помнить?</p>
+      <div class="opts">
+        <button class="opt">Вернётся массив ровно из 1000 элементов</button>
+        <button class="opt" data-ok>Массив может быть длиннее запрошенного: нужно самим помнить рабочую длину и обязательно вызвать Return</button>
+        <button class="opt">Буфер одноразовый, Return не нужен</button>
+        <button class="opt">Return всегда затирает данные нулями</button>
+      </div><div class="expl">Пул округляет размеры до бакетов (16, 32, 64… элементов), поэтому Rent может вернуть больший массив. Очистка — только опцией clearArray: true. Забытый Return = утечка из пула и новая аллокация в следующий раз.</div></div>
+
+    <div class="qz reveal"><p class="qt">7. Почему аренда буфера из пула снижает нагрузку на GC?</p>
+      <div class="opts">
+        <button class="opt">GC автоматически пропускает пуловые объекты</button>
+        <button class="opt" data-ok>Новых аллокаций нет: один объект живёт в куче и переиспользуется, бюджеты поколений не расходуются, сборки реже</button>
+        <button class="opt">Пул сжимает массивы при возврате</button>
+        <button class="opt">Пуловые буферы живут в стеке</button>
+      </div><div class="expl">Сборка стартует, когда исчерпан бюджет поколения. Меньше аллокаций — реже сборка, меньше копирований при компакции, LOH не засоряется большими короткоживущими массивами.</div></div>
+
+    <div class="qz reveal"><p class="qt">8. В высоконагруженном сервисе долгие синхронные блокировки в обработчиках. Симптом — латентность растёт, CPU при этом не загружен. Diagnosis?</p>
+      <div class="opts">
+        <button class="opt">Нужно больше ядер</button>
+        <button class="opt" data-ok>Thread starvation пула: потоки стоят в ожидании, новые приходят с задержкой hill climbing; переходить на async/дедиканные потоки</button>
+        <button class="opt">GC работает слишком часто</button>
+        <button class="opt">JIT не успевает компилировать</button>
+      </div><div class="expl">Классический почерк голодания пула: очередь растёт, потоки заблокированы, CPU простаивает, а подмена потоков медленная. Лечится асинхронным I/O, SetMinThreads и устранением блокировок в hot-path.</div></div>
+
+    <h3 class="reveal" style="margin-top:30px">Шпаргалка hot-path</h3>
+    <div class="reveal" style="overflow-x:auto">
+      <table class="tbl">
+        <tr><th>Задача</th><th>Инструмент</th><th>Почему</th></tr>
+        <tr><td>Временный буфер &gt; 1 КБ</td><td class="m">ArrayPool&lt;T&gt;.Shared.Rent/Return</td><td>одна аллокация вместо тысяч</td></tr>
+        <tr><td>Буфер до ~1 КБ в коротком методе</td><td class="m">stackalloc</td><td>ноль аллокаций, живёт в стеке</td></tr>
+        <tr><td>Срез массива/строки</td><td class="m">Span&lt;T&gt; / Memory&lt;T&gt;</td><td>указатель + длина без копий</td></tr>
+        <tr><td>Переиспользуемый объект (StringBuilder, сериализатор)</td><td class="m">ObjectPool&lt;T&gt;</td><td>не плодим идентичные объекты</td></tr>
+        <tr><td>Частый синхронный async-результат</td><td class="m">ValueTask</td><td>без аллокации объекта Task</td></tr>
+        <tr><td>Однотипная обработка массивов</td><td class="m">Vector&lt;T&gt; / Intrinsics</td><td>векторные инструкции</td></tr>
+        <tr><td>Видимость флага между потоками</td><td class="m">volatile / Interlocked / lock</td><td>барьеры вместо гонок</td></tr>
+        <tr><td>Блокирующий I/O неизбежен</td><td class="m">выделенный поток, не пул</td><td>не морить ThreadPool голодом</td></tr>
+      </table>
+    </div>
+    <p class="tx reveal" style="margin-top:16px">Глоссарий части 2: <code class="inline">work-stealing</code> — локальные очереди с кражей с хвоста · <code class="inline">hill climbing</code> — медленное добавление потоков · <code class="inline">fence</code> — барьер, запрещающий перенос операций · <code class="inline">SIMD</code> — одна инструкция на вектор · <code class="inline">бакеты пула</code> — массивы по округлённым размерам · <code class="inline">starvation</code> — пулу не хватает свободных потоков.</p>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>⚡ C# под микроскопом · часть 2: пул потоков, модель памяти, SIMD, пулы буферов</span>
+    <span>Симуляции упрощены для наглядности · продолжение серии о внутренностях .NET</span>
+  </div>
+</footer>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const ri=(a,b)=>Math.floor(a+Math.random()*(b-a+1));
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+const CSRE=/(\/\/[^\n]*)|(\$?"(?:[^"\\]|\\.)*"|\$@"(?:[^"]|"")*")|('(?:[^'\\]|\\.)')|\b(async|await|abstract|as|base|break|case|catch|checked|class|const|continue|default|delegate|do|else|enum|event|explicit|extern|false|finally|fixed|for|foreach|goto|if|implicit|in|interface|internal|is|lock|nameof|namespace|new|not|null|object|operator|or|and|out|override|params|private|protected|public|readonly|record|ref|return|sealed|sizeof|stackalloc|static|string|struct|switch|this|throw|true|try|typeof|unchecked|unsafe|using|var|virtual|void|volatile|while|yield|int|long|double|float|bool|char|byte|decimal|uint|ulong|when|where|select|from|orderby|init|get|set|value|global|with|finally)\b|\b([A-Za-z_][A-Za-z0-9_]*)(?=\s*\()|\b([A-Z][A-Za-z0-9_]*)\b|\b(\d[\d_]*(?:\.\d+)?)\b/g;
+function hlCs(src){let out='',last=0,m;CSRE.lastIndex=0;
+  while((m=CSRE.exec(src))){out+=esc(src.slice(last,m.index));
+    const cls=m[1]?'c-cm':m[2]?'c-st':m[3]?'c-st':m[4]?'c-kw':m[5]?'c-fn':m[6]?'c-ty':'c-nu';
+    out+='<span class="'+cls+'">'+esc(m[0])+'</span>';last=m.index+m[0].length;}
+  return out+esc(src.slice(last));}
+$$('pre.code').forEach(p=>p.innerHTML=hlCs(p.textContent));
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.12});
+$$('.reveal').forEach(el=>io.observe(el));
+addEventListener('scroll',()=>{const h=document.documentElement;$('#prog').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%'},{passive:true});
+const railIO=new IntersectionObserver(es=>es.forEach(e=>{const a=$('#rail a[href="#'+e.target.id+'"]');if(a)a.classList.toggle('on',e.isIntersecting)}),{rootMargin:'-30% 0px -55% 0px'});
+$$('main section').forEach(s=>railIO.observe(s));
+function logLine(box,text,cls){const d=document.createElement('div');d.className='ll '+(cls||'');d.textContent=text;box.appendChild(d);while(box.children.length>60)box.firstChild.remove();box.scrollTop=box.scrollHeight}
+
+/* герой */
+(function(){
+  const scenes=[
+    {c:'Vector256.Load(span);',o:'AVX2: 8 значений в одной инструкции вместо 8'},
+    {c:'ArrayPool<byte>.Shared.Rent(100_000);',o:'0 новых аллокаций — буфер из бакета пула'},
+    {c:'volatile bool ready = true;',o:'барьер записи: другие ядра увидят её гарантированно'},
+    {c:'ThreadPool.QueueUserWorkItem(…);',o:'глобальная очередь → локальный deque → кража с хвоста'}
+  ];
+  const codeEl=$('#heroCode'),outEl=$('#heroOut');let si=0;
+  async function play(){
+    const s=scenes[si];outEl.textContent='';
+    for(let i=0;i<=s.c.length;i++){codeEl.innerHTML=hlCs(s.c.slice(0,i))+'<span class="caret"></span>';await sleep(30)}
+    await sleep(300);outEl.textContent=s.o;await sleep(2800);si=(si+1)%scenes.length;play();
+  }
+  play();
+})();
+
+/* 15 ThreadPool */
+(function(){
+  const COLORS=['#ffb454','#3fe0c5','#c08bff','#a5e86f','#ff5d7d','#6fc3ff'];
+  let global=[],workers=[{dq:[]},{dq:[]},{dq:[]}],nid=1,done=0,steals=0,auto=null,vis=true;
+  const sec=$('#p15');
+  new IntersectionObserver(es=>vis=es[0].isIntersecting,{rootMargin:'60px'}).observe(sec);
+  function chip(t,big){return '<span class="chip" style="background:'+t.c+'">'+t.id+'</span>'}
+  function render(){
+    $('#tpGq').innerHTML=global.length?global.map(t=>chip(t)).join(''):'<span style="color:var(--dim);font-size:12px" class="mono">пусто</span>';
+    workers.forEach((w,i)=>{
+      $('#twq'+i).innerHTML=w.dq.map(t=>chip(t)).join('');
+      $('#td'+i).textContent='deque: '+w.dq.length;
+    });
+    $('#tpDone').textContent=done;$('#tpSteal').textContent=steals;
+  }
+  function flash(i,cls){const el=$('#tw'+i);el.classList.add(cls);setTimeout(()=>el.classList.remove(cls),260)}
+  function pushGlobal(n){
+    for(let k=0;k<n;k++)global.push({id:'T-'+(nid++),c:COLORS[ri(0,5)]});
+    render();
+  }
+  function tick(){
+    if(document.hidden||!vis)return;
+    workers.forEach((w,i)=>{
+      let t=null,stealFrom=-1;
+      if(w.dq.length){t=w.dq.pop()}                    // свой deque: LIFO с головы
+      else if(global.length){t=global.shift()}        // глобальная очередь
+      else{
+        for(let j=0;j<workers.length;j++){            // кража с ХВОСТА чужого
+          if(j!==i&&workers[j].dq.length>0){t=workers[j].dq.shift();stealFrom=j;break}
+        }
+      }
+      if(t){
+        done++;
+        if(stealFrom>=0){steals++;flash(i,'steal');
+          logLine($('#tpLog'),'🥷 Поток-'+(i+1) украл задачу '+t.id+' у Потока-'+(stealFrom+1)+' (с хвоста deque)','l-warn')}
+        else flash(i,'active');
+      }
+    });
+    render();
+  }
+  setInterval(tick,300);
+  $('#tpAdd6').addEventListener('click',()=>{pushGlobal(6);logLine($('#tpLog'),'+6 задач в глобальную очередь','l-info')});
+  $('#tpAdd1').addEventListener('click',()=>{
+    const w=ri(0,2);workers[w].dq.push({id:'T-'+(nid++),c:COLORS[ri(0,5)]});
+    logLine($('#tpLog'),'задача добавлена сразу в локальный deque Потока-'+(w+1),'l-tea');render();
+  });
+  $('#tpAuto').addEventListener('click',e=>{
+    if(auto){clearInterval(auto);auto=null;e.target.textContent='▶ Авто-нагрузка';return}
+    e.target.textContent='⏹ Стоп';
+    auto=setInterval(()=>{if(vis&&!document.hidden&&global.length<12)pushGlobal(ri(1,3))},750);
+  });
+  pushGlobal(4);
+})();
+
+/* 16 модель памяти */
+(function(){
+  let busy=false;
+  function resetCache(){
+    $('#mc1dv').textContent='—';$('#mc1fv').textContent='—';
+    $('#mc1dm').textContent='0';$('#mc1fm').textContent='false';
+    $('#mc2fv').textContent='false';$('#mc2dv').textContent='0';
+    ['mc1d','mc1f','mc1m','mc2f','mc2d'].forEach(id=>$('#'+id).classList.remove('flush','stale'));
+  }
+  async function series(barrier){
+    if(busy)return;busy=true;
+    $('#mmTrials').innerHTML='';let fails=0;
+    for(let t=1;t<=10;t++){
+      resetCache();
+      $('#mc1dv').textContent='42';$('#mc1fv').textContent='true';
+      $('#mc1d').classList.add('flush');
+      await sleep(260);
+      if(barrier){
+        $('#mc1m').classList.add('flush');
+        $('#mc1dm').textContent='42';$('#mc1fm').textContent='true';
+        await sleep(220);
+        $('#mc2fv').textContent='true';$('#mc2dv').textContent='42';
+        $('#mc2d').classList.add('flush');
+        ok();
+      }else{
+        $('#mc1dm').textContent=Math.random()<0.35?'42':'0';
+        $('#mc1fm').textContent='true';
+        await sleep(220);
+        const stale=$('#mc1dm').textContent==='0';
+        $('#mc2fv').textContent='true';
+        $('#mc2dv').textContent=stale?'0':'42';
+        if(stale){fails++;$('#mc2d').classList.add('stale');bad();}
+        else{$('#mc2d').classList.add('flush');ok();}
+      }
+      await sleep(240);
+      function ok(){const d=document.createElement('span');d.className='tr ok';d.textContent='#'+t+' → 42';$('#mmTrials').appendChild(d)}
+      function bad(){const d=document.createElement('span');d.className='tr bad';d.textContent='#'+t+' → 0!';$('#mmTrials').appendChild(d)}
+    }
+    $('#mmSum').innerHTML=barrier
+      ?'<span style="color:var(--lime)">0 сбоев из 10: барьеры запрещают перенос записей — видимость гарантирована</span>'
+      :'<span style="color:var(--rose)">'+fails+' сбоев из 10: T2 увидел flag=true, но data ещё 0 — записи дошли в другом порядке</span>';
+    busy=false;
+  }
+  $('#mmBad').addEventListener('click',()=>series(false));
+  $('#mmGood').addEventListener('click',()=>series(true));
+  $('#mmRst').addEventListener('click',()=>{resetCache();$('#mmTrials').innerHTML='';$('#mmSum').textContent=''});
+})();
+
+/* 17 SIMD */
+(function(){
+  const A=[3,1,4,1,5,9,2,6],B=[2,7,1,8,2,8,1,8];
+  let busy=false;
+  function paint(res,cls){
+    $('#svA').innerHTML=A.map(v=>'<div class="cell">'+v+'</div>').join('');
+    $('#svB').innerHTML=B.map(v=>'<div class="cell">'+v+'</div>').join('');
+    $('#svR').innerHTML=res.map((v,i)=>'<div class="cell '+(v!=null?(cls||''):'')+'">'+(v!=null?v:'·')+'</div>').join('');
+  }
+  function reset(){paint(A.map(()=>null));$('#svIns').textContent='0';$('#svSpd').textContent='ускорение: —';$('#svLog').innerHTML=''}
+  $('#svScalar').addEventListener('click',async()=>{
+    if(busy)return;busy=true;reset();
+    const res=A.map(()=>null);let ins=0;
+    for(let i=0;i<8;i++){
+      res[i]=A[i]+B[i];ins++;
+      $('#svIns').textContent=ins;paint(res,'hit');await sleep(180);
+    }
+    $('#svSpd').textContent='ускорение: ×1';
+    logLine($('#svLog'),'скаляр: 8 операций сложения, элементы обрабатываются по одному','l-warn');
+    busy=false;
+  });
+  $('#svSimd').addEventListener('click',async()=>{
+    if(busy)return;busy=true;reset();
+    await sleep(250);
+    const res=A.map((v,i)=>v+B[i]);
+    $('#svIns').textContent='1';paint(res,'simd');
+    $('#svSpd').textContent='ускорение: до ×8';
+    logLine($('#svLog'),'Vector256: одна инструкция vpaddd обработала 8 дорожек одновременно','l-ok');
+    logLine($('#svLog'),'на реальных данных упрёмся в память: выигрыш обычно ×3–6','l-info');
+    busy=false;
+  });
+  $('#svRst').addEventListener('click',reset);
+  reset();
+})();
+
+/* 18 ArrayPool */
+(function(){
+  let busy=false;
+  $('#apRun').addEventListener('click',async()=>{
+    if(busy)return;busy=true;
+    let a1=0,g1=0,a2=0,g2=0;
+    const mb1=()=>(a1*0.1).toFixed(1);
+    for(let i=1;i<=20;i++){
+      // режим new[]
+      a1++;if(i%5===0)g1++;
+      $('#apA1').textContent=a1;$('#apB1').textContent=mb1()+' МБ';$('#apG1').textContent=g1;
+      $('#apBar1').style.width=(a1/20*100)+'%';
+      // режим пула
+      if(i===1)a2=1;
+      $('#apA2').textContent=a2;$('#apB2').textContent='0.1 МБ (переиспользуется)';$('#apG2').textContent=g2;
+      $('#apBar2').style.width=(a2/20*100)+'%';
+      await sleep(140);
+    }
+    $('#apB1').textContent='2.0 МБ мусора';
+    $('#apB1').classList.add('bad');$('#apA1').classList.add('bad');
+    $('#apB2').classList.add('good');$('#apA2').classList.add('good');
+    busy=false;
+  });
+  $('#apRst').addEventListener('click',()=>{
+    ['apA1','apA2','apG1','apG2'].forEach(id=>$('#'+id).textContent='0');
+    $('#apB1').textContent='0 МБ';$('#apB2').textContent='0 МБ';
+    $('#apBar1').style.width='0%';$('#apBar2').style.width='0%';
+    ['apA1','apB1','apG1','apA2','apB2','apG2'].forEach(id=>$('#'+id).className=$('#'+id).className.replace(/bad|good/g,''));
+  });
+})();
+
+/* квиз */
+(function(){
+  let score=0;
+  $$('.qz').forEach(q=>{
+    q.querySelectorAll('.opt').forEach(o=>o.addEventListener('click',()=>{
+      if(q.classList.contains('done'))return;
+      q.classList.add('done');
+      if(o.hasAttribute('data-ok')){o.classList.add('ok');score++}
+      else{o.classList.add('bad');const r=q.querySelector('.opt[data-ok]');if(r)r.classList.add('ok')}
+      $('#quizScore').textContent=score;
+    }));
+  });
+})();
+</script>
+</body>
+</html>

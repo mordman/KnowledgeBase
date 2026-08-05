@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C# под микроскопом — часть 3: ValueTask, каналы, unsafe, AOT, диагностика</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧬</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0f1c; --panel:#111a2e; --panel2:#0d1524; --line:#22304a; --line2:#31456d;
+  --tx:#e7edf7; --mut:#93a3bd; --dim:#647591;
+  --amber:#ffb454; --teal:#3fe0c5; --lime:#a5e86f; --rose:#ff5d7d; --sky:#6fc3ff; --vio:#c08bff;
+  --disp:'Unbounded',sans-serif; --body:'IBM Plex Sans',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font:400 16px/1.65 var(--body);color:var(--tx);background:
+  radial-gradient(900px 520px at 88% -5%, rgba(255,180,84,.08), transparent 60%),
+  radial-gradient(820px 620px at -12% 32%, rgba(63,224,197,.06), transparent 60%),
+  radial-gradient(760px 540px at 55% 112%, rgba(192,139,255,.06), transparent 60%),
+  var(--bg);overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(111,195,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(111,195,255,.045) 1px,transparent 1px);
+  background-size:46px 46px}
+::selection{background:rgba(255,180,84,.35)}
+main,header,footer{position:relative;z-index:1}
+.wrap{max-width:1180px;margin:0 auto;padding:0 26px}
+h1,h2,h3{font-family:var(--disp)}
+#prog{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--amber),var(--teal));z-index:99}
+#rail{position:fixed;left:14px;top:50%;transform:translateY(-50%);z-index:50;display:flex;flex-direction:column;gap:2px}
+#rail a{display:flex;gap:8px;align-items:baseline;color:var(--dim);font:500 10.5px var(--mono);padding:4px 8px;border-radius:7px;text-decoration:none;border:1px solid transparent;transition:.25s}
+#rail a:hover{color:var(--tx);transform:translateX(3px)}
+#rail a.on{color:var(--amber);background:rgba(255,180,84,.09);border-color:rgba(255,180,84,.28)}
+@media(max-width:1280px){#rail{display:none}}
+.hero{max-width:1240px;margin:0 auto;padding:58px 28px 38px;display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:center}
+@media(max-width:1000px){.hero{grid-template-columns:1fr;padding-top:40px}}
+.kick{display:inline-flex;align-items:center;gap:8px;font:600 12px var(--mono);letter-spacing:.14em;color:var(--teal);text-transform:uppercase;border:1px solid rgba(63,224,197,.3);padding:6px 12px;border-radius:6px;background:rgba(63,224,197,.06)}
+.kick::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 10px var(--teal);animation:blink 1.8s infinite}
+@keyframes blink{50%{opacity:.35}}
+h1{font-weight:800;font-size:clamp(29px,4vw,50px);line-height:1.1;margin:20px 0 16px}
+h1 .v{color:var(--amber);font-family:var(--mono);font-size:.82em}
+.lead{color:var(--mut);font-size:16.5px;max-width:570px}
+.hstats{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
+.hchip{font:500 12px var(--mono);color:var(--mut);border:1px solid var(--line);padding:7px 12px;border-radius:8px;background:rgba(255,255,255,.02);transition:.2s}
+.hchip:hover{color:var(--tx);transform:translateY(-2px)}
+.hchip b{color:var(--amber)}
+.ide{background:#0b1222;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 30px 70px rgba(0,0,0,.45)}
+.ide-bar{display:flex;align-items:center;gap:7px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.ide-bar .d{width:10px;height:10px;border-radius:50%}
+.ide-bar .fn{font:500 11.5px var(--mono);color:var(--dim);margin-left:8px}
+#heroCode{margin:0;padding:16px 18px;font:400 13.5px/1.75 var(--mono);color:#c9daf0;min-height:88px;white-space:pre-wrap}
+#heroCode .caret{display:inline-block;width:8px;height:15px;background:var(--amber);vertical-align:-2px;animation:blink 1s infinite}
+.ide-out{border-top:1px dashed var(--line);padding:12px 18px;font:400 12.5px/1.7 var(--mono);color:var(--lime);min-height:52px}
+.ide-out::before{content:'▸ взгляд сквозь код';display:block;color:var(--dim);font-size:10px;letter-spacing:.14em;margin-bottom:4px}
+.ticker{overflow:hidden;border-block:1px solid var(--line);background:#0b1220}
+.tk{display:flex;gap:36px;width:max-content;padding:12px 0;animation:tk 36s linear infinite;font:500 12px var(--mono);color:var(--dim);white-space:nowrap}
+.tk i{font-style:normal;color:var(--amber)}
+@keyframes tk{to{transform:translateX(-50%)}}
+@media(prefers-reduced-motion:reduce){.tk{animation:none}}
+section{padding:70px 0;scroll-margin-top:20px}
+.shead{display:flex;gap:20px;align-items:flex-start;margin-bottom:30px}
+.snum{font:800 clamp(52px,7.5vw,100px)/0.9 var(--disp);color:transparent;-webkit-text-stroke:1.5px rgba(255,180,84,.3);user-select:none}
+.skick{font:600 11px var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--teal);margin-bottom:8px}
+h2{font-weight:600;font-size:clamp(23px,3vw,38px);line-height:1.15}
+h3{font-size:17px;font-weight:600;margin:24px 0 10px}
+p.tx{color:var(--mut);max-width:840px;margin:11px 0}
+p.tx b,li b{color:var(--tx)}
+code.inline{font:500 .86em var(--mono);color:var(--amber);background:rgba(255,180,84,.09);border:1px solid rgba(255,180,84,.18);padding:1px 6px;border-radius:5px;white-space:nowrap}
+.note{border-left:3px solid var(--amber);background:rgba(255,180,84,.06);padding:13px 18px;border-radius:0 10px 10px 0;color:var(--mut);margin:18px 0;max-width:840px}
+.note b{color:var(--amber)}
+.note.teal{border-color:var(--teal);background:rgba(63,224,197,.06)}.note.teal b{color:var(--teal)}
+.note.rose{border-color:var(--rose);background:rgba(255,93,125,.07)}.note.rose b{color:var(--rose)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+.grid2.wide{grid-template-columns:1.15fr .85fr}
+.grid2.wide2{grid-template-columns:.9fr 1.1fr}
+@media(max-width:880px){.grid2,.grid2.wide,.grid2.wide2{grid-template-columns:1fr}}
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .7s,transform .7s}
+.reveal.in{opacity:1;transform:none}
+.codewrap{background:#0b1222;border:1px solid var(--line);border-radius:12px;overflow:hidden;transition:border-color .25s}
+.codewrap:hover{border-color:var(--line2)}
+.codebar{display:flex;gap:7px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--line)}
+.codebar .d{width:9px;height:9px;border-radius:50%}
+.codebar .fn{margin-left:8px;font:500 11px var(--mono);color:var(--dim)}
+.codebar .tag{margin-left:auto;font:600 10px var(--mono);letter-spacing:.1em;padding:3px 8px;border-radius:5px}
+.tag.bad{color:var(--rose);background:rgba(255,93,125,.12)}
+.tag.good{color:var(--lime);background:rgba(165,232,111,.12)}
+.tag.info{color:var(--sky);background:rgba(111,195,255,.12)}
+pre.code{margin:0;padding:15px 18px;overflow:auto;font:400 12.8px/1.7 var(--mono);color:#c9daf0;white-space:pre;tab-size:4}
+.c-kw{color:#ff9e64}.c-ty{color:#7cc7ff}.c-st{color:#a5e86f}.c-cm{color:#5c6f8e;font-style:italic}.c-nu{color:#ffd479}.c-fn{color:#4fe3c1}
+.demo{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.demo-h{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.02)}
+.demo-h .live{width:8px;height:8px;border-radius:50%;background:var(--lime);box-shadow:0 0 10px var(--lime);animation:blink 1.6s infinite}
+.demo-h .ttl{font:600 13px var(--mono);color:var(--tx);margin-right:auto}
+.demo-b{padding:18px}
+.btn{font:700 12.5px var(--mono);color:#141005;background:var(--amber);border:0;padding:9px 15px;border-radius:8px;cursor:pointer;transition:.18s;box-shadow:0 3px 0 rgba(0,0,0,.4)}
+.btn:hover{transform:translateY(-2px);box-shadow:0 9px 20px rgba(255,180,84,.28)}
+.btn:active{transform:translateY(1px);box-shadow:none}
+.btn[disabled]{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn.ghost{background:transparent;color:var(--tx);border:1px solid var(--line2);box-shadow:none}
+.btn.ghost:hover{border-color:var(--amber);color:var(--amber);box-shadow:none}
+.btn.teal{background:var(--teal)}.btn.rose{background:var(--rose);color:#2a0510}.btn.lime{background:var(--lime)}
+.btn.sm{padding:6px 11px;font-size:11.5px}
+.log{font:12px/1.75 var(--mono);background:#0a1020;border:1px solid var(--line);border-radius:10px;padding:10px 13px;max-height:210px;overflow:auto}
+.ll{white-space:pre-wrap;word-break:break-word;color:var(--mut)}
+.l-ok{color:var(--lime)}.l-err{color:var(--rose)}.l-warn{color:var(--amber)}.l-info{color:var(--sky)}.l-tea{color:var(--teal)}
+.tbl{width:100%;border-collapse:collapse;font-size:14px;margin:14px 0}
+.tbl th{font:600 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--amber);text-align:left;padding:10px 12px;border-bottom:2px solid var(--line2)}
+.tbl td{padding:9px 12px;border-bottom:1px solid var(--line);color:var(--mut);vertical-align:top}
+.tbl tr:hover td{background:rgba(255,255,255,.025);color:var(--tx)}
+.tbl td:first-child{color:var(--tx);font-weight:600}
+.tbl .m{font:600 12.5px var(--mono);color:var(--teal)}
+.varrow{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:8px 0}
+@keyframes pop{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.chip{font:700 11px var(--mono);color:#10131c;padding:5px 9px;border-radius:6px;animation:pop .3s}
+
+/* ValueTask */
+.vtcol{border:1px solid var(--line);border-radius:11px;background:#0c1424;padding:14px}
+.vtcol .pt{font:700 12.5px var(--mono)}
+.metric{display:flex;justify-content:space-between;font:500 12px var(--mono);color:var(--dim);padding:6px 0;border-bottom:1px dashed var(--line)}
+.metric b{color:var(--tx)}.metric b.bad{color:var(--rose)}.metric b.good{color:var(--lime)}
+.vtbar{display:flex;gap:2px;height:16px;margin-top:8px;flex-wrap:wrap}
+.vtcell{width:6px;height:16px;border-radius:2px;background:#0a1020;border:1px solid var(--line)}
+.vtcell.alloc{background:var(--rose);border-color:var(--rose);animation:pop .2s}
+.vtcell.hit{background:rgba(165,232,111,.25);border-color:rgba(165,232,111,.4)}
+
+/* каналы */
+.chslots{display:flex;gap:10px;justify-content:center;margin:12px 0}
+.chslot{width:52px;height:52px;border:1.5px dashed var(--line2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;transition:.3s}
+.chslot.full{border-style:solid;border-color:var(--amber);background:rgba(255,180,84,.1);animation:pop .3s}
+.waitb{font:600 11px var(--mono);padding:6px 11px;border-radius:7px;border:1px dashed var(--line2);color:var(--dim);transition:.3s}
+.waitb.on{border-style:solid;border-color:var(--amber);color:var(--amber);animation:blink 1.4s infinite}
+
+/* unsafe */
+.memgrid{display:flex;flex-wrap:wrap;gap:5px;margin:10px 0}
+.mcell{text-align:center;border:1px solid var(--line);background:#0c1424;border-radius:8px;padding:9px 6px;min-width:62px;transition:.3s}
+.mcell .mv{font:700 15px var(--mono);color:var(--tx)}
+.mcell .ma{font:500 9.5px var(--mono);color:var(--dim);margin-top:3px}
+.mcell.ptr{border-color:var(--amber);background:rgba(255,180,84,.1)}
+.mcell.pin{box-shadow:0 0 0 2px rgba(63,224,197,.5)}
+.ptrbox{border:1px solid var(--line2);border-radius:10px;background:#0c1424;padding:12px 14px;font:500 12.5px var(--mono);color:var(--mut)}
+.ptrbox b{color:var(--amber);font-size:15px}
+
+/* AOT */
+.phase{display:flex;justify-content:space-between;gap:10px;font:500 12px var(--mono);color:var(--dim);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:6px 0;transition:.35s}
+.phase.done{color:var(--tx);border-color:var(--lime);background:rgba(165,232,111,.08)}
+.phase.hot{color:var(--tx);border-color:var(--amber);background:rgba(255,180,84,.09)}
+.phase b{color:var(--teal)}
+.msbig{font:800 26px var(--disp)}
+
+/* диагностика */
+.dash{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:760px){.dash{grid-template-columns:repeat(2,1fr)}}
+.dcard{border:1px solid var(--line);border-radius:11px;background:#0c1424;padding:12px}
+.dcard .dt{font:600 10px var(--mono);letter-spacing:.12em;color:var(--dim)}
+.dcard .dv{font:800 21px var(--disp);margin-top:5px}
+.frow{display:flex;gap:3px;margin-top:6px}
+.fbar{border-radius:5px;padding:7px 10px;font:600 10.5px var(--mono);color:#10131c;white-space:nowrap;overflow:hidden;transition:.2s}
+.fbar:hover{filter:brightness(1.2)}
+.fbar.hot{outline:2px solid var(--rose);animation:blink 1.6s infinite}
+
+/* квиз */
+.qz{border:1px solid var(--line);border-radius:13px;background:var(--panel2);padding:19px;margin-bottom:16px;transition:border-color .25s}
+.qz:hover{border-color:var(--line2)}
+.qz .qt{font:600 15px var(--body);margin:11px 0}
+.opts{display:grid;gap:8px;margin-top:11px}
+.opt{text-align:left;font:400 13.5px var(--body);color:var(--mut);background:#0c1424;border:1px solid var(--line);border-radius:9px;padding:11px 14px;cursor:pointer;transition:.2s}
+.opt:hover{border-color:var(--line2);color:var(--tx);transform:translateX(4px)}
+.opt.ok{border-color:var(--lime);background:rgba(165,232,111,.12);color:var(--tx)}
+.opt.bad{border-color:var(--rose);background:rgba(255,93,125,.1);animation:shake .4s}
+.qz .expl{display:none;margin-top:11px;font-size:13.5px;color:var(--mut);border-left:3px solid var(--teal);padding:10px 14px;background:rgba(63,224,197,.05);border-radius:0 8px 8px 0}
+.qz.done .expl{display:block}
+.score{font:700 13px var(--mono);color:var(--amber);border:1px solid rgba(255,180,84,.35);padding:8px 14px;border-radius:8px;background:rgba(255,180,84,.08)}
+footer{border-top:1px solid var(--line);padding:32px 0 42px;margin-top:40px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;font:400 12.5px var(--mono);color:var(--dim)}
+</style>
+</head>
+<body>
+<div id="prog"></div>
+<nav id="rail">
+  <a href="#p20"><span>20</span>ValueTask</a>
+  <a href="#p21"><span>21</span>Каналы</a>
+  <a href="#p22"><span>22</span>unsafe</a>
+  <a href="#p23"><span>23</span>AOT</a>
+  <a href="#p24"><span>24</span>Диагностика</a>
+  <a href="#p25"><span>25</span>Экзамен</a>
+</nav>
+
+<header class="hero">
+  <div>
+    <span class="kick">Часть 3 · От аллокаций до прода</span>
+    <h1>C# под микроскопом: <span class="v">от аллокаций до прода</span></h1>
+    <p class="lead">Заключительная часть: как ValueTask экономит объекты в горячих путях, что происходит внутри Channel между продюсером и консьюмером, как указатели ходят по памяти в unsafe, чем NativeAOT отличается от JIT и какими инструментами находить узкие места в продакшене.</p>
+    <div class="hstats">
+      <span class="hchip"><b>5</b> глав + экзамен</span>
+      <span class="hchip"><b>ValueTask</b> в цифрах</span>
+      <span class="hchip"><b>unsafe</b> с адресами</span>
+      <span class="hchip"><b>flame graph</b> и счётчики</span>
+    </div>
+  </div>
+  <div class="ide">
+    <div class="ide-bar"><span class="d" style="background:var(--rose)"></span><span class="d" style="background:var(--amber)"></span><span class="d" style="background:var(--lime)"></span><span class="fn">последние препарации…</span></div>
+    <pre id="heroCode"><span class="caret"></span></pre>
+    <div class="ide-out" id="heroOut"></div>
+  </div>
+</header>
+
+<div class="ticker"><div class="tk">
+  <span>ValueTask&lt;T&gt;</span><span>IValueTaskSource</span><span><i>Channel&lt;T&gt;</i></span><span>backpressure</span><span>unsafe · fixed</span><span>pointer arithmetic</span><span>pinning</span><span>NativeAOT</span><span>ILC · trimming</span><span>dotnet-counters</span><span>dotnet-trace</span><span>flame graph</span><span>time-in-gc</span><span>alloc-rate</span><span>threadpool-queue-length</span><span>perf collect → speedup</span>
+  <span>ValueTask&lt;T&gt;</span><span>IValueTaskSource</span><span><i>Channel&lt;T&gt;</i></span><span>backpressure</span><span>unsafe · fixed</span><span>pointer arithmetic</span><span>pinning</span><span>NativeAOT</span><span>ILC · trimming</span><span>dotnet-counters</span><span>dotnet-trace</span><span>flame graph</span><span>time-in-gc</span><span>alloc-rate</span><span>threadpool-queue-length</span><span>perf collect → speedup</span>
+</div></div>
+
+<main>
+
+<!-- ================= 20 VALUETASK ================= -->
+<section id="p20">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">20</span><div><p class="skick">асинхронность глубже</p><h2>ValueTask: когда Task слишком тяжёлый</h2></div></div>
+    <p class="tx reveal"><code class="inline">Task</code> — класс: каждый незавершённый вызов аллоцирует объект в куче. Если метод в 90% случаев возвращает результат <b>синхронно</b> (кэш, буфер, быстрая проверка), это чистый мусор. <code class="inline">ValueTask&lt;T&gt;</code> — структура: синхронный путь не аллоцирует ничего, а для редкого асинхронного пути .NET 6+ использует пул объектов через <code class="inline">IValueTaskSource</code>. Прогоните 100 вызовов «кэша» в обоих режимах:</p>
+    <div class="demo reveal">
+      <div class="demo-h"><span class="live"></span><span class="ttl">GetUserAsync(id) — 90% попаданий в кэш</span>
+        <button class="btn" id="vtTask">▶ 100 вызовов: Task&lt;User&gt;</button>
+        <button class="btn teal" id="vtVT">▶ 100 вызовов: ValueTask&lt;User&gt;</button>
+        <button class="btn ghost" id="vtRst">Сброс</button></div>
+      <div class="demo-b grid2">
+        <div class="vtcol">
+          <div class="pt" style="color:var(--rose)">Task&lt;User&gt;</div>
+          <div class="metric"><span>вызовов</span><b id="vtC1">0</b></div>
+          <div class="metric"><span>аллокаций (miss → state machine + Task)</span><b id="vtA1" class="bad">0</b></div>
+          <div class="vtbar" id="vtB1"></div>
+        </div>
+        <div class="vtcol">
+          <div class="pt" style="color:var(--lime)">ValueTask&lt;User&gt;</div>
+          <div class="metric"><span>вызовов</span><b id="vtC2">0</b></div>
+          <div class="metric"><span>аллокаций (miss → пул IValueTaskSource)</span><b id="vtA2" class="good">0</b></div>
+          <div class="vtbar" id="vtB2"></div>
+        </div>
+      </div>
+      <div class="log" id="vtLog" style="margin:12px 18px 18px"></div>
+    </div>
+    <div class="grid2 reveal" style="margin-top:20px">
+      <div class="codewrap">
+        <div class="codebar"><span class="fn">Cache.cs</span><span class="tag good">синхронный fast-path</span></div>
+<pre class="code">private readonly Dictionary&lt;int, User&gt; _cache = new();
+
+public ValueTask&lt;User&gt; GetUserAsync(int id)
+{
+    if (_cache.TryGetValue(id, out var u))
+        return new ValueTask&lt;User&gt;(u);   // 0 аллокаций!
+    return LoadSlowAsync(id);            // редкий путь
+}
+
+private async ValueTask&lt;User&gt; LoadSlowAsync(int id)
+{
+    var raw = await _http.GetStringAsync($"/u/{id}");
+    return _cache[id] = Parse(raw);
+}</pre>
+      </div>
+      <div class="codewrap">
+        <div class="codebar"><span class="fn">Rules.cs</span><span class="tag bad">правила безопасности</span></div>
+<pre class="code">// ValueTask — struct с хитрым состоянием, поэтому:
+
+await vt;              // 1) await строго ОДИН раз
+// var t1 = vt.AsTask(); var t2 = vt.AsTask(); // нельзя
+// var x = vt.Result;   после await — нельзя
+
+// Нельзя хранить в поле, возвращать из цикла,
+// скармливать LINQ и WhenAll напрямую:
+await Task.WhenAll(tasks.Select(t => t.GetUserAsync(id).AsTask()));
+
+// Когда НЕ нужен: метод почти всегда асинхронный —
+// обычный Task проще и безопаснее.</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 21 CHANNELS ================= -->
+<section id="p21">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">21</span><div><p class="skick">producer / consumer</p><h2>Channel&lt;T&gt;: что внутри между писателем и читателем</h2></div></div>
+    <p class="tx reveal">Канал — это буфер + две очереди ожидающих. Когда буфер полон, <code class="inline">WriteAsync</code> ставит продюсера в очередь ожидания (backpressure — система сама тормозит быстрых); когда пуст — <code class="inline">ReadAsync</code> паркует консьюмера. Никто никого не блокирует: ожидание асинхронное. Попробуйте обе стороны руками:</p>
+    <div class="demo reveal">
+      <div class="demo-h"><span class="live"></span><span class="ttl">Channel.CreateBounded&lt;int&gt;(3)</span>
+        <button class="btn sm" id="chW">WriteAsync(item)</button>
+        <button class="btn sm teal" id="chR">ReadAsync()</button>
+        <button class="btn sm lime" id="chAuto">▶ Авто-конвейер</button>
+        <button class="btn sm rose" id="chDone">Complete()</button></div>
+      <div class="demo-b">
+        <div class="varrow" style="justify-content:space-between">
+          <span class="waitb" id="chWq">продюсер: WriteAsync свободен</span>
+          <div class="chslots"><div class="chslot" id="cs0"></div><div class="chslot" id="cs1"></div><div class="chslot" id="cs2"></div></div>
+          <span class="waitb" id="chRq">консьюмер: ReadAsync свободен</span>
+        </div>
+        <div class="varrow" style="margin-top:10px">
+          <div class="chip" style="background:var(--teal)">записано: <span id="chWn">0</span></div>
+          <div class="chip" style="background:var(--amber)">прочитано: <span id="chRn">0</span></div>
+          <div class="chip" style="background:var(--vio)">дрейф буфера: <span id="chD">0</span></div>
+        </div>
+        <div class="log" id="chLog" style="margin-top:12px"></div>
+      </div>
+    </div>
+    <div class="grid2 reveal" style="margin-top:20px">
+      <div class="codewrap">
+        <div class="codebar"><span class="fn">Pipeline.cs</span><span class="tag info">полный цикл</span></div>
+<pre class="code">var ch = Channel.CreateBounded&lt;Job&gt;(new BoundedChannelOptions(3)
+{
+    FullMode = BoundedChannelFullMode.Wait,   // backpressure
+    SingleReader = true, SingleWriter = false
+});
+
+async Task ProduceAsync()
+{
+    await foreach (var job in IncomingJobs())
+        await ch.Writer.WriteAsync(job);  // полон? ждём
+    ch.Writer.Complete();                 // «больше не будет»
+}
+
+await foreach (var job in ch.Reader.ReadAllAsync())
+    Process(job);   // канал закрыт и пуст → цикл завершится сам</pre>
+      </div>
+      <div class="codewrap">
+        <div class="codebar"><span class="fn">VsBlockingCollection.cs</span><span class="tag bad">не блокируем потоки</span></div>
+<pre class="code">// BlockingCollection&lt;T&gt; — эпоха потоков:
+foreach (var x in bc.GetConsumingEnumerable())
+// поток СТОИТ в ожидании — минус поток пула
+
+// Channel&lt;T&gt; — эпоха async:
+await foreach (var x in ch.Reader.ReadAllAsync())
+// ожидание — это await, потоки свободны
+
+// Бонусы Channel: TryWrite/TryRead без ожидания,
+// WaitToReadAsync/WaitToWriteAsync, Completion-таск,
+// UnboundedChannelOptions, DropOldest/DropWrite
+// как альтернатива Wait для «некритичных» данных.</pre>
+      </div>
+    </div>
+    <div class="note teal reveal"><b>Где применять:</b> фоновые очереди в ASP.NET (вместо «пожарных» Task.Run), конвейеры обработки стримов, развязка быстрых продюсеров и медленных консьюмеров. Бонус: bounded-канал — готовый ограничитель нагрузки без семафоров.</div>
+  </div>
+</section>
+
+<!-- ================= 22 UNSAFE ================= -->
+<section id="p22">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">22</span><div><p class="skick">низкий уровень</p><h2>unsafe: указатели и арифметика адресов</h2></div></div>
+    <p class="tx reveal">В <code class="inline">unsafe</code>-коде C# превращается в почти C: настоящие указатели, ручные адреса, нулевая безопасность. Ключевой момент — <code class="inline">fixed</code>: GC умеет двигать объекты при уплотнении кучи, поэтому перед взятием указателя объект нужно <b>закрепить</b>. <code class="inline">int* p + 1</code> сдвигает адрес не на 1, а на <code class="inline">sizeof(int) = 4</code> байта. Походите по памяти:</p>
+    <div class="demo reveal">
+      <div class="demo-h"><span class="live"></span><span class="ttl">int arr[6] в куче</span>
+        <button class="btn sm" id="upFix">fixed (int* p = &amp;arr[0])</button>
+        <button class="btn sm" id="upRead">*p (разыменование)</button>
+        <button class="btn sm teal" id="upInc">p++ (+4 байта)</button>
+        <button class="btn sm rose" id="upWr">*p = 99</button>
+        <button class="btn sm ghost" id="upRst">Сброс</button></div>
+      <div class="demo-b">
+        <div class="memgrid" id="upGrid"></div>
+        <div class="ptrbox" id="upInfo">p не инициализирован — нажмите fixed</div>
+        <div class="log" id="upLog" style="margin-top:12px"></div>
+      </div>
+    </div>
+    <div class="grid2 reveal" style="margin-top:20px">
+      <div class="codewrap">
+        <div class="codebar"><span class="fn">Pointers.cs</span><span class="tag bad">/unsafe</span></div>
+<pre class="code">unsafe void Sum(int[] arr)
+{
+    fixed (int* p = arr)          // закрепить: GC не тронет
+    {
+        int* end = p + arr.Length;
+        for (int* q = p; q &lt; end; q++)   // +1 = +4 байта
+            *q *= 2;                     // пишем прямо в память
+    }                               // unpin: GC снова свободен
+}
+
+// Маршалинг и совместимость:
+fixed (byte* b = bytes)
+    NativeLib.Process(b, bytes.Length);
+// stackalloc + указатели:
+int* buf = stackalloc int[16];</pre>
+      </div>
+      <div class="codewrap">
+        <div class="codebar"><span class="fn">Modern.cs</span><span class="tag good">а нужен ли unsafe?</span></div>
+<pre class="code">// Сегодня 95% задач unsafe решаются безопасно:
+
+Span&lt;int&gt; s = arr;              // вместо fixed + int*
+ref int first = ref s[0];       // вместо *p
+MemoryMarshal.GetArrayDataReference(arr); // без fixed
+
+// unsafe остаётся для: P/Invoke со старыми API,
+// ручного парсинга бинарных форматов на пределе
+// производительности, работы с нативной памятью
+// (NativeMemory.Alloc) и совместимости с C/C++.</pre>
+      </div>
+    </div>
+    <div class="note rose reveal"><b>Цена unsafe:</b> отключение проверок верифицируемости сборки, ответственность за каждую ошибку памяти на вас (привет, segfault-подобные падения и порча кучи), и никакой помощи GC. Правило: Span и ref — по умолчанию, unsafe — когда измерили и доказали необходимость.</div>
+  </div>
+</section>
+
+<!-- ================= 23 AOT ================= -->
+<section id="p23">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">23</span><div><p class="skick">компиляция</p><h2>JIT против NativeAOT: кто когда платит</h2></div></div>
+    <p class="tx reveal">JIT-модель платит за компиляцию <b>при запуске и по ходу работы</b> — зато знает реальный профиль нагрузки (tiering, PGO). <b>NativeAOT</b> компилирует всё в машинный код <b>до запуска</b> (ILC): старт почти мгновенный, бинарник самодостаточный, но без рантайм-генерации кода, а рефлексия требует явных подсказок для trimming. Сравните запуски:</p>
+    <div class="grid2 reveal">
+      <div class="demo">
+        <div class="demo-h"><span class="live"></span><span class="ttl">dotnet run (JIT)</span>
+          <button class="btn" id="aotJit">▶ Запустить</button></div>
+        <div class="demo-b">
+          <div class="phase" id="jP0">загрузка сборки, метаданных <b>+25 мс</b></div>
+          <div class="phase" id="jP1">JIT первых методов (Tier-0) <b>+40 мс</b></div>
+          <div class="phase" id="jP2">работа приложения…</div>
+          <div class="phase" id="jP3">горячие методы: фоновая перекомпиляция Tier-1 <b>+15 мс</b></div>
+          <div class="mono" style="margin-top:10px;font-size:12px;color:var(--dim)">время до первой строки вывода: <span class="msbig" id="jitMs" style="color:var(--rose)">0</span> мс</div>
+        </div>
+      </div>
+      <div class="demo">
+        <div class="demo-h"><span class="live"></span><span class="ttl">app (NativeAOT)</span>
+          <button class="btn teal" id="aotAot">▶ Запустить</button></div>
+        <div class="demo-b">
+          <div class="phase" id="aP0">загрузка нативного образа <b>+8 мс</b></div>
+          <div class="phase" id="aP1">сразу выполнение Main</div>
+          <div class="phase" id="aP2">никакой компиляции в рантайме</div>
+          <div class="mono" style="margin-top:10px;font-size:12px;color:var(--dim)">время до первой строки вывода: <span class="msbig" id="aotMs" style="color:var(--lime)">0</span> мс</div>
+        </div>
+      </div>
+    </div>
+    <div class="grid2 reveal" style="margin-top:20px">
+      <div class="codewrap">
+        <div class="codebar"><span class="fn">AOT.csproj</span><span class="tag info">включение</span></div>
+<pre class="code">&lt;Project Sdk="Microsoft.NET.Sdk"&gt;
+  &lt;PropertyGroup&gt;
+    &lt;PublishAot&gt;true&lt;/PublishAot&gt;
+    &lt;StripSymbols&gt;true&lt;/StripSymbols&gt;
+  &lt;/PropertyGroup&gt;
+&lt;/Project&gt;
+// dotnet publish -c Release → один самодостаточный бинарник
+
+// Рефлексии нужны подсказки, иначе trimming вырежет «лишнее»:
+[DynamicallyAccessedMembers(All)] Type t = …
+// Анализаторы покажут предупреждения заранее.</pre>
+      </div>
+      <div class="note" style="margin:0"><b>Когда что выбирать:</b> NativeAOT — serverless/контейнеры/CLI, где критичны холодный старт и размер образа. Классический JIT — большие сервера с долгим аптаймом, где tiering/PGO дают выигрыш, и где активно используется рефлексия и динамическая загрузка. Есть и средний путь: ReadyToRun/PGO-профили для JIT-сборок.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 24 ДИАГНОСТИКА ================= -->
+<section id="p24">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">24</span><div><p class="skick">продакшен</p><h2>Диагностика: счётчики, flame graph, инструменты</h2></div></div>
+    <p class="tx reveal">Оптимизация без измерений — суеверие. Минимальный дашборд здоровья .NET-процесса: скорость аллокаций, счётчики сборок, доля времени в GC и длина очереди пула. Включите нагрузку и понаблюдайте, как счётчики реагируют на «плохой» код:</p>
+    <div class="demo reveal">
+      <div class="demo-h"><span class="live"></span><span class="ttl">dotnet-counters monitor — симуляция</span>
+        <button class="btn" id="dgLoad">▶ Включить аллокации в цикле</button>
+        <button class="btn ghost" id="dgRst">Сброс</button></div>
+      <div class="demo-b">
+        <div class="dash">
+          <div class="dcard"><div class="dt">ALLOC RATE</div><div class="dv" id="dgRate" style="color:var(--teal)">0 МБ/с</div></div>
+          <div class="dcard"><div class="dt">HEAP SIZE</div><div class="dv" id="dgHeap" style="color:var(--amber)">0 МБ</div></div>
+          <div class="dcard"><div class="dt">СБОРКИ g0 / g1 / g2</div><div class="dv" id="dgGc" style="color:var(--rose)">0/0/0</div></div>
+          <div class="dcard"><div class="dt">% TIME IN GC</div><div class="dv" id="dgTg" style="color:var(--vio)">0%</div></div>
+        </div>
+        <h3 style="margin-top:22px">Flame graph: ищите широкие полки</h3>
+        <div class="mono" style="font-size:11px;color:var(--dim);margin-bottom:4px">доля времени CPU в методах (ширина полосы)</div>
+        <div class="frow"><div class="fbar" style="width:100%;background:var(--sky)">ProcessRequest · 100%</div></div>
+        <div class="frow">
+          <div class="fbar" style="width:44%;background:var(--teal)">SerializeJson · 44%</div>
+          <div class="fbar hot" style="width:34%;background:var(--rose)">AllocateBuffers · 34%</div>
+          <div class="fbar" style="width:22%;background:var(--vio)">SendResponse · 22%</div>
+        </div>
+        <div class="frow">
+          <div class="fbar" style="width:30%;background:#5a8ca8">JsonWriter.Write · 30%</div>
+          <div class="fbar hot" style="width:26%;background:var(--rose)">new byte[100_000] · 26%</div>
+          <div class="fbar" style="width:8%;background:#7d6bb0">Socket.Send</div>
+        </div>
+        <p class="tx" style="font-size:13.5px;margin-top:10px">Вывод: треть времени уходит на аллокацию буферов → кандидат №1 на <code class="inline">ArrayPool</code>. После фикса перезамеряем — оптимизация без повторного замера не существует.</p>
+      </div>
+    </div>
+    <div class="reveal" style="overflow-x:auto">
+      <table class="tbl">
+        <tr><th>Инструмент</th><th>Зачем</th><th>Команда / суть</th></tr>
+        <tr><td>dotnet-counters</td><td class="m">живые счётчики: GC, пул, аллокации</td><td>dotnet-counters monitor -p 1234</td></tr>
+        <tr><td>dotnet-trace</td><td class="m">трассировка ETW → flame graph</td><td>dotnet-trace collect → SpeedScope</td></tr>
+        <tr><td>dotnet-dump</td><td class="m">дампы зависшего процесса, потоки, куча</td><td>dotnet-dump analyze core</td></tr>
+        <tr><td>dotnet-gcdump</td><td class="m">снимок кучи: кто держит память</td><td>сравнение до/после утечки</td></tr>
+        <tr><td>BenchmarkDotNet</td><td class="m">микробенчмарки с [MemoryDiagnoser]</td><td>разогрев, итерации, статистика</td></tr>
+        <tr><td>dotTrace / PerfView</td><td class="m">профайлеры с UI, аллокационный анализ</td><td>«кто и где аллоцирует»</td></tr>
+      </table>
+    </div>
+    <div class="note teal reveal"><b>Красные флаги счётчиков:</b> alloc-rate растёт без роста нагрузки → где-то плодятся объекты; time-in-gc &gt; 10% → GC стал узким местом; threadpool-queue-length растёт → голодание потоков; gen-2-gc-count растёт часто → долгоживущий мусор (кэши без лимитов, события без отписки).</div>
+  </div>
+</section>
+
+<!-- ================= 25 ЭКЗАМЕН ================= -->
+<section id="p25">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">25</span><div><p class="skick">финал серии</p><h2>Экзамен третьей части</h2></div></div>
+    <p class="tx reveal"><span class="score">Счёт: <span id="quizScore">0</span>/8</span></p>
+
+    <div class="qz reveal"><p class="qt">1. Главное ограничение ValueTask по сравнению с Task?</p>
+      <div class="opts">
+        <button class="opt">Не может возвращать результат</button>
+        <button class="opt" data-ok>Её можно await-нуть строго один раз: нельзя хранить, дублировать, читать Result после await</button>
+        <button class="opt">Работает только с int и string</button>
+        <button class="opt">Не поддерживается в async-методах</button>
+      </div><div class="expl">ValueTask — структура-обёртка, которая после await «разряжается» (особенно при пулированном IValueTaskSource). Повторное ожидание или AsTask несколько раз — undefined behavior. Нужно несколько потребителей — сначала ConvertToTask/AsTask один раз.</div></div>
+
+    <div class="qz reveal"><p class="qt">2. Когда ValueTask действительно выгоднее Task?</p>
+      <div class="opts">
+        <button class="opt">Всегда, это просто новый Task</button>
+        <button class="opt" data-ok>Когда метод часто завершается синхронно (кэш, буфер) и вызывается в горячем пути</button>
+        <button class="opt">Только в UI-коде</button>
+        <button class="opt">Когда метод всегда асинхронный</button>
+      </div><div class="expl">Выгода — в отсутствии аллокации на синхронном завершении. Если метод почти всегда реально асинхронный, обычный Task проще и безопаснее: цена аллокации тонет в стоимости I/O.</div></div>
+
+    <div class="qz reveal"><p class="qt">3. Чем Channel&lt;T&gt; принципиально отличается от BlockingCollection&lt;T&gt;?</p>
+      <div class="opts">
+        <button class="opt">Ничем, это алиасы</button>
+        <button class="opt" data-ok>Channel — async-native: ожидание через await без блокировки потоков; BlockingCollection блокирует поток на Take</button>
+        <button class="opt">Channel работает только со строками</button>
+        <button class="opt">BlockingCollection быстрее во всех сценариях</button>
+      </div><div class="expl">ReadAllAsync/WriteAsync паркуют ожидание как задачу, освобождая потоки пула. BlockingCollection.GetConsumingEnumerable держит поток в блокировке — в асинхронном мире это лишний занятый поток.</div></div>
+
+    <div class="qz reveal"><p class="qt">4. Зачем нужен fixed перед взятием указателя на массив?</p>
+      <div class="opts">
+        <button class="opt">Для ускорения доступа</button>
+        <button class="opt" data-ok>GC при уплотнении кучи двигает объекты: fixed закрепляет объект, чтобы указатель не «протух»</button>
+        <button class="opt">fixed выделяет память под указатель</button>
+        <button class="opt">Это требование компилятора без практического смысла</button>
+      </div><div class="expl">Без закрепления первая же сборка может переместить массив, и указатель станет указывать в чужую память. fixed держит объект на месте до конца блока, потом unpin.</div></div>
+
+    <div class="qz reveal"><p class="qt">5. int* p указывает на arr[0]. Что делает p + 1?</p>
+      <div class="opts">
+        <button class="opt">Сдвигает указатель на 1 байт</button>
+        <button class="opt" data-ok>Сдвигает на sizeof(int) = 4 байта — на следующий элемент</button>
+        <button class="opt">Увеличивает значение по адресу на 1</button>
+        <button class="opt">Ошибка компиляции: арифметика указателей запрещена</button>
+      </div><div class="expl">Арифметика указателей масштабируется типом: p+1 для int* = +4 байта, для double* = +8. Именно поэтому p[i] эквивалентно *(p+i). Для увеличения значения нужно (*p)++.</div></div>
+
+    <div class="qz reveal"><p class="qt">6. Главное архитектурное следствие NativeAOT?</p>
+      <div class="opts">
+        <button class="opt">Приложение работает быстрее всегда и везде</button>
+        <button class="opt" data-ok>Компиляция в машинный код происходит до запуска: нет JIT в рантайме, нет динамической генерации кода, рефлексия требует аннотаций для trimming</button>
+        <button class="opt">Требуется установленный .NET Runtime той же версии</button>
+        <button class="opt">Нельзя использовать NuGet-пакеты</button>
+      </div><div class="expl">ILC компилирует заранее и вырезает неиспользуемый код (trimming). Поэтому Assembly.Emit, часть рефлексии и некоторые сериализаторы требуют явных подсказок [DynamicallyAccessedMembers]. Плюсы: мгновенный старт, маленький образ, отсутствие рантайма.</div></div>
+
+    <div class="qz reveal"><p class="qt">7. В JIT-приложении метод стал горячим. Что произойдёт?</p>
+      <div class="opts">
+        <button class="opt">Он останется в Tier-0 коде навсегда</button>
+        <button class="opt" data-ok>Фоновый поток перекомпилирует его в Tier-1 с оптимизациями и PGO, исполнение продолжится без остановки</button>
+        <button class="opt">Приложение перезапустится для перекомпиляции</button>
+        <button class="opt">Метод будет удалён из памяти</button>
+      </div><div class="expl">Tiered compilation: сначала быстрый Tier-0 ради старта, затем фоновая перекомпиляция горячих методов с профилем реального исполнения. Приложение при этом не останавливается — просто меняется адрес кода.</div></div>
+
+    <div class="qz reveal"><p class="qt">8. Продакшен-сервис стал тормозить. Какой счётчик первым подскажет, что пул потоков голодает?</p>
+      <div class="opts">
+        <button class="opt">gen-0-gc-count</button>
+        <button class="opt" data-ok>threadpool-queue-length растёт при невысоком CPU — задачи стоят в очереди, потокам не до них</button>
+        <button class="opt">alloc-rate</button>
+        <button class="opt">working-set</button>
+      </div><div class="expl">Растущая очередь пула при свободном CPU — классический почерк starvation: потоки стоят в блокировках, а hill climbing подкладывает новые с задержкой. Лечим async I/O и устранением блокировок.</div></div>
+
+    <h3 class="reveal" style="margin-top:30px">Итог серии</h3>
+    <p class="tx reveal">Три части пути: <b>часть 1</b> — объект, GC, строки, vtable, машины состояний; <b>часть 2</b> — пул потоков, модель памяти, SIMD, пулы буферов; <b>часть 3</b> — ValueTask, каналы, unsafe, AOT и диагностика. Главный принцип один: <b>сначала измерить, потом оптимизировать</b> — и помнить, что у каждой абстракции есть цена, которую видно только под микроскопом.</p>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>🧬 C# под микроскопом · часть 3: финал серии — ValueTask, каналы, unsafe, AOT, диагностика</span>
+    <span>Симуляции упрощены для наглядности · 25 глав суммарно в трёх частях</span>
+  </div>
+</footer>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const ri=(a,b)=>Math.floor(a+Math.random()*(b-a+1));
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+const CSRE=/(\/\/[^\n]*)|(\$?"(?:[^"\\]|\\.)*"|\$@"(?:[^"]|"")*")|('(?:[^'\\]|\\.)')|\b(async|await|abstract|as|base|break|case|catch|checked|class|const|continue|default|delegate|do|else|enum|event|explicit|extern|false|finally|fixed|for|foreach|goto|if|implicit|in|interface|internal|is|lock|nameof|namespace|new|not|null|object|operator|or|and|out|override|params|private|protected|public|readonly|record|ref|return|sealed|sizeof|stackalloc|static|string|struct|switch|this|throw|true|try|typeof|unchecked|unsafe|using|var|virtual|void|volatile|while|yield|int|long|double|float|bool|char|byte|decimal|uint|ulong|when|where|select|from|orderby|init|get|set|value|global|with|finally)\b|\b([A-Za-z_][A-Za-z0-9_]*)(?=\s*\()|\b([A-Z][A-Za-z0-9_]*)\b|\b(\d[\d_]*(?:\.\d+)?)\b/g;
+function hlCs(src){let out='',last=0,m;CSRE.lastIndex=0;
+  while((m=CSRE.exec(src))){out+=esc(src.slice(last,m.index));
+    const cls=m[1]?'c-cm':m[2]?'c-st':m[3]?'c-st':m[4]?'c-kw':m[5]?'c-fn':m[6]?'c-ty':'c-nu';
+    out+='<span class="'+cls+'">'+esc(m[0])+'</span>';last=m.index+m[0].length;}
+  return out+esc(src.slice(last));}
+$$('pre.code').forEach(p=>p.innerHTML=hlCs(p.textContent));
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.12});
+$$('.reveal').forEach(el=>io.observe(el));
+addEventListener('scroll',()=>{const h=document.documentElement;$('#prog').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%'},{passive:true});
+const railIO=new IntersectionObserver(es=>es.forEach(e=>{const a=$('#rail a[href="#'+e.target.id+'"]');if(a)a.classList.toggle('on',e.isIntersecting)}),{rootMargin:'-30% 0px -55% 0px'});
+$$('main section').forEach(s=>railIO.observe(s));
+function logLine(box,text,cls){const d=document.createElement('div');d.className='ll '+(cls||'');d.textContent=text;box.appendChild(d);while(box.children.length>60)box.firstChild.remove();box.scrollTop=box.scrollHeight}
+
+/* герой */
+(function(){
+  const scenes=[
+    {c:'return new ValueTask<User>(cached);',o:'0 аллокаций: struct вместо объекта Task'},
+    {c:'await ch.Writer.WriteAsync(job);',o:'буфер полон → продюсер в асинхронной очереди, поток свободен'},
+    {c:'fixed (int* p = arr) { }',o:'объект закреплён: GC не сдвинет его, пока жив указатель'},
+    {c:'dotnet publish /p:PublishAot=true',o:'ILC: машинный код готов ДО запуска — старт за миллисекунды'}
+  ];
+  const codeEl=$('#heroCode'),outEl=$('#heroOut');let si=0;
+  async function play(){
+    const s=scenes[si];outEl.textContent='';
+    for(let i=0;i<=s.c.length;i++){codeEl.innerHTML=hlCs(s.c.slice(0,i))+'<span class="caret"></span>';await sleep(30)}
+    await sleep(300);outEl.textContent=s.o;await sleep(2800);si=(si+1)%scenes.length;play();
+  }
+  play();
+})();
+
+/* 20 ValueTask */
+(function(){
+  let busy=false;
+  function bars(id,n,marks){
+    const b=$('#'+id);b.innerHTML='';
+    for(let i=0;i<n;i++){
+      const c=document.createElement('span');
+      c.className='vtcell'+(marks[i]==='a'?' alloc':marks[i]==='h'?' hit':'');
+      b.appendChild(c);
+    }
+  }
+  async function run(task){
+    if(busy)return;busy=true;
+    const L=$('#vtLog');
+    const cid=task?'vtC1':'vtC2',aid=task?'vtA1':'vtA2',bid=task?'vtB1':'vtB2';
+    let calls=0,allocs=0;const marks=[];
+    bars(bid,100,marks);
+    for(let i=0;i<100;i++){
+      const hit=Math.random()<0.9;
+      calls++;
+      if(task){
+        if(hit){marks.push('h')}
+        else{allocs+=2;marks.push('a')}
+      }else{
+        marks.push(hit?'h':'h'); // пул IValueTaskSource: miss без аллокации
+      }
+      $('#'+cid).textContent=calls;$('#'+aid).textContent=allocs;
+      bars(bid,100,marks);
+      await sleep(14);
+    }
+    if(task)logLine(L,'Task<User>: каждый cache-miss = state machine + объект Task → '+allocs+' аллокаций','l-err');
+    else logLine(L,'ValueTask<User>: синхронный путь — struct, редкий miss берёт пуловый IValueTaskSource → 0 аллокаций','l-ok');
+    busy=false;
+  }
+  $('#vtTask').addEventListener('click',()=>run(true));
+  $('#vtVT').addEventListener('click',()=>run(false));
+  $('#vtRst').addEventListener('click',()=>{
+    ['vtC1','vtA1','vtC2','vtA2'].forEach(id=>$('#'+id).textContent='0');
+    bars('vtB1',100,[]);bars('vtB2',100,[]);$('#vtLog').innerHTML='';
+  });
+  bars('vtB1',100,[]);bars('vtB2',100,[]);
+})();
+
+/* 21 каналы */
+(function(){
+  let buf=[null,null,null],wq=false,rq=false,w=0,r=0,nid=1,auto=null,completed=false;
+  const EMO=['📦','🧾','📮'];
+  function paint(){
+    for(let i=0;i<3;i++){
+      const s=$('#cs'+i);
+      s.className='chslot'+(buf[i]?' full':'');
+      s.textContent=buf[i]||'';
+    }
+    $('#chWq').textContent=wq?'продюсер: ЖДЁТ места (WaitToWriteAsync)':'продюсер: WriteAsync свободен';
+    $('#chWq').classList.toggle('on',wq);
+    $('#chRq').textContent=rq?'консьюмер: ЖДЁТ данных (WaitToReadAsync)':'консьюмер: ReadAsync свободен';
+    $('#chRq').classList.toggle('on',rq);
+    $('#chWn').textContent=w;$('#chRn').textContent=r;$('#chD').textContent=w-r;
+  }
+  function write(){
+    if(completed){logLine($('#chLog'),'канал завершён: WriteAsync бросит ChannelClosedException','l-err');return}
+    const i=buf.indexOf(null);
+    if(i>=0){
+      buf[i]=EMO[(nid++)%3];w++;
+      if(rq){rq=false;logLine($('#chLog'),'консьюмер разбужен: данные пришли','l-tea')}
+      logLine($('#chLog'),'WriteAsync: элемент в слот '+(i+1),'l-ok');
+    }else{
+      wq=true;
+      logLine($('#chLog'),'буфер полон → продюсер припаркован в WaitToWriteAsync (backpressure)','l-warn');
+    }
+    paint();
+  }
+  function read(){
+    const i=buf.findIndex(x=>x!==null);
+    if(i>=0){
+      buf[i]=null;r++;
+      if(wq){wq=false;logLine($('#chLog'),'продюсер разбужен: место освободилось','l-tea')}
+      logLine($('#chLog'),'ReadAsync: элемент забран из слота '+(i+1),'l-ok');
+    }else{
+      if(completed){logLine($('#chLog'),'канал пуст и завершён → ReadAsync вернёт false, ReadAllAsync закончится','l-info')}
+      else{rq=true;logLine($('#chLog'),'буфер пуст → консьюмер припаркован в WaitToReadAsync','l-warn')}
+    }
+    paint();
+  }
+  $('#chW').addEventListener('click',write);
+  $('#chR').addEventListener('click',read);
+  $('#chDone').addEventListener('click',()=>{completed=true;logLine($('#chLog'),'Writer.Complete(): новых элементов не будет','l-err');paint()});
+  $('#chAuto').addEventListener('click',e=>{
+    if(auto){clearInterval(auto);auto=null;e.target.textContent='▶ Авто-конвейер';return}
+    e.target.textContent='⏹ Стоп';
+    completed=false;
+    let t=0;
+    auto=setInterval(()=>{
+      t++;
+      if(!document.hidden){
+        if(t%2===1)write();      // продюсер быстрее
+        if(t%3===0){read();}     // консьюмер медленнее → виден backpressure
+      }
+    },550);
+  });
+  paint();
+})();
+
+/* 22 unsafe */
+(function(){
+  let arr=[10,20,30,40,50,60],pinned=false,pIdx=null;
+  function paint(){
+    $('#upGrid').innerHTML=arr.map((v,i)=>{
+      let c='mcell';if(pIdx===i)c+=' ptr';if(pinned)c+=' pin';
+      return '<div class="'+c+'"><div class="mv">'+v+'</div><div class="ma">0x7F'+String(i*4).padStart(2,'0')+'</div></div>';
+    }).join('');
+    if(pIdx===null)$('#upInfo').innerHTML='p не инициализирован — нажмите fixed';
+    else $('#upInfo').innerHTML='int* p → адрес <b>0x7F'+String(pIdx*4).padStart(2,'0')+'</b> · *p = <b>'+arr[pIdx]+'</b>'+(pinned?' · объект закреплён (pin)':'');
+  }
+  $('#upFix').addEventListener('click',()=>{
+    pinned=true;pIdx=0;paint();
+    logLine($('#upLog'),'fixed: GC не переместит массив, пока указатель жив','l-tea');
+  });
+  $('#upRead').addEventListener('click',()=>{
+    if(pIdx===null){logLine($('#upLog'),'сначала fixed (int* p = &arr[0])','l-err');return}
+    logLine($('#upLog'),'*p → '+arr[pIdx]+' (чтение 4 байт по адресу 0x7F'+String(pIdx*4).padStart(2,'0')+')','l-ok');
+  });
+  $('#upInc').addEventListener('click',()=>{
+    if(pIdx===null){logLine($('#upLog'),'сначала fixed','l-err');return}
+    if(pIdx>=5){logLine($('#upLog'),'p вышел за границы массива — классическая ошибка unsafe!','l-err');return}
+    pIdx++;paint();
+    logLine($('#upLog'),'p++ → адрес вырос на sizeof(int) = 4 байта, не на 1','l-warn');
+  });
+  $('#upWr').addEventListener('click',()=>{
+    if(pIdx===null){logLine($('#upLog'),'сначала fixed','l-err');return}
+    arr[pIdx]=99;paint();
+    logLine($('#upLog'),'*p = 99 → запись прямо в память: arr['+pIdx+'] теперь 99 (и никакой bounds-check!)','l-err');
+  });
+  $('#upRst').addEventListener('click',()=>{arr=[10,20,30,40,50,60];pinned=false;pIdx=null;paint();$('#upLog').innerHTML=''});
+  paint();
+})();
+
+/* 23 AOT */
+(function(){
+  let busy=false;
+  async function runJit(){
+    if(busy)return;busy=true;
+    ['jP0','jP1','jP2','jP3'].forEach(id=>$('#'+id).classList.remove('done','hot'));
+    $('#jitMs').textContent='0';
+    const ms=[25,65,65,80];
+    ['jP0','jP1','jP2','jP3'].forEach((id,i)=>setTimeout(()=>{
+      $('#'+id).classList.add(i===3?'hot':'done');$('#jitMs').textContent=ms[i];
+    },i*650));
+    setTimeout(()=>{logJit();busy=false},2800);
+  }
+  function logJit(){}
+  async function runAot(){
+    if(busy)return;busy=true;
+    ['aP0','aP1','aP2'].forEach(id=>$('#'+id).classList.remove('done','hot'));
+    $('#aotMs').textContent='0';
+    ['aP0','aP1','aP2'].forEach((id,i)=>setTimeout(()=>{
+      $('#'+id).classList.add('done');
+      $('#aotMs').textContent=[8,9,9][i];
+    },i*600));
+    setTimeout(()=>busy=false,2000);
+  }
+  $('#aotJit').addEventListener('click',runJit);
+  $('#aotAot').addEventListener('click',runAot);
+})();
+
+/* 24 диагностика */
+(function(){
+  let load=false,heap=0,g0=0,g1=0,g2=0,rate=0,pauseMs=0,uptime=0;
+  setInterval(()=>{
+    uptime+=400;
+    if(load&&!document.hidden){
+      rate=8+Math.random()*14;heap+=rate*0.4;
+      if(heap>6){heap-=5.5;g0++;pauseMs+=1.1;
+        if(g0%6===0){g1++;pauseMs+=2.2;
+          if(g1%5===0){g2++;pauseMs+=9}}}
+    }else rate=Math.max(0,rate-2);
+    $('#dgRate').textContent=rate.toFixed(1)+' МБ/с';
+    $('#dgHeap').textContent=heap.toFixed(1)+' МБ';
+    $('#dgGc').textContent=g0+'/'+g1+'/'+g2;
+    $('#dgTg').textContent=(uptime?pauseMs/uptime*100:0).toFixed(1)+'%';
+    $('#dgTg').style.color=(pauseMs/uptime>0.08)?'var(--rose)':'var(--vio)';
+  },400);
+  $('#dgLoad').addEventListener('click',e=>{
+    load=!load;e.target.textContent=load?'⏹ Выключить аллокации':'▶ Включить аллокации в цикле';
+  });
+  $('#dgRst').addEventListener('click',()=>{load=false;heap=0;g0=g1=g2=0;pauseMs=0;uptime=0;rate=0;
+    $('#dgLoad').textContent='▶ Включить аллокации в цикле'});
+})();
+
+/* квиз */
+(function(){
+  let score=0;
+  $$('.qz').forEach(q=>{
+    q.querySelectorAll('.opt').forEach(o=>o.addEventListener('click',()=>{
+      if(q.classList.contains('done'))return;
+      q.classList.add('done');
+      if(o.hasAttribute('data-ok')){o.classList.add('ok');score++}
+      else{o.classList.add('bad');const r=q.querySelector('.opt[data-ok]');if(r)r.classList.add('ok')}
+      $('#quizScore').textContent=score;
+    }));
+  });
+})();
+</script>
+</body>
+</html>

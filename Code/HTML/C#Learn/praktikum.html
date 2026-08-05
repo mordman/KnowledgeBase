@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Практикум: рефакторинг горячего пути — C# под микроскопом</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛠️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0f1c; --panel:#111a2e; --panel2:#0d1524; --line:#22304a; --line2:#31456d;
+  --tx:#e7edf7; --mut:#93a3bd; --dim:#647591;
+  --amber:#ffb454; --teal:#3fe0c5; --lime:#a5e86f; --rose:#ff5d7d; --sky:#6fc3ff; --vio:#c08bff;
+  --disp:'Unbounded',sans-serif; --body:'IBM Plex Sans',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font:400 16px/1.65 var(--body);color:var(--tx);background:
+  radial-gradient(900px 520px at 88% -5%, rgba(255,180,84,.08), transparent 60%),
+  radial-gradient(820px 620px at -12% 32%, rgba(63,224,197,.06), transparent 60%),
+  radial-gradient(760px 540px at 55% 112%, rgba(192,139,255,.06), transparent 60%),
+  var(--bg);overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(111,195,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(111,195,255,.045) 1px,transparent 1px);
+  background-size:46px 46px}
+::selection{background:rgba(255,180,84,.35)}
+main,header,footer{position:relative;z-index:1}
+.wrap{max-width:1180px;margin:0 auto;padding:0 26px}
+h1,h2,h3{font-family:var(--disp)}
+#prog{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--amber),var(--teal));z-index:99}
+#rail{position:fixed;left:14px;top:50%;transform:translateY(-50%);z-index:50;display:flex;flex-direction:column;gap:2px}
+#rail a{display:flex;gap:8px;align-items:baseline;color:var(--dim);font:500 10.5px var(--mono);padding:4px 8px;border-radius:7px;text-decoration:none;border:1px solid transparent;transition:.25s}
+#rail a:hover{color:var(--tx);transform:translateX(3px)}
+#rail a.on{color:var(--amber);background:rgba(255,180,84,.09);border-color:rgba(255,180,84,.28)}
+@media(max-width:1280px){#rail{display:none}}
+.hero{max-width:1240px;margin:0 auto;padding:56px 28px 36px;display:grid;grid-template-columns:1.1fr .9fr;gap:36px;align-items:center}
+@media(max-width:1000px){.hero{grid-template-columns:1fr;padding-top:40px}}
+.kick{display:inline-flex;align-items:center;gap:8px;font:600 12px var(--mono);letter-spacing:.14em;color:var(--teal);text-transform:uppercase;border:1px solid rgba(63,224,197,.3);padding:6px 12px;border-radius:6px;background:rgba(63,224,197,.06)}
+.kick::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 10px var(--teal);animation:blink 1.8s infinite}
+@keyframes blink{50%{opacity:.35}}
+h1{font-weight:800;font-size:clamp(29px,4vw,48px);line-height:1.1;margin:20px 0 16px}
+h1 .v{color:var(--amber);font-family:var(--mono);font-size:.82em}
+.lead{color:var(--mut);font-size:16.5px;max-width:570px}
+.hstats{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+.hchip{font:500 12px var(--mono);color:var(--mut);border:1px solid var(--line);padding:7px 12px;border-radius:8px;background:rgba(255,255,255,.02)}
+.hchip b{color:var(--amber)}
+.steps{display:flex;flex-direction:column;gap:9px}
+.step{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:11px;background:var(--panel2);padding:11px 15px;transition:.25s}
+.step:hover{transform:translateX(6px);border-color:var(--line2)}
+.step .sn{font:800 16px var(--disp);color:var(--amber);min-width:26px}
+.step b{font-size:14px}
+.step i{display:block;font:400 12px var(--mono);font-style:normal;color:var(--dim)}
+section{padding:66px 0;scroll-margin-top:20px}
+.shead{display:flex;gap:20px;align-items:flex-start;margin-bottom:28px}
+.snum{font:800 clamp(52px,7.5vw,100px)/0.9 var(--disp);color:transparent;-webkit-text-stroke:1.5px rgba(255,180,84,.3);user-select:none}
+.skick{font:600 11px var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--teal);margin-bottom:8px}
+h2{font-weight:600;font-size:clamp(23px,3vw,38px);line-height:1.15}
+h3{font-size:17px;font-weight:600;margin:24px 0 10px}
+p.tx{color:var(--mut);max-width:840px;margin:11px 0}
+p.tx b,li b{color:var(--tx)}
+code.inline{font:500 .86em var(--mono);color:var(--amber);background:rgba(255,180,84,.09);border:1px solid rgba(255,180,84,.18);padding:1px 6px;border-radius:5px;white-space:nowrap}
+.note{border-left:3px solid var(--amber);background:rgba(255,180,84,.06);padding:13px 18px;border-radius:0 10px 10px 0;color:var(--mut);margin:18px 0;max-width:840px}
+.note b{color:var(--amber)}
+.note.teal{border-color:var(--teal);background:rgba(63,224,197,.06)}.note.teal b{color:var(--teal)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+@media(max-width:880px){.grid2{grid-template-columns:1fr}}
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .7s,transform .7s}
+.reveal.in{opacity:1;transform:none}
+.codewrap{background:#0b1222;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.codebar{display:flex;gap:7px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--line)}
+.codebar .d{width:9px;height:9px;border-radius:50%}
+.codebar .fn{margin-left:8px;font:500 11px var(--mono);color:var(--dim)}
+.codebar .tag{margin-left:auto;font:600 10px var(--mono);letter-spacing:.1em;padding:3px 8px;border-radius:5px}
+.tag.bad{color:var(--rose);background:rgba(255,93,125,.12)}
+.tag.good{color:var(--lime);background:rgba(165,232,111,.12)}
+.tag.info{color:var(--sky);background:rgba(111,195,255,.12)}
+pre.code{margin:0;padding:15px 18px;overflow:auto;font:400 12.8px/1.7 var(--mono);color:#c9daf0;white-space:pre;tab-size:4}
+.c-kw{color:#ff9e64}.c-ty{color:#7cc7ff}.c-st{color:#a5e86f}.c-cm{color:#5c6f8e;font-style:italic}.c-nu{color:#ffd479}.c-fn{color:#4fe3c1}
+.demo{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.demo-h{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.02)}
+.demo-h .live{width:8px;height:8px;border-radius:50%;background:var(--lime);box-shadow:0 0 10px var(--lime);animation:blink 1.6s infinite}
+.demo-h .ttl{font:600 13px var(--mono);color:var(--tx);margin-right:auto}
+.demo-b{padding:18px}
+.btn{font:700 12.5px var(--mono);color:#141005;background:var(--amber);border:0;padding:9px 15px;border-radius:8px;cursor:pointer;transition:.18s;box-shadow:0 3px 0 rgba(0,0,0,.4)}
+.btn:hover{transform:translateY(-2px);box-shadow:0 9px 20px rgba(255,180,84,.28)}
+.btn:active{transform:translateY(1px)}
+.btn[disabled]{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn.ghost{background:transparent;color:var(--tx);border:1px solid var(--line2);box-shadow:none}
+.btn.ghost:hover{border-color:var(--amber);color:var(--amber);box-shadow:none}
+.btn.teal{background:var(--teal)}.btn.rose{background:var(--rose);color:#2a0510}.btn.lime{background:var(--lime)}
+.duelcol{border:1px solid var(--line);border-radius:12px;background:#0c1424;padding:14px}
+.duelcol .dt{font:700 12px var(--mono);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.duelcol.bad .dt{color:var(--rose)}.duelcol.good .dt{color:var(--lime)}
+.metric{display:flex;justify-content:space-between;font:500 12px var(--mono);color:var(--dim);padding:7px 0;border-bottom:1px dashed var(--line)}
+.metric b{color:var(--tx)}.metric b.bad{color:var(--rose)}.metric b.good{color:var(--lime)}
+.dbar{height:14px;border-radius:6px;background:#0a1020;border:1px solid var(--line);overflow:hidden;margin-top:10px}
+.dbar i{display:block;height:100%;width:0;transition:width .8s cubic-bezier(.2,.8,.2,1);border-radius:5px}
+.verdict{font:700 13.5px var(--mono);margin-top:14px;min-height:22px}
+@keyframes pop{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.bugline{display:block;width:100%;text-align:left;background:transparent;border:1px solid transparent;border-radius:6px;padding:3px 10px;font:400 12.8px/1.7 var(--mono);color:#c9daf0;cursor:pointer;transition:.2s;white-space:pre;overflow-x:auto}
+.bugline:hover{background:rgba(255,255,255,.04);border-color:var(--line2)}
+.bugline.found{background:rgba(255,93,125,.12);border-color:var(--rose)}
+.bugline.found::after{content:'  ← найдено';color:var(--rose);font-weight:700}
+.bugline.innocent{animation:shake .4s;border-color:var(--line2)}
+.foundlist{margin-top:12px}
+.fitem{font:500 12.5px var(--mono);color:var(--mut);border-left:3px solid var(--rose);padding:7px 12px;margin:7px 0;background:rgba(255,93,125,.06);border-radius:0 8px 8px 0;animation:pop .3s}
+.fitem b{color:var(--rose)}
+.qz{border:1px solid var(--line);border-radius:13px;background:var(--panel2);padding:19px;margin-bottom:16px}
+.qz .qt{font:600 15px var(--body);margin:8px 0}
+.opts{display:grid;gap:8px;margin-top:11px}
+.opt{text-align:left;font:400 13.5px var(--body);color:var(--mut);background:#0c1424;border:1px solid var(--line);border-radius:9px;padding:11px 14px;cursor:pointer;transition:.2s}
+.opt:hover{border-color:var(--line2);color:var(--tx);transform:translateX(4px)}
+.opt.ok{border-color:var(--lime);background:rgba(165,232,111,.12);color:var(--tx)}
+.opt.bad{border-color:var(--rose);background:rgba(255,93,125,.1);animation:shake .4s}
+.qz .expl{display:none;margin-top:11px;font-size:13.5px;color:var(--mut);border-left:3px solid var(--teal);padding:10px 14px;background:rgba(63,224,197,.05);border-radius:0 8px 8px 0}
+.qz.done .expl{display:block}
+.score{font:700 13px var(--mono);color:var(--amber);border:1px solid rgba(255,180,84,.35);padding:8px 14px;border-radius:8px;background:rgba(255,180,84,.08)}
+.tbl{width:100%;border-collapse:collapse;font-size:14px;margin:14px 0}
+.tbl th{font:600 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--amber);text-align:left;padding:10px 12px;border-bottom:2px solid var(--line2)}
+.tbl td{padding:9px 12px;border-bottom:1px solid var(--line);color:var(--mut);vertical-align:top}
+.tbl tr:hover td{background:rgba(255,255,255,.025);color:var(--tx)}
+.tbl td:first-child{color:var(--tx);font-weight:600}
+.tbl .m{font:600 12.5px var(--mono);color:var(--teal)}
+footer{border-top:1px solid var(--line);padding:32px 0 42px;margin-top:40px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;font:400 12.5px var(--mono);color:var(--dim)}
+</style>
+</head>
+<body>
+<div id="prog"></div>
+<nav id="rail">
+  <a href="#w00"><span>00</span>Метод</a>
+  <a href="#w01"><span>01</span>Строки</a>
+  <a href="#w02"><span>02</span>LINQ</a>
+  <a href="#w03"><span>03</span>Boxing</a>
+  <a href="#w04"><span>04</span>Буферы</a>
+  <a href="#w05"><span>05</span>Замыкания</a>
+  <a href="#w06"><span>06</span>Квест</a>
+  <a href="#w07"><span>07</span>Чек-лист</a>
+</nav>
+
+<header class="hero">
+  <div>
+    <span class="kick">практикум</span>
+    <h1>Рефакторинг <span class="v">горячего пути</span></h1>
+    <p class="lead">Все знания частей 1–3 в деле: берём медленный код, находим скрытые аллокации и блокировки, переписываем и сравниваем цифры до/после. Пять дуэлей, финальный квест «найди 6 проблем» и боевой чек-лист.</p>
+    <div class="hstats">
+      <span class="hchip"><b>5</b> дуэлей до/после</span>
+      <span class="hchip"><b>6</b> спрятанных проблем</span>
+      <span class="hchip"><b>5</b> вопросов зачёта</span>
+      <span class="hchip">правило: <b>сначала измерь</b></span>
+    </div>
+  </div>
+  <div class="steps">
+    <div class="step"><span class="sn">1</span><div><b>Измерить</b><i>BenchmarkDotNet / профилировщик — цифры до правок</i></div></div>
+    <div class="step"><span class="sn">2</span><div><b>Найти</b><i>flame graph, MemoryDiagnoser — где аллокации и блокировки</i></div></div>
+    <div class="step"><span class="sn">3</span><div><b>Исправить</b><i>одна проблема за раз, минимальными правками</i></div></div>
+    <div class="step"><span class="sn">4</span><div><b>Проверить</b><i>повторный замер: стало лучше и не сломалось ли поведение</i></div></div>
+  </div>
+</header>
+
+<main>
+
+<!-- 00 метод -->
+<section id="w00">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">00</span><div><p class="skick">методология</p><h2>Стенд: BenchmarkDotNet</h2></div></div>
+    <div class="grid2 reveal">
+      <div class="codewrap">
+        <div class="codebar"><span class="fn">Benchmarks.cs</span><span class="tag info">шаблон</span></div>
+<pre class="code">[MemoryDiagnoser]              // аллокации в отчёте
+public class StringBench
+{
+    [Benchmark(Baseline = true)]
+    public string Before() => ConcatLoop();
+
+    [Benchmark]
+    public string After() => Builder();
+}
+// dotnet run -c Release
+// Методы с Baseline сравниваются в колонке Ratio.</pre>
+      </div>
+      <div class="note" style="margin:0"><b>Правила стенда:</b> только Release без отладчика; BenchmarkDotNet сам греет и усредняет; не меряйте Stopwatch-ом микробенчи в цикле вручную — JIT, инлайнинг и удаление мёртвого кода всё испортят. Одна правка — один замер. И помните про <code class="inline">[Arguments]</code>: поведение зависит от входных данных.</div>
+    </div>
+  </div>
+</section>
+
+<!-- дуэли генерируются -->
+<section id="w01"><div class="wrap">
+  <div class="shead reveal"><span class="snum">01</span><div><p class="skick">дуэль 1</p><h2>Склейка строк в цикле</h2></div></div>
+  <p class="tx reveal">Классика из код-ревью: <code class="inline">log += item</code> внутри цикла. Каждый <code class="inline">+=</code> создаёт новую строку — на 200 итераций это 200 объектов и квадратичная работа копирования.</p>
+  <div class="grid2 reveal">
+    <div class="codewrap"><div class="codebar"><span class="fn">Before.cs</span><span class="tag bad">200 аллокаций</span></div>
+<pre class="code">string log = "";
+foreach (var p in positions)      // 200 элементов
+    log += p.Name + "; ";         // новая строка каждый раз
+return log;</pre></div>
+    <div class="codewrap"><div class="codebar"><span class="fn">After.cs</span><span class="tag good">1 буфер</span></div>
+<pre class="code">var sb = new StringBuilder(positions.Count * 8);
+foreach (var p in positions)
+    sb.Append(p.Name).Append("; "); // пишет в свой буфер
+return sb.ToString();               // одна финальная строка</pre></div>
+  </div>
+  <div class="demo reveal" style="margin-top:20px">
+    <div class="demo-h"><span class="live"></span><span class="ttl">Замер: 200 итераций склейки</span><button class="btn" id="d1Run">▶ Запустить дуэль</button></div>
+    <div class="demo-b grid2">
+      <div class="duelcol bad"><div class="dt">✗ string +=</div>
+        <div class="metric"><span>аллокаций</span><b id="d1aB" class="bad">0</b></div>
+        <div class="metric"><span>время</span><b id="d1tB">—</b></div>
+        <div class="dbar"><i id="d1bB" style="background:var(--rose)"></i></div></div>
+      <div class="duelcol good"><div class="dt">✓ StringBuilder</div>
+        <div class="metric"><span>аллокаций</span><b id="d1aG" class="good">0</b></div>
+        <div class="metric"><span>время</span><b id="d1tG">—</b></div>
+        <div class="dbar"><i id="d1bG" style="background:var(--lime)"></i></div></div>
+    </div>
+    <div class="verdict wrap" id="d1V" style="padding:0 18px 16px"></div>
+  </div>
+</div></section>
+
+<section id="w02"><div class="wrap">
+  <div class="shead reveal"><span class="snum">02</span><div><p class="skick">дуэль 2</p><h2>LINQ-цепочка против цикла по Span</h2></div></div>
+  <p class="tx reveal">LINQ прекрасен для читаемости, но каждая операция — итератор + делегат. В горячем цикле на 10 000 элементов это заметно. Ручной цикл по <code class="inline">Span</code> к тому же векторизуется JIT-ом.</p>
+  <div class="grid2 reveal">
+    <div class="codewrap"><div class="codebar"><span class="fn">Before.cs</span><span class="tag bad">6+ объектов</span></div>
+<pre class="code">var total = positions
+    .Where(p => p.Qty > 0)       // итератор + Func-делегат
+    .Select(p => p.Qty * p.Price) // ещё итератор + делегат
+    .Sum();                       // перечисление всей цепочки</pre></div>
+    <div class="codewrap"><div class="codebar"><span class="fn">After.cs</span><span class="tag good">0 аллокаций + SIMD</span></div>
+<pre class="code">decimal total = 0;
+foreach (var p in positions.AsSpan()) // struct-энумератор
+    if (p.Qty > 0)
+        total += p.Qty * p.Price;     // простой цикл → векторизация</pre></div>
+  </div>
+  <div class="demo reveal" style="margin-top:20px">
+    <div class="demo-h"><span class="live"></span><span class="ttl">Замер: 10 000 элементов</span><button class="btn" id="d2Run">▶ Запустить дуэль</button></div>
+    <div class="demo-b grid2">
+      <div class="duelcol bad"><div class="dt">✗ LINQ-цепочка</div>
+        <div class="metric"><span>объектов на вызов</span><b id="d2aB" class="bad">0</b></div>
+        <div class="metric"><span>время</span><b id="d2tB">—</b></div>
+        <div class="dbar"><i id="d2bB" style="background:var(--rose)"></i></div></div>
+      <div class="duelcol good"><div class="dt">✓ foreach + Span</div>
+        <div class="metric"><span>объектов на вызов</span><b id="d2aG" class="good">0</b></div>
+        <div class="metric"><span>время</span><b id="d2tG">—</b></div>
+        <div class="dbar"><i id="d2bG" style="background:var(--lime)"></i></div></div>
+    </div>
+    <div class="verdict wrap" id="d2V" style="padding:0 18px 16px"></div>
+  </div>
+  <div class="note teal reveal"><b>Нюанс:</b> вне горячих путей выбирайте LINQ — читаемость дороже микровыгоды. Правило: оптимизируем только то, что показал профилировщик.</div>
+</div></section>
+
+<section id="w03"><div class="wrap">
+  <div class="shead reveal"><span class="snum">03</span><div><p class="skick">дуэль 3</p><h2>Неявный boxing структур</h2></div></div>
+  <p class="tx reveal">Структуры в <code class="inline">ArrayList</code> / <code class="inline">object</code>-параметрах / интерфейсных вызовах молча упаковываются в кучу. Тысяча элементов — тысяча коробок по 24+ байта и работа для GC.</p>
+  <div class="grid2 reveal">
+    <div class="codewrap"><div class="codebar"><span class="fn">Before.cs</span><span class="tag bad">1000 коробок</span></div>
+<pre class="code">var box = new ArrayList();         // object[] внутри
+foreach (var pt in points)         // struct Point
+    box.Add(pt);                   // box ×1000!
+int sum = 0;
+foreach (object o in box)
+    sum += ((Point)o).X;           // unbox каждый раз</pre></div>
+    <div class="codewrap"><div class="codebar"><span class="fn">After.cs</span><span class="tag good">0 коробок</span></div>
+<pre class="code">var list = new List&lt;Point&gt;(points.Length); // generic
+foreach (var pt in points)
+    list.Add(pt);                  // структура лежит как есть
+int sum = 0;
+foreach (var pt in list)
+    sum += pt.X;                   // никакого unbox</pre></div>
+  </div>
+  <div class="demo reveal" style="margin-top:20px">
+    <div class="demo-h"><span class="live"></span><span class="ttl">Замер: 1000 структур</span><button class="btn" id="d3Run">▶ Запустить дуэль</button></div>
+    <div class="demo-b grid2">
+      <div class="duelcol bad"><div class="dt">✗ ArrayList (object)</div>
+        <div class="metric"><span>аллокаций (box)</span><b id="d3aB" class="bad">0</b></div>
+        <div class="metric"><span>мусора в куче</span><b id="d3tB">—</b></div>
+        <div class="dbar"><i id="d3bB" style="background:var(--rose)"></i></div></div>
+      <div class="duelcol good"><div class="dt">✓ List&lt;Point&gt;</div>
+        <div class="metric"><span>аллокаций (box)</span><b id="d3aG" class="good">0</b></div>
+        <div class="metric"><span>мусора в куче</span><b id="d3tG">—</b></div>
+        <div class="dbar"><i id="d3bG" style="background:var(--lime)"></i></div></div>
+    </div>
+    <div class="verdict wrap" id="d3V" style="padding:0 18px 16px"></div>
+  </div>
+</div></section>
+
+<section id="w04"><div class="wrap">
+  <div class="shead reveal"><span class="snum">04</span><div><p class="skick">дуэль 4</p><h2>Буфер на каждый запрос</h2></div></div>
+  <p class="tx reveal">Сервис обрабатывает 50 запросов, каждому нужен временный буфер 64 КБ. <code class="inline">new byte[65536]</code> каждый раз — это 3,2 МБ мусора, почти всё в LOH. <code class="inline">ArrayPool</code> арендует один буфер и гоняет его по кругу.</p>
+  <div class="grid2 reveal">
+    <div class="codewrap"><div class="codebar"><span class="fn">Before.cs</span><span class="tag bad">50 × 64 КБ</span></div>
+<pre class="code">void Handle(Request r)
+{
+    var buf = new byte[65_536];    // аллокация на каждый вызов
+    Fill(buf);
+    Send(buf);
+}   // буфер станет мусором сразу после Send</pre></div>
+    <div class="codewrap"><div class="codebar"><span class="fn">After.cs</span><span class="tag good">1 буфер на всех</span></div>
+<pre class="code">void Handle(Request r)
+{
+    var buf = ArrayPool&lt;byte&gt;.Shared.Rent(65_536);
+    try { Fill(buf.AsSpan(0, 65_536)); Send(buf); }
+    finally { ArrayPool&lt;byte&gt;.Shared.Return(buf); }
+}</pre></div>
+  </div>
+  <div class="demo reveal" style="margin-top:20px">
+    <div class="demo-h"><span class="live"></span><span class="ttl">Замер: 50 запросов × 64 КБ</span><button class="btn" id="d4Run">▶ Запустить дуэль</button></div>
+    <div class="demo-b grid2">
+      <div class="duelcol bad"><div class="dt">✗ new byte[]</div>
+        <div class="metric"><span>аллокаций</span><b id="d4aB" class="bad">0</b></div>
+        <div class="metric"><span>выделено</span><b id="d4tB">—</b></div>
+        <div class="dbar"><i id="d4bB" style="background:var(--rose)"></i></div></div>
+      <div class="duelcol good"><div class="dt">✓ ArrayPool</div>
+        <div class="metric"><span>аллокаций</span><b id="d4aG" class="good">0</b></div>
+        <div class="metric"><span>выделено</span><b id="d4tG">—</b></div>
+        <div class="dbar"><i id="d4bG" style="background:var(--lime)"></i></div></div>
+    </div>
+    <div class="verdict wrap" id="d4V" style="padding:0 18px 16px"></div>
+  </div>
+</div></section>
+
+<section id="w05"><div class="wrap">
+  <div class="shead reveal"><span class="snum">05</span><div><p class="skick">дуэль 5</p><h2>Лямбда с захватом в цикле</h2></div></div>
+  <p class="tx reveal">Предикат, созданный внутри цикла и захвативший переменную, — это display-класс + делегат <b>на каждой итерации</b>. Вынесите лямбду в статическую и передайте состояние параметром — компилятор закэширует делегат один раз.</p>
+  <div class="grid2 reveal">
+    <div class="codewrap"><div class="codebar"><span class="fn">Before.cs</span><span class="tag bad">2 объекта/итерация</span></div>
+<pre class="code">foreach (var limit in limits)          // 1000 итераций
+{
+    var found = list.Find(x => x > limit); // захват limit:
+    // каждый раз НОВЫЙ display-класс + делегат
+}</pre></div>
+    <div class="codewrap"><div class="codebar"><span class="fn">After.cs</span><span class="tag good">кэш на весь процесс</span></div>
+<pre class="code">private static bool Greater((int X, int Lim) s)
+    => s.X > s.Lim;                    // статическая, без захвата
+
+foreach (var limit in limits)
+    var found = list.Find(x => Greater((x, limit)));
+// делегат один — в static-поле &lt;&gt;c.Cache</pre></div>
+  </div>
+  <div class="demo reveal" style="margin-top:20px">
+    <div class="demo-h"><span class="live"></span><span class="ttl">Замер: 1000 итераций</span><button class="btn" id="d5Run">▶ Запустить дуэль</button></div>
+    <div class="demo-b grid2">
+      <div class="duelcol bad"><div class="dt">✗ захват в цикле</div>
+        <div class="metric"><span>аллокаций</span><b id="d5aB" class="bad">0</b></div>
+        <div class="metric"><span>время</span><b id="d5tB">—</b></div>
+        <div class="dbar"><i id="d5bB" style="background:var(--rose)"></i></div></div>
+      <div class="duelcol good"><div class="dt">✓ статическая лямбда</div>
+        <div class="metric"><span>аллокаций</span><b id="d5aG" class="good">0</b></div>
+        <div class="metric"><span>время</span><b id="d5tG">—</b></div>
+        <div class="dbar"><i id="d5bG" style="background:var(--lime)"></i></div></div>
+    </div>
+    <div class="verdict wrap" id="d5V" style="padding:0 18px 16px"></div>
+  </div>
+</div></section>
+
+<!-- 06 квест -->
+<section id="w06">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">06</span><div><p class="skick">финальное задание</p><h2>Квест: найдите 6 проблем в горячем методе</h2></div></div>
+    <p class="tx reveal">Этот метод вызывается тысячи раз в секунду. В нём <b>6 производительных проблем</b> из изученных глав. Кликайте по подозрительным строкам: верная — объяснение, неверная — взбучка. <span class="score">найдено: <span id="bugCnt">0</span>/6</span></p>
+    <div class="demo reveal">
+      <div class="demo-h"><span class="live"></span><span class="ttl">OrderService.cs — клик по строке = «здесь проблема»</span>
+        <button class="btn ghost" id="bugRst">⟲ заново</button></div>
+      <div class="demo-b">
+        <div class="codewrap"><div class="codebar"><span class="fn">ProcessOrder — hot path</span></div>
+          <div style="padding:12px 8px" id="bugCode"></div></div>
+        <div class="foundlist" id="foundList"></div>
+        <div class="log" id="bugLog" style="margin-top:12px;max-height:110px;font:12px/1.7 var(--mono)"></div>
+      </div>
+    </div>
+    <div class="reveal" id="afterWrap" style="display:none;margin-top:22px">
+      <h3>Итог: отрефакторенный метод</h3>
+      <div class="codewrap">
+        <div class="codebar"><span class="fn">After.cs</span><span class="tag good">все 6 проблем устранены</span></div>
+<pre class="code">private readonly StringBuilder _log = new(128);       // 1) переиспользуемый буфер
+
+public async Task&lt;string&gt; ProcessOrderAsync(Order order)  // 6) async до конца
+{
+    _log.Clear();
+    foreach (var p in order.Positions)
+        _log.Append(p.Name).Append("; ");                  // 1) без +=
+
+    List&lt;int&gt; qtys = new(order.Positions.Count);           // 2+3) generic, без boxing
+    foreach (var p in order.Positions)
+        qtys.Add(p.Qty);
+
+    var buf = ArrayPool&lt;byte&gt;.Shared.Rent(65_536);         // 4) аренда вместо new
+    try
+    {
+        Fill(buf.AsSpan(0, 65_536));
+        decimal sum = 0;
+        foreach (var p in order.Positions)                 // 5) простой цикл вместо LINQ
+            if (p.Qty > order.Limit)
+                sum += p.Qty * p.Price;
+        await SendAsync(buf, sum);                         // 6) await вместо .Wait()
+    }
+    finally { ArrayPool&lt;byte&gt;.Shared.Return(buf); }
+    return _log.ToString();
+}</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 07 чек-лист + зачёт -->
+<section id="w07">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">07</span><div><p class="skick">в бой</p><h2>Чек-лист горячего пути и зачёт</h2></div></div>
+    <div class="reveal" style="overflow-x:auto">
+      <table class="tbl">
+        <tr><th>Проверка</th><th>Инструмент</th><th>Лечение</th></tr>
+        <tr><td>Аллокации в цикле</td><td class="m">[MemoryDiagnoser], dotTrace</td><td>StringBuilder, пулы, Span, структуры</td></tr>
+        <tr><td>Скрытый boxing</td><td class="m">анализаторы, IL (box-инструкция)</td><td>generics, конкретные типы вместо object</td></tr>
+        <tr><td>Блокировка потока пула</td><td class="m">threadpool-queue-length</td><td>await до конца, выделенные потоки</td></tr>
+        <tr><td>Частые gen2-сборки</td><td class="m">dotnet-counters</td><td>меньше долгоживущего мусора, пулы</td></tr>
+        <tr><td>Широкая полка на flame graph</td><td class="m">dotnet-trace → SpeedScope</td><td>оптимизировать именно её, не соседние</td></tr>
+        <tr><td>LINQ в hot-path</td><td class="m">профилировщик аллокаций</td><td>ручной цикл / Span</td></tr>
+        <tr><td>Замыкания в циклах</td><td class="m">декомпилятор/аллокатор</td><td>статические лямбды, состояние параметром</td></tr>
+        <tr><td>Буферы &gt;1 КБ на вызов</td><td class="m">alloc-rate</td><td>ArrayPool / MemoryPool</td></tr>
+      </table>
+    </div>
+
+    <h3 class="reveal" style="margin-top:30px">Зачёт практикума <span class="score">счёт: <span id="quizScore">0</span>/5</span></h3>
+    <div class="qz reveal"><p class="qt">1. С чего начинается любая оптимизация?</p>
+      <div class="opts">
+        <button class="opt">С переписывания подозрительных мест</button>
+        <button class="opt" data-ok>С измерения: бенчмарк/профилировщик фиксирует «до», иначе не докажете выигрыш</button>
+        <button class="opt">С чтения документации по SIMD</button>
+        <button class="opt">С увеличения сервера</button>
+      </div><div class="expl">Оптимизация без замера — суеверие. К тому же профилировщик регулярно показывает, что узкое место совсем не там, где казалось.</div></div>
+    <div class="qz reveal"><p class="qt">2. Почему после замены LINQ на цикл нужно перезапустить бенчмарк, а не просто поверить глазам?</p>
+      <div class="opts">
+        <button class="opt">Глазам верить нельзя вообще</button>
+        <button class="opt" data-ok>Поведение и производительность могут неожиданно измениться (другой порядок, исключения, обнуления); правка обязана быть подтверждена</button>
+        <button class="opt">Циклы всегда медленнее</button>
+        <button class="opt">Это требование CI</button>
+      </div><div class="expl">Рефакторинг без тестов и повторного замера — лотерея: можно и ускорить не то, и сломать семантику (например, отложенное выполнение LINQ).</div></div>
+    <div class="qz reveal"><p class="qt">3. Что не так с new byte[65_536] в обработчике каждого запроса?</p>
+      <div class="opts">
+        <button class="opt">Ничего, GC справится</button>
+        <button class="opt" data-ok>Массив попадает в LOH, не уплотняется, раскачивает аллокации и сборки; аренда из ArrayPool почти бесплатна</button>
+        <button class="opt">Массив слишком большой для стека</button>
+        <button class="opt">byte[] устарел</button>
+      </div><div class="expl">Большие короткоживущие массивы — худший сценарий для кучи. Пул буферов устраняет и аллокации, и фрагментацию LOH.</div></div>
+    <div class="qz reveal"><p class="qt">4. task.Wait() внутри обработчика ASP.NET-запроса — почему это плохо?</p>
+      <div class="opts">
+        <button class="opt">Ждать — нормально, так код честнее</button>
+        <button class="opt" data-ok>Поток пула простаивает в блокировке → под нагрузкой голодание очереди и рост латентности; нужен await до конца</button>
+        <button class="opt">Wait() медленнее await на 10 мс</button>
+        <button class="opt">Wait() не компилируется в ASP.NET</button>
+      </div><div class="expl">Каждый заблокированный поток — минус рабочая единица пула. Async-ожидание паркует задачу, а поток забирает следующий запрос.</div></div>
+    <div class="qz reveal"><p class="qt">5. Лямбда x => x > limit внутри цикла — что аллоцируется на каждой итерации и как исправить?</p>
+      <div class="opts">
+        <button class="opt">Ничего, компилятор всё кэширует</button>
+        <button class="opt" data-ok>Display-класс с captured limit + делегат; исправление — статическая лямбда, состояние передаётся параметром</button>
+        <button class="opt">Только делегат</button>
+        <button class="opt">Только display-класс</button>
+      </div><div class="expl">Захват переменной превращает лямбду в метод экземпляра сгенерированного класса. Статическая лямбда без захвата кэшируется в &lt;&gt;c.Cache один раз на программу.</div></div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>🛠️ Практикум · глава 26 серии «C# под микроскопом»</span>
+    <span>дуэли упрощены для наглядности · в проде всегда BenchmarkDotNet</span>
+  </div>
+</footer>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+const CSRE=/(\/\/[^\n]*)|(\$?"(?:[^"\\]|\\.)*"|\$@"(?:[^"]|"")*")|('(?:[^'\\]|\\.)')|\b(async|await|abstract|as|base|break|case|catch|checked|class|const|continue|default|delegate|do|else|enum|event|explicit|extern|false|finally|fixed|for|foreach|goto|if|implicit|in|interface|internal|is|lock|nameof|namespace|new|not|null|object|operator|or|and|out|override|params|private|protected|public|readonly|record|ref|return|sealed|sizeof|stackalloc|static|string|struct|switch|this|throw|true|try|typeof|unchecked|unsafe|using|var|virtual|void|volatile|while|yield|int|long|double|float|bool|char|byte|decimal|uint|ulong|when|where|select|from|orderby|init|get|set|value|global|with|finally)\b|\b([A-Za-z_][A-Za-z0-9_]*)(?=\s*\()|\b([A-Z][A-Za-z0-9_]*)\b|\b(\d[\d_]*(?:\.\d+)?)\b/g;
+function hlCs(src){let out='',last=0,m;CSRE.lastIndex=0;
+  while((m=CSRE.exec(src))){out+=esc(src.slice(last,m.index));
+    const cls=m[1]?'c-cm':m[2]?'c-st':m[3]?'c-st':m[4]?'c-kw':m[5]?'c-fn':m[6]?'c-ty':'c-nu';
+    out+='<span class="'+cls+'">'+esc(m[0])+'</span>';last=m.index+m[0].length;}
+  return out+esc(src.slice(last));}
+$$('pre.code').forEach(p=>p.innerHTML=hlCs(p.textContent));
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.12});
+$$('.reveal').forEach(el=>io.observe(el));
+addEventListener('scroll',()=>{const h=document.documentElement;$('#prog').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%'},{passive:true});
+const railIO=new IntersectionObserver(es=>es.forEach(e=>{const a=$('#rail a[href="#'+e.target.id+'"]');if(a)a.classList.toggle('on',e.isIntersecting)}),{rootMargin:'-30% 0px -55% 0px'});
+$$('main section').forEach(s=>railIO.observe(s));
+
+/* дуэли */
+function countUp(el,to,fmt,dur){
+  const t0=performance.now();
+  (function f(now){
+    const k=Math.min(1,(now-t0)/dur);
+    el.textContent=fmt(Math.round(to*k));
+    if(k<1)requestAnimationFrame(f);
+  })(t0);
+}
+function duel(btn,pfx,bad,good,maxAlloc,verdict){
+  $(btn).addEventListener('click',async()=>{
+    $(btn).disabled=true;
+    ['#'+pfx+'aB','#'+pfx+'aG'].forEach(id=>{$(id).textContent='0'});
+    ['#'+pfx+'bB','#'+pfx+'bG'].forEach(id=>$(id).style.width='0%');
+    $('#'+pfx+'tB').textContent='…';$('#'+pfx+'tG').textContent='…';$('#'+pfx+'V').textContent='';
+    await sleep(150);
+    countUp($('#'+pfx+'aB'),bad.a,v=>v,bad.a>100?900:500);
+    countUp($('#'+pfx+'aG'),good.a,v=>v,good.a>0?(good.a>100?900:500):400);
+    await sleep(950);
+    $('#'+pfx+'tB').textContent=bad.t;$('#'+pfx+'tG').textContent=good.t;
+    $('#'+pfx+'bB').style.width=(bad.a/maxAlloc*100)+'%';
+    $('#'+pfx+'bG').style.width=Math.max(good.a/maxAlloc*100,good.a>0?2:0)+'%';
+    await sleep(700);
+    $('#'+pfx+'V').innerHTML=verdict;
+    $(btn).disabled=false;
+  });
+}
+duel('#d1Run','d1',{a:200,t:'12,4 мс'},{a:2,t:'0,7 мс'},200,
+ '<span style="color:var(--lime)">итог: ×17 быстрее, аллокаций 200 → 2 (буфер + финальная строка)</span>');
+duel('#d2Run','d2',{a:7,t:'340 мкс'},{a:0,t:'85 мкс'},7,
+ '<span style="color:var(--lime)">итог: ×4 быстрее, 0 аллокаций + векторизация цикла JIT-ом</span>');
+duel('#d3Run','d3',{a:1000,t:'≈ 24 КБ мусора'},{a:0,t:'0 байт'},1000,
+ '<span style="color:var(--lime)">итог: минус 1000 коробок и разгрузка GC; время ↓ ~4,5×</span>');
+duel('#d4Run','d4',{a:50,t:'3,2 МБ в куче'},{a:1,t:'64 КБ переиспользуются'},50,
+ '<span style="color:var(--lime)">итог: 50 аллокаций → 1; LOH больше не засоряется</span>');
+duel('#d5Run','d5',{a:2000,t:'52 мкс'},{a:0,t:'6 мкс'},2000,
+ '<span style="color:var(--lime)">итог: ×8,5 быстрее; делегат закэширован один раз на процесс</span>');
+
+/* квест: найди проблемы */
+const BUGCODE=[
+ {c:'public string ProcessOrder(Order order)',b:null},
+ {c:'{',b:null},
+ {c:'    string log = "";',b:'log += в цикле создаёт новую строку на каждой итерации — нужен StringBuilder (дуэль 1)'},
+ {c:'    var items = new ArrayList();',b:'ArrayList хранит object: каждая структура/число будет упаковано — берите List<T> (дуэль 3)'},
+ {c:'    foreach (var p in order.Positions)',b:null},
+ {c:'    {',b:null},
+ {c:'        items.Add(p.Qty);',b:'boxing: int уезжает в коробку в куче при каждом Add (дуэль 3)'},
+ {c:'        log += p.Name + "; ";',b:'склейка строк в цикле — квадратичные копии и 200+ аллокаций (дуэль 1)'},
+ {c:'    }',b:null},
+ {c:'',b:null},
+ {c:'    var buf = new byte[65_536];',b:'буфер 64 КБ аллоцируется на каждый вызов и идёт в LOH — аренда из ArrayPool (дуэль 4)'},
+ {c:'    Fill(buf);',b:null},
+ {c:'',b:null},
+ {c:'    var expensive = order.Positions',b:null},
+ {c:'        .Where(p => p.Qty > order.Limit)',b:'LINQ-цепочка в hot-path + замыкание на order: итераторы и делегаты на каждый вызов — простой цикл (дуэли 2 и 5)'},
+ {c:'        .Select(p => p.Qty * p.Price)',b:null},
+ {c:'        .ToList();',b:null},
+ {c:'',b:null},
+ {c:'    var task = SendAsync(buf, expensive);',b:null},
+ {c:'    task.Wait();',b:'блокировка потока пула поверх async → голодание под нагрузкой; метод должен быть async и использовать await'},
+ {c:'    return log;',b:null},
+ {c:'}',b:null}
+];
+let found=0;
+function buildBugs(){
+  const box=$('#bugCode');box.innerHTML='';found=0;$('#bugCnt').textContent='0';
+  $('#foundList').innerHTML='';$('#afterWrap').style.display='none';$('#bugLog').innerHTML='';
+  BUGCODE.forEach((l,i)=>{
+    const d=document.createElement('button');
+    d.className='bugline';d.innerHTML=l.c?hlCs(l.c):'&nbsp;';
+    d.addEventListener('click',()=>{
+      if(d.classList.contains('found'))return;
+      if(l.b){
+        found++;d.classList.add('found');
+        const f=document.createElement('div');f.className='fitem';
+        f.innerHTML='<b>#'+found+'</b> '+l.b;
+        $('#foundList').appendChild(f);
+        $('#bugCnt').textContent=found;
+        const lg=document.createElement('div');lg.className='ll l-ok';lg.textContent='✓ проблема найдена';
+        $('#bugLog').appendChild(lg);
+        if(found===6){
+          $('#afterWrap').style.display='block';
+          const w=document.createElement('div');w.className='fitem';
+          w.style.borderColor='var(--lime)';w.style.background='rgba(165,232,111,.08)';
+          w.innerHTML='<b style="color:var(--lime)">🏆 все 6 найдены!</b> Смотрите отрефакторенную версию ниже — и не забудьте перезамерить.';
+          $('#foundList').appendChild(w);
+          $('#afterWrap').scrollIntoView({behavior:'smooth',block:'start'});
+        }
+      }else{
+        d.classList.add('innocent');setTimeout(()=>d.classList.remove('innocent'),450);
+        const lg=document.createElement('div');lg.className='ll l-warn';lg.textContent='— здесь чисто, ищите дальше';
+        $('#bugLog').appendChild(lg);
+      }
+    });
+    box.appendChild(d);
+  });
+}
+$('#bugRst').addEventListener('click',buildBugs);
+buildBugs();
+
+/* зачёт */
+(function(){
+  let score=0;
+  $$('.qz').forEach(q=>{
+    q.querySelectorAll('.opt').forEach(o=>o.addEventListener('click',()=>{
+      if(q.classList.contains('done'))return;
+      q.classList.add('done');
+      if(o.hasAttribute('data-ok')){o.classList.add('ok');score++}
+      else{o.classList.add('bad');const r=q.querySelector('.opt[data-ok]');if(r)r.classList.add('ok')}
+      $('#quizScore').textContent=score;
+    }));
+  });
+})();
+</script>
+</body>
+</html>

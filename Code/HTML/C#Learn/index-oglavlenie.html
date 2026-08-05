@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C# под микроскопом</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0f1c; --panel:#111a2e; --panel2:#0d1524; --line:#22304a; --line2:#31456d;
+  --tx:#e7edf7; --mut:#93a3bd; --dim:#647591;
+  --amber:#ffb454; --teal:#3fe0c5; --lime:#a5e86f; --rose:#ff5d7d; --sky:#6fc3ff; --vio:#c08bff;
+  --disp:'Unbounded',sans-serif; --body:'IBM Plex Sans',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font:400 16px/1.65 var(--body);color:var(--tx);background:
+  radial-gradient(900px 520px at 88% -5%, rgba(255,180,84,.08), transparent 60%),
+  radial-gradient(820px 620px at -12% 32%, rgba(63,224,197,.06), transparent 60%),
+  radial-gradient(760px 540px at 55% 112%, rgba(192,139,255,.06), transparent 60%),
+  var(--bg);overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(111,195,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(111,195,255,.045) 1px,transparent 1px);
+  background-size:46px 46px}
+::selection{background:rgba(255,180,84,.35)}
+main,header,footer{position:relative;z-index:1}
+.wrap{max-width:1100px;margin:0 auto;padding:0 26px}
+h1,h2,h3{font-family:var(--disp)}
+#prog{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--amber),var(--teal));z-index:99}
+
+.hero{max-width:1100px;margin:0 auto;padding:56px 28px 26px;display:grid;grid-template-columns:1fr auto;gap:36px;align-items:center}
+@media(max-width:860px){.hero{grid-template-columns:1fr}}
+.kick{display:inline-flex;align-items:center;gap:8px;font:600 12px var(--mono);letter-spacing:.14em;color:var(--teal);text-transform:uppercase;border:1px solid rgba(63,224,197,.3);padding:6px 12px;border-radius:6px;background:rgba(63,224,197,.06)}
+.kick::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 10px var(--teal);animation:blink 1.8s infinite}
+@keyframes blink{50%{opacity:.35}}
+h1{font-weight:800;font-size:clamp(28px,3.8vw,46px);line-height:1.12;margin:20px 0 14px}
+h1 .v{color:var(--amber);font-family:var(--mono);font-size:.8em}
+.lead{color:var(--mut);font-size:16px;max-width:560px}
+.hstats{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+.hchip{font:500 12px var(--mono);color:var(--mut);border:1px solid var(--line);padding:7px 12px;border-radius:8px;background:rgba(255,255,255,.02)}
+.hchip b{color:var(--amber)}
+
+.ringbox{text-align:center}
+.ring{position:relative;width:150px;height:150px;margin:0 auto}
+.ring svg{transform:rotate(-90deg)}
+.ring .bg{fill:none;stroke:var(--line);stroke-width:9}
+.ring .fg{fill:none;stroke:var(--amber);stroke-width:9;stroke-linecap:round;stroke-dasharray:377;stroke-dashoffset:377;transition:stroke-dashoffset 1.2s cubic-bezier(.2,.8,.2,1)}
+.ringnum{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ringnum b{font:800 28px var(--disp)}
+.ringnum i{font:500 10px var(--mono);color:var(--dim);font-style:normal}
+#nextTip{font:500 11.5px var(--mono);color:var(--dim);margin-top:12px;max-width:170px}
+#nextTip b{color:var(--teal)}
+
+.path{max-width:1100px;margin:26px auto 0;padding:0 28px}
+.pathrow{display:flex;align-items:center;gap:0;flex-wrap:wrap}
+.pnode{display:flex;align-items:center;gap:8px;font:600 11.5px var(--mono);padding:8px 13px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);color:var(--mut);transition:.25s;cursor:default}
+.pnode:hover{transform:translateY(-3px);color:var(--tx);border-color:var(--line2)}
+.pnode.done{border-color:var(--lime);color:var(--lime)}
+.pdot{width:8px;height:8px;border-radius:50%;background:var(--dim)}
+.pnode.done .pdot{background:var(--lime);box-shadow:0 0 8px var(--lime)}
+.pline{width:26px;height:2px;background:var(--line2)}
+@media(max-width:760px){.pline{display:none}}
+
+.filters{max-width:1100px;margin:30px auto 0;padding:0 28px;display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+.fbtn{font:600 12px var(--mono);color:var(--mut);background:transparent;border:1px solid var(--line);padding:8px 14px;border-radius:8px;cursor:pointer;transition:.2s}
+.fbtn:hover{color:var(--tx);transform:translateY(-2px)}
+.fbtn.on{color:var(--amber);border-color:var(--amber);background:rgba(255,180,84,.09)}
+.fbtn.reset{margin-left:auto;color:var(--rose);border-color:rgba(255,93,125,.35)}
+.fbtn.reset:hover{background:rgba(255,93,125,.1)}
+
+main{padding:26px 0 60px}
+.part{max-width:1100px;margin:0 auto 30px;padding:0 28px}
+.pcard{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:15px;overflow:hidden;transition:border-color .3s}
+.pcard:hover{border-color:var(--line2)}
+.phead{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.02)}
+.pbadge{font:800 13px var(--disp);padding:7px 13px;border-radius:9px;color:#10131c}
+.phead .pname{font:600 17px var(--disp)}
+.phead .pdesc{font:500 12px var(--mono);color:var(--dim);margin-right:auto}
+.pprog{display:flex;align-items:center;gap:10px}
+.pbar{width:120px;height:8px;border-radius:5px;background:#0a1020;border:1px solid var(--line);overflow:hidden}
+.pbar i{display:block;height:100%;width:0;border-radius:4px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.ppct{font:700 12px var(--mono);min-width:42px;text-align:right}
+.mastery{font:700 10.5px var(--mono);color:var(--lime);border:1px solid rgba(165,232,111,.4);background:rgba(165,232,111,.1);padding:4px 10px;border-radius:6px;display:none}
+.pcard.full .mastery{display:inline-block;animation:pop .4s}
+.openlink{font:700 11.5px var(--mono);color:#10131c;padding:8px 13px;border-radius:8px;text-decoration:none;transition:.2s}
+.openlink:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(0,0,0,.35)}
+@keyframes pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+
+.chrow{display:flex;align-items:center;gap:13px;padding:11px 20px;border-bottom:1px solid rgba(34,48,74,.5);cursor:pointer;transition:background .2s;user-select:none}
+.chrow:last-child{border-bottom:0}
+.chrow:hover{background:rgba(255,255,255,.03)}
+.chrow input{accent-color:var(--amber);width:16px;height:16px;cursor:pointer;flex-shrink:0}
+.chnum{font:800 13px var(--mono);color:var(--dim);min-width:26px}
+.chbody{flex:1}
+.chbody b{display:block;font:600 14px var(--body);transition:.2s}
+.chbody i{display:block;font:400 12px var(--mono);font-style:normal;color:var(--dim)}
+.chrow.read .chnum{color:var(--lime)}
+.chrow.read .chbody b{color:var(--mut);text-decoration:line-through;text-decoration-color:rgba(165,232,111,.5)}
+.chtag{font:600 10px var(--mono);padding:4px 9px;border-radius:6px;flex-shrink:0}
+.t-demo{color:var(--teal);background:rgba(63,224,197,.1)}
+.t-exam{color:var(--rose);background:rgba(255,93,125,.1)}
+.t-prac{color:var(--amber);background:rgba(255,180,84,.12)}
+.part.dimmed{opacity:.25;pointer-events:none}
+.part{transition:opacity .35s}
+
+footer{border-top:1px solid var(--line);padding:30px 0 40px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;font:400 12.5px var(--mono);color:var(--dim)}
+</style>
+</head>
+<body>
+<div id="prog"></div>
+
+<header class="hero">
+  <div>
+    <span class="kick">серия интерактивных учебников · .NET 6+</span>
+    <h1>C# <span class="v">под микроскопом</span></h1>
+	<span>
+	<h3><a class="openlink" style="background:#ffb454" href="csharp-base.html">C# — по шагам и с практикой</a></h3>
+	</span>
+	<span>
+	<h3><a class="openlink" style="background:#ffb454" href="csharp-thread.html">Потоки, задачи и await</a></h3>
+	</span>
+    <p class="lead">26 глав в трёх частях плюс практикум: от IL и устройства объекта — до SIMD, NativeAOT и диагностики в продакшене. Отмечайте прочитанное — прогресс сохраняется в браузере.</p>
+    <div class="hstats">
+      <span class="hchip"><b>3</b> части</span>
+      <span class="hchip"><b>25</b> глав + практикум</span>
+      <span class="hchip"><b>30+</b> симуляций</span>
+      <span class="hchip"><b>26</b> вопросов экзаменов</span>
+    </div>
+  </div>
+  <div class="ringbox">
+    <div class="ring">
+      <svg width="150" height="150"><circle class="bg" cx="75" cy="75" r="60"></circle><circle class="fg" id="ringFg" cx="75" cy="75" r="60"></circle></svg>
+      <div class="ringnum"><b id="ringPct">0%</b><i id="ringCnt">0 / 26</i></div>
+    </div>
+    <div id="nextTip">начните с главы 01 →</div>
+  </div>
+</header>
+
+<div class="path"><div class="pathrow" id="pathRow"></div></div>
+
+<div class="filters" id="filters">
+  <button class="fbtn on" data-f="all">Все части</button>
+  <button class="fbtn" data-f="1">Часть 1 · основы</button>
+  <button class="fbtn" data-f="2">Часть 2 · железо</button>
+  <button class="fbtn" data-f="3">Часть 3 · прод</button>
+  <button class="fbtn" data-f="4">Практикум</button>
+  <button class="fbtn reset" id="resetBtn">⟲ сбросить прогресс</button>
+</div>
+
+<main id="parts"></main>
+
+<footer>
+  <div class="wrap">
+    <span>📚 C# под микроскопом · оглавление серии · прогресс хранится в вашем браузере</span>
+    <span>файлы серии: csharp-microscope-1/2/3.html · praktikum.html</span>
+  </div>
+</footer>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const KEY='cs-microscope-progress';
+const state=JSON.parse(localStorage.getItem(KEY)||'{}');
+
+const PARTS=[
+ {id:1,color:'#ffb454',file:'csharp-microscope-1.html',name:'Часть 1 · Основы внутренностей',desc:'объект, память, GC, машины состояний',chs:[
+  ['01','IL и JIT','путь кода: C# → IL → Tier-0 → Tier-1','demo'],
+  ['02','Анатомия объекта','sync block, MethodTable, 24 байта минимума','demo'],
+  ['03','Boxing','сколько стоит object, счётчик аллокаций','demo'],
+  ['04','Сборщик мусора','поколения, mark & compact, LOH — песочница','demo'],
+  ['05','Финализаторы','f-reachable: объект умирает дважды','demo'],
+  ['06','Строки','пул интернирования, неизменяемость','demo'],
+  ['07','vtable','callvirt, слоты, девиртуализация sealed','demo'],
+  ['08','Struct и Span','defensive copies, срезы без копий','demo'],
+  ['09','Замыкания','display-классы и ловушка цикла for','demo'],
+  ['10','Итераторы','yield return — машина состояний, степпер','demo'],
+  ['11','async-машина','IAsyncStateMachine, освобождение потока','demo'],
+  ['12','Исключения','два прохода: поиск catch и раскрутка','demo'],
+  ['13','Коллекции изнутри','Dictionary resize и rehash вживую','demo'],
+  ['14','Экзамен части 1','прайс-лист аллокаций + 10 вопросов','exam']]},
+ {id:2,color:'#3fe0c5',file:'csharp-microscope-2.html',name:'Часть 2 · Ближе к железу',desc:'потоки, память ядер, SIMD, пулы',chs:[
+  ['15','ThreadPool','work-stealing: кражи задач вживую','demo'],
+  ['16','Модель памяти','volatile, барьеры, видимость между ядрами','demo'],
+  ['17','SIMD','Vector256: одна инструкция — восемь чисел','demo'],
+  ['18','Пулы буферов','ArrayPool против new byte[], давление на GC','demo'],
+  ['19','Экзамен части 2','8 вопросов: потоки, память, SIMD','exam']]},
+ {id:3,color:'#c08bff',file:'csharp-microscope-3.html',name:'Часть 3 · От аллокаций до прода',desc:'ValueTask, каналы, unsafe, AOT, диагностика',chs:[
+  ['20','ValueTask','синхронный fast-path без аллокаций','demo'],
+  ['21','Channel<T>','backpressure, очереди ожидания','demo'],
+  ['22','unsafe','указатели, fixed, арифметика адресов','demo'],
+  ['23','NativeAOT','JIT против AOT: кто когда платит','demo'],
+  ['24','Диагностика','счётчики GC, flame graph, инструменты','demo'],
+  ['25','Экзамен части 3','8 вопросов финала','exam']]},
+ {id:4,color:'#a5e86f',file:'praktikum.html',name:'Практикум · Горячий путь',desc:'рефакторинг с замерами до/после',chs:[
+  ['26','Рефакторинг hot-path','5 дуэлей + квест «найди 6 проблем»','prac']]}
+];
+
+/* рендер частей */
+const main=$('#parts');
+PARTS.forEach(p=>{
+  const sec=document.createElement('div');
+  sec.className='part';sec.dataset.part=p.id;
+  sec.innerHTML=
+  '<div class="pcard"><div class="phead">'+
+    '<span class="pbadge" style="background:'+p.color+'">'+String(p.id).padStart(2,'0')+'</span>'+
+    '<span class="pname">'+p.name+'</span><span class="pdesc">'+p.desc+'</span>'+
+    '<span class="mastery">✓ освоено</span>'+
+    '<span class="pprog"><span class="pbar"><i style="background:'+p.color+'"></i></span><span class="ppct">0%</span></span>'+
+    '<a class="openlink" style="background:'+p.color+'" href="'+p.file+'">открыть →</a>'+
+  '</div>'+
+  p.chs.map(c=>
+    '<label class="chrow" data-ch="'+c[0]+'">'+
+      '<input type="checkbox" data-ch="'+c[0]+'">'+
+      '<span class="chnum">'+c[0]+'</span>'+
+      '<span class="chbody"><b>'+c[1]+'</b><i>'+c[2]+'</i></span>'+
+      '<span class="chtag t-'+c[3]+'">'+(c[3]==='demo'?'интерактив':c[3]==='exam'?'экзамен':'практика')+'</span>'+
+    '</label>').join('')+
+  '</div>';
+  main.appendChild(sec);
+});
+
+/* карта пути */
+const pathRow=$('#pathRow');
+const nodes=['01 IL','04 GC','09 замыкания','11 async','15 пул потоков','17 SIMD','20 ValueTask','24 диагностика','26 практикум'];
+nodes.forEach((n,i)=>{
+  const d=document.createElement('div');d.className='pnode';d.dataset.n=n.slice(0,2);
+  d.innerHTML='<span class="pdot"></span>'+n;pathRow.appendChild(d);
+  if(i<nodes.length-1){const l=document.createElement('div');l.className='pline';pathRow.appendChild(l)}
+});
+
+function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+function totalCh(){return PARTS.reduce((a,p)=>a+p.chs.length,0)}
+function readCh(){return Object.values(state).filter(Boolean).length}
+
+function update(){
+  const T=totalCh(),R=readCh(),pct=Math.round(R/T*100);
+  $('#ringPct').textContent=pct+'%';
+  $('#ringCnt').textContent=R+' / '+T;
+  $('#ringFg').style.strokeDashoffset=377*(1-R/T);
+  PARTS.forEach(p=>{
+    const card=$('.part[data-part="'+p.id+'"] .pcard');
+    const total=p.chs.length,got=p.chs.filter(c=>state[c[0]]).length;
+    card.querySelector('.pbar i').style.width=(got/total*100)+'%';
+    card.querySelector('.ppct').textContent=Math.round(got/total*100)+'%';
+    card.classList.toggle('full',got===total);
+  });
+  /* узлы пути */
+  $$('.pnode').forEach(n=>{
+    const num=n.dataset.n;
+    n.classList.toggle('done',!!state[num]);
+  });
+  /* следующая глава */
+  let next=null;
+  for(const p of PARTS){for(const c of p.chs){if(!state[c[0]]){next={p,c};break}}if(next)break}
+  $('#nextTip').innerHTML=next
+    ?'дальше: <b>'+next.c[0]+' '+next.c[1]+'</b> →'
+    :'🏆 серия освоена полностью!';
+}
+
+document.addEventListener('change',e=>{
+  const cb=e.target.closest('input[data-ch]');
+  if(!cb)return;
+  state[cb.dataset.ch]=cb.checked;
+  cb.closest('.chrow').classList.toggle('read',cb.checked);
+  save();update();
+});
+document.addEventListener('click',e=>{
+  const row=e.target.closest('.chrow');
+  if(row&&!e.target.closest('input')){
+    const cb=row.querySelector('input');cb.checked=!cb.checked;
+    cb.dispatchEvent(new Event('change',{bubbles:true}));
+  }
+});
+
+$('#filters').addEventListener('click',e=>{
+  const b=e.target.closest('.fbtn[data-f]');if(!b)return;
+  $$('.fbtn[data-f]').forEach(x=>x.classList.toggle('on',x===b));
+  const f=b.dataset.f;
+  $$('.part').forEach(p=>p.classList.toggle('dimmed',f!=='all'&&p.dataset.part!==f));
+});
+$('#resetBtn').addEventListener('click',()=>{
+  if(!confirm('Сбросить весь прогресс?'))return;
+  for(const k in state)delete state[k];save();
+  $$('input[data-ch]').forEach(c=>c.checked=false);
+  $$('.chrow').forEach(r=>r.classList.remove('read'));
+  update();
+});
+
+/* восстановить */
+$$('input[data-ch]').forEach(cb=>{cb.checked=!!state[cb.dataset.ch]});
+$$('.chrow').forEach(r=>r.classList.toggle('read',!!state[r.querySelector('input').dataset.ch]));
+addEventListener('scroll',()=>{const h=document.documentElement;$('#prog').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%'},{passive:true});
+setTimeout(update,80);
+</script>
+</body>
+</html>

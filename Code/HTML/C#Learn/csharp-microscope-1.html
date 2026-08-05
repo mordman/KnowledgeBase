@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C# и CLR под микроскопом — глубинный разбор</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔬</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0f1c; --panel:#111a2e; --panel2:#0d1524; --line:#22304a; --line2:#31456d;
+  --tx:#e7edf7; --mut:#93a3bd; --dim:#647591;
+  --amber:#ffb454; --teal:#3fe0c5; --lime:#a5e86f; --rose:#ff5d7d; --sky:#6fc3ff; --vio:#c08bff;
+  --disp:'Unbounded',sans-serif; --body:'IBM Plex Sans',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font:400 16px/1.65 var(--body);color:var(--tx);background:
+  radial-gradient(900px 520px at 88% -5%, rgba(255,180,84,.08), transparent 60%),
+  radial-gradient(820px 620px at -12% 32%, rgba(63,224,197,.06), transparent 60%),
+  radial-gradient(760px 540px at 55% 112%, rgba(192,139,255,.06), transparent 60%),
+  var(--bg);overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(111,195,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(111,195,255,.045) 1px,transparent 1px);
+  background-size:46px 46px}
+::selection{background:rgba(255,180,84,.35)}
+main,header,footer{position:relative;z-index:1}
+.wrap{max-width:1180px;margin:0 auto;padding:0 26px}
+h1,h2,h3{font-family:var(--disp)}
+#prog{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--amber),var(--teal));z-index:99}
+#rail{position:fixed;left:14px;top:50%;transform:translateY(-50%);z-index:50;display:flex;flex-direction:column;gap:2px}
+#rail a{display:flex;gap:8px;align-items:baseline;color:var(--dim);font:500 10.5px var(--mono);padding:4px 8px;border-radius:7px;text-decoration:none;border:1px solid transparent;transition:.25s}
+#rail a:hover{color:var(--tx);transform:translateX(3px)}
+#rail a.on{color:var(--amber);background:rgba(255,180,84,.09);border-color:rgba(255,180,84,.28)}
+@media(max-width:1280px){#rail{display:none}}
+
+.hero{max-width:1240px;margin:0 auto;padding:58px 28px 38px;display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:center}
+@media(max-width:1000px){.hero{grid-template-columns:1fr;padding-top:40px}}
+.kick{display:inline-flex;align-items:center;gap:8px;font:600 12px var(--mono);letter-spacing:.14em;color:var(--teal);text-transform:uppercase;border:1px solid rgba(63,224,197,.3);padding:6px 12px;border-radius:6px;background:rgba(63,224,197,.06)}
+.kick::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 10px var(--teal);animation:blink 1.8s infinite}
+@keyframes blink{50%{opacity:.35}}
+h1{font-weight:800;font-size:clamp(30px,4.2vw,52px);line-height:1.1;margin:20px 0 16px}
+h1 .v{color:var(--amber);font-family:var(--mono);font-size:.82em}
+.lead{color:var(--mut);font-size:16.5px;max-width:560px}
+.hstats{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
+.hchip{font:500 12px var(--mono);color:var(--mut);border:1px solid var(--line);padding:7px 12px;border-radius:8px;background:rgba(255,255,255,.02);transition:.2s}
+.hchip:hover{color:var(--tx);transform:translateY(-2px)}
+.hchip b{color:var(--amber)}
+.ide{background:#0b1222;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 30px 70px rgba(0,0,0,.45)}
+.ide-bar{display:flex;align-items:center;gap:7px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.ide-bar .d{width:10px;height:10px;border-radius:50%}
+.ide-bar .fn{font:500 11.5px var(--mono);color:var(--dim);margin-left:8px}
+#heroCode{margin:0;padding:16px 18px;font:400 13.5px/1.75 var(--mono);color:#c9daf0;min-height:88px;white-space:pre-wrap}
+#heroCode .caret{display:inline-block;width:8px;height:15px;background:var(--amber);vertical-align:-2px;animation:blink 1s infinite}
+.ide-out{border-top:1px dashed var(--line);padding:12px 18px;font:400 12.5px/1.7 var(--mono);color:var(--lime);min-height:52px}
+.ide-out::before{content:'▸ что происходит на самом деле';display:block;color:var(--dim);font-size:10px;letter-spacing:.14em;margin-bottom:4px}
+.ticker{overflow:hidden;border-block:1px solid var(--line);background:#0b1220}
+.tk{display:flex;gap:36px;width:max-content;padding:12px 0;animation:tk 36s linear infinite;font:500 12px var(--mono);color:var(--dim);white-space:nowrap}
+.tk i{font-style:normal;color:var(--amber)}
+@keyframes tk{to{transform:translateX(-50%)}}
+@media(prefers-reduced-motion:reduce){.tk{animation:none}}
+
+section{padding:70px 0;scroll-margin-top:20px}
+.shead{display:flex;gap:20px;align-items:flex-start;margin-bottom:30px}
+.snum{font:800 clamp(52px,7.5vw,100px)/0.9 var(--disp);color:transparent;-webkit-text-stroke:1.5px rgba(255,180,84,.3);user-select:none}
+.skick{font:600 11px var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--teal);margin-bottom:8px}
+h2{font-weight:600;font-size:clamp(23px,3vw,38px);line-height:1.15}
+h3{font-size:17px;font-weight:600;margin:24px 0 10px}
+p.tx{color:var(--mut);max-width:840px;margin:11px 0}
+p.tx b,li b{color:var(--tx)}
+code.inline{font:500 .86em var(--mono);color:var(--amber);background:rgba(255,180,84,.09);border:1px solid rgba(255,180,84,.18);padding:1px 6px;border-radius:5px;white-space:nowrap}
+.note{border-left:3px solid var(--amber);background:rgba(255,180,84,.06);padding:13px 18px;border-radius:0 10px 10px 0;color:var(--mut);margin:18px 0;max-width:840px}
+.note b{color:var(--amber)}
+.note.teal{border-color:var(--teal);background:rgba(63,224,197,.06)}.note.teal b{color:var(--teal)}
+.note.rose{border-color:var(--rose);background:rgba(255,93,125,.07)}.note.rose b{color:var(--rose)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+.grid2.wide{grid-template-columns:1.15fr .85fr}
+.grid2.wide2{grid-template-columns:.9fr 1.1fr}
+@media(max-width:880px){.grid2,.grid2.wide,.grid2.wide2{grid-template-columns:1fr}}
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .7s,transform .7s}
+.reveal.in{opacity:1;transform:none}
+
+.codewrap{background:#0b1222;border:1px solid var(--line);border-radius:12px;overflow:hidden;transition:border-color .25s}
+.codewrap:hover{border-color:var(--line2)}
+.codebar{display:flex;gap:7px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--line)}
+.codebar .d{width:9px;height:9px;border-radius:50%}
+.codebar .fn{margin-left:8px;font:500 11px var(--mono);color:var(--dim)}
+.codebar .tag{margin-left:auto;font:600 10px var(--mono);letter-spacing:.1em;padding:3px 8px;border-radius:5px}
+.tag.bad{color:var(--rose);background:rgba(255,93,125,.12)}
+.tag.good{color:var(--lime);background:rgba(165,232,111,.12)}
+.tag.info{color:var(--sky);background:rgba(111,195,255,.12)}
+.tag.new{color:var(--amber);background:rgba(255,180,84,.14)}
+pre.code{margin:0;padding:15px 18px;overflow:auto;font:400 12.8px/1.7 var(--mono);color:#c9daf0;white-space:pre;tab-size:4}
+.c-kw{color:#ff9e64}.c-ty{color:#7cc7ff}.c-st{color:#a5e86f}.c-cm{color:#5c6f8e;font-style:italic}.c-nu{color:#ffd479}.c-fn{color:#4fe3c1}
+
+.demo{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.demo-h{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.02)}
+.demo-h .live{width:8px;height:8px;border-radius:50%;background:var(--lime);box-shadow:0 0 10px var(--lime);animation:blink 1.6s infinite}
+.demo-h .ttl{font:600 13px var(--mono);color:var(--tx);margin-right:auto}
+.demo-b{padding:18px}
+.btn{font:700 12.5px var(--mono);color:#141005;background:var(--amber);border:0;padding:9px 15px;border-radius:8px;cursor:pointer;transition:.18s;box-shadow:0 3px 0 rgba(0,0,0,.4)}
+.btn:hover{transform:translateY(-2px);box-shadow:0 9px 20px rgba(255,180,84,.28)}
+.btn:active{transform:translateY(1px);box-shadow:none}
+.btn[disabled]{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn.ghost{background:transparent;color:var(--tx);border:1px solid var(--line2);box-shadow:none}
+.btn.ghost:hover{border-color:var(--amber);color:var(--amber);box-shadow:none}
+.btn.teal{background:var(--teal)}.btn.rose{background:var(--rose);color:#2a0510}.btn.lime{background:var(--lime)}
+.btn.sm{padding:6px 11px;font-size:11.5px}
+.log{font:12px/1.75 var(--mono);background:#0a1020;border:1px solid var(--line);border-radius:10px;padding:10px 13px;max-height:210px;overflow:auto}
+.ll{white-space:pre-wrap;word-break:break-word;color:var(--mut)}
+.l-ok{color:var(--lime)}.l-err{color:var(--rose)}.l-warn{color:var(--amber)}.l-info{color:var(--sky)}.l-tea{color:var(--teal)}
+.tbl{width:100%;border-collapse:collapse;font-size:14px;margin:14px 0}
+.tbl th{font:600 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--amber);text-align:left;padding:10px 12px;border-bottom:2px solid var(--line2)}
+.tbl td{padding:9px 12px;border-bottom:1px solid var(--line);color:var(--mut);vertical-align:top}
+.tbl tr:hover td{background:rgba(255,255,255,.025);color:var(--tx)}
+.tbl td:first-child{color:var(--tx);font-weight:600}
+.tbl .m{font:600 12.5px var(--mono);color:var(--teal)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex-wrap:wrap}
+.seg button{font:600 11.5px var(--mono);color:var(--mut);background:transparent;border:0;padding:8px 12px;cursor:pointer;transition:.2s}
+.seg button:hover{color:var(--tx)}
+.seg button.on{background:rgba(255,180,84,.15);color:var(--amber)}
+.varrow{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.vbox{min-width:110px;text-align:center;border:1px solid var(--line);background:#0c1424;border-radius:10px;padding:10px;font:500 12px var(--mono);color:var(--dim);transition:.3s}
+.vbox b{display:block;font-size:19px;color:var(--tx);margin-top:3px}
+@keyframes pop{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+
+/* пайплайн JIT */
+.pipes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:760px){.pipes{grid-template-columns:1fr}}
+.pipebox{border:1px solid var(--line);border-radius:11px;background:#0c1424;padding:12px;transition:.4s;position:relative}
+.pipebox .pt{font:700 11px var(--mono);letter-spacing:.12em;color:var(--dim);margin-bottom:8px}
+.pipebox pre{font:400 11.5px/1.6 var(--mono);color:var(--mut);white-space:pre-wrap}
+.pipebox.dim{opacity:.35}
+.pipebox.hot{border-color:var(--amber);box-shadow:0 0 22px rgba(255,180,84,.15)}
+.pipebox .badge{position:absolute;top:10px;right:10px;font:700 10px var(--mono);padding:3px 8px;border-radius:5px;background:rgba(165,232,111,.15);color:var(--lime)}
+
+/* байты объекта */
+.byterow{display:flex;gap:2px;margin:14px 0 6px;min-height:54px}
+.bseg{border-radius:6px;padding:6px 4px;text-align:center;font:600 10px var(--mono);color:#10131c;cursor:pointer;display:flex;flex-direction:column;justify-content:center;gap:2px;transition:.2s;overflow:hidden}
+.bseg:hover{filter:brightness(1.15);transform:translateY(-3px)}
+.bseg i{font-style:normal;font-weight:400;font-size:9px;opacity:.8}
+.bsel{font:500 13px var(--mono);color:var(--tx);background:#0c1424;border:1px solid var(--line2);border-radius:9px;padding:12px 14px;min-height:64px}
+
+/* GC */
+.gcreg{margin:9px 0}
+.gcreg .rt{display:flex;justify-content:space-between;font:600 10.5px var(--mono);letter-spacing:.1em;color:var(--dim);margin-bottom:5px}
+.gcrow{display:flex;flex-wrap:wrap;gap:6px;min-height:44px;border:1px dashed var(--line2);border-radius:10px;padding:8px;background:#0a1020}
+.gchip{font:700 11px var(--mono);color:#10131c;padding:5px 9px;border-radius:6px;cursor:pointer;animation:pop .3s;transition:.3s;user-select:none}
+.gchip.dead{opacity:.2;text-decoration:line-through}
+.gchip.big{padding:9px 14px}
+.gstats{display:flex;flex-wrap:wrap;gap:14px;font:500 11.5px var(--mono);color:var(--dim);margin-top:12px}
+.gstats b{color:var(--tx)}
+
+/* финализаторы */
+.finobj{border:1px solid var(--line);border-radius:11px;background:#0c1424;padding:13px;transition:.4s;flex:1;min-width:220px}
+.finobj .nm{font:700 13px var(--mono)}
+.finobj .fst{font:500 11.5px var(--mono);color:var(--dim);margin-top:7px;min-height:36px}
+.finobj.freed{opacity:.35;border-style:dashed}
+.finobj.queue{border-color:var(--rose)}
+.fq{border:1px dashed var(--rose);border-radius:10px;padding:10px;font:600 11px var(--mono);color:var(--rose);margin-top:12px;min-height:42px}
+
+/* интернирование */
+.poolrow{display:flex;justify-content:space-between;gap:8px;font:500 12.5px var(--mono);border-bottom:1px dashed var(--line);padding:7px 4px;animation:pop .3s}
+.poolrow .pk{color:var(--teal)}.poolrow .pv{color:var(--dim)}
+.heapobj{display:inline-block;font:600 12px var(--mono);color:var(--sky);background:rgba(111,195,255,.09);border:1px solid rgba(111,195,255,.35);border-radius:7px;padding:6px 11px;margin:4px;animation:pop .3s}
+
+/* vtable */
+.slot{display:grid;grid-template-columns:90px 1fr;gap:10px;align-items:center;border:1px solid var(--line);border-radius:9px;padding:8px 12px;margin:7px 0;font:500 12.5px var(--mono);color:var(--mut);transition:.3s}
+.slot .si{color:var(--dim)}
+.slot.hit{border-color:var(--amber);background:rgba(255,180,84,.1);color:var(--tx)}
+.slot.direct{border-color:var(--teal);background:rgba(63,224,197,.08)}
+
+/* копии структур */
+.cpbtn{display:block;width:100%;text-align:left;font:500 12.5px var(--mono);color:var(--mut);background:#0c1424;border:1px solid var(--line);border-radius:9px;padding:10px 13px;margin:7px 0;cursor:pointer;transition:.2s}
+.cpbtn:hover{border-color:var(--line2);color:var(--tx);transform:translateX(4px)}
+.cpbtn b{float:right;color:var(--amber)}
+.cells{display:flex;gap:4px;flex-wrap:wrap}
+.cell{font:700 12px var(--mono);color:var(--mut);background:#0c1424;border:1px solid var(--line);border-radius:6px;padding:8px 10px;transition:.3s}
+.cell.in{border-color:var(--teal);color:var(--teal);background:rgba(63,224,197,.08)}
+.cell.mut{border-color:var(--amber);color:var(--amber);animation:pop .3s}
+
+/* замыкания */
+.disp{border:1px solid var(--vio);background:rgba(192,139,255,.08);border-radius:11px;padding:13px;font:500 12.5px var(--mono);animation:pop .35s}
+.disp .dt{color:var(--vio);font-weight:700}
+.arrw{font:400 12px var(--mono);color:var(--dim);margin:6px 0}
+
+/* кадры стека / состояния */
+.frame{border:1px solid var(--line);border-radius:10px;background:#0c1424;padding:11px 14px;margin:7px 0;font:500 13px var(--mono);color:var(--mut);transition:.35s}
+.frame .fd{font-size:11px;color:var(--dim)}
+.frame.scan{border-color:var(--sky);background:rgba(111,195,255,.1);color:var(--tx)}
+.frame.finally{border-color:var(--amber);background:rgba(255,180,84,.1)}
+.frame.caught{border-color:var(--lime);background:rgba(165,232,111,.12)}
+.frame.throwr{border-color:var(--rose);background:rgba(255,93,125,.12);animation:shake .45s}
+.stbadge{display:inline-block;font:700 12px var(--mono);padding:6px 12px;border-radius:8px;background:rgba(255,180,84,.14);color:var(--amber);border:1px solid rgba(255,180,84,.4)}
+.thr{display:inline-block;font:700 11px var(--mono);padding:5px 11px;border-radius:7px}
+.thr.busy{background:rgba(255,93,125,.15);color:var(--rose)}
+.thr.free{background:rgba(165,232,111,.15);color:var(--lime)}
+.codeline{display:block;font:500 12.5px var(--mono);color:var(--mut);padding:5px 10px;border-radius:7px;transition:.3s}
+.codeline.hl{background:rgba(255,180,84,.16);color:var(--tx);box-shadow:inset 0 0 0 1px var(--amber)}
+
+/* словарь */
+.buckets{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:680px){.buckets{grid-template-columns:repeat(2,1fr)}}
+.bucket{border:1px dashed var(--line2);border-radius:10px;padding:9px;min-height:80px;background:#0a1020;transition:.35s}
+.bucket.hit{border-color:var(--amber);border-style:solid;background:rgba(255,180,84,.06)}
+.bucket .bt{font:600 10.5px var(--mono);color:var(--dim);margin-bottom:5px}
+.bent{font:600 11px var(--mono);color:var(--teal);background:rgba(63,224,197,.1);border:1px solid rgba(63,224,197,.3);border-radius:6px;padding:4px 8px;margin-top:5px;animation:pop .3s}
+.bent.chain{color:var(--vio);border-color:rgba(192,139,255,.4);background:rgba(192,139,255,.1)}
+
+/* квиз */
+.qz{border:1px solid var(--line);border-radius:13px;background:var(--panel2);padding:19px;margin-bottom:16px;transition:border-color .25s}
+.qz:hover{border-color:var(--line2)}
+.qz .qt{font:600 15px var(--body);margin:11px 0}
+.opts{display:grid;gap:8px;margin-top:11px}
+.opt{text-align:left;font:400 13.5px var(--body);color:var(--mut);background:#0c1424;border:1px solid var(--line);border-radius:9px;padding:11px 14px;cursor:pointer;transition:.2s}
+.opt:hover{border-color:var(--line2);color:var(--tx);transform:translateX(4px)}
+.opt.ok{border-color:var(--lime);background:rgba(165,232,111,.12);color:var(--tx)}
+.opt.bad{border-color:var(--rose);background:rgba(255,93,125,.1);animation:shake .4s}
+.qz .expl{display:none;margin-top:11px;font-size:13.5px;color:var(--mut);border-left:3px solid var(--teal);padding:10px 14px;background:rgba(63,224,197,.05);border-radius:0 8px 8px 0}
+.qz.done .expl{display:block}
+.score{font:700 13px var(--mono);color:var(--amber);border:1px solid rgba(255,180,84,.35);padding:8px 14px;border-radius:8px;background:rgba(255,180,84,.08)}
+footer{border-top:1px solid var(--line);padding:32px 0 42px;margin-top:40px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;font:400 12.5px var(--mono);color:var(--dim)}
+</style>
+</head>
+<body>
+<div id="prog"></div>
+<nav id="rail">
+  <a href="#m01"><span>01</span>IL и JIT</a><a href="#m02"><span>02</span>Объект</a><a href="#m03"><span>03</span>Boxing</a>
+  <a href="#m04"><span>04</span>GC</a><a href="#m05"><span>05</span>Финализаторы</a><a href="#m06"><span>06</span>Строки</a>
+  <a href="#m07"><span>07</span>vtable</a><a href="#m08"><span>08</span>Struct/Span</a><a href="#m09"><span>09</span>Замыкания</a>
+  <a href="#m10"><span>10</span>Итераторы</a><a href="#m11"><span>11</span>async-машина</a><a href="#m12"><span>12</span>Исключения</a>
+  <a href="#m13"><span>13</span>Коллекции</a><a href="#m14"><span>14</span>Экзамен</a>
+</nav>
+
+<header class="hero">
+  <div>
+    <span class="kick">Часть 1 · Основы внутренностей</span>
+    <h1>C# и CLR <span class="v">под микроскопом</span></h1>
+    <p class="lead">Что происходит после нажатия F5: IL и JIT, байты в заголовке объекта, боксинг, поколения сборщика мусора, диспетчеризация виртуальных вызовов, машины состояний итераторов и async. Теория, подкреплённая симуляциями, — кликайте и смотрите, как всё устроено внутри.</p>
+    <div class="hstats">
+      <span class="hchip"><b>14</b> глав о внутренностях</span>
+      <span class="hchip"><b>14</b> живых симуляций</span>
+      <span class="hchip"><b>10</b> вопросов экзамена</span>
+      <span class="hchip">x64 · .NET 6+</span>
+    </div>
+  </div>
+  <div class="ide">
+    <div class="ide-bar"><span class="d" style="background:var(--rose)"></span><span class="d" style="background:var(--amber)"></span><span class="d" style="background:var(--lime)"></span><span class="fn">взгляд сквозь код…</span></div>
+    <pre id="heroCode"><span class="caret"></span></pre>
+    <div class="ide-out" id="heroOut"></div>
+  </div>
+</header>
+
+<div class="ticker"><div class="tk">
+  <span>IL / CIL</span><span>JIT · RyuJIT</span><span><i>tiered compilation</i></span><span>AOT · NativeAOT</span><span>sync block</span><span>MethodTable</span><span>vtable · callvirt</span><span>boxing</span><span>SOH · LOH</span><span>gen 0/1/2</span><span>mark &amp; compact</span><span>f-reachable</span><span>intern pool</span><span>Span&lt;T&gt;</span><span>display class</span><span>IAsyncStateMachine</span><span>work-stealing</span><span>PGO</span><span>stackalloc</span><span>ref struct</span>
+  <span>IL / CIL</span><span>JIT · RyuJIT</span><span><i>tiered compilation</i></span><span>AOT · NativeAOT</span><span>sync block</span><span>MethodTable</span><span>vtable · callvirt</span><span>boxing</span><span>SOH · LOH</span><span>gen 0/1/2</span><span>mark &amp; compact</span><span>f-reachable</span><span>intern pool</span><span>Span&lt;T&gt;</span><span>display class</span><span>IAsyncStateMachine</span><span>work-stealing</span><span>PGO</span><span>stackalloc</span><span>ref struct</span>
+</div></div>
+
+<main>
+
+<!-- ================= 01 IL/JIT ================= -->
+<section id="m01">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">01</span><div><p class="skick">компиляция и исполнение</p><h2>Путь кода: C# → IL → машинный код</h2></div></div>
+    <p class="tx reveal">Компилятор C# не создаёт машинный код — он собирает сборку с <b>IL (Intermediate Language)</b> и метаданными. При первом вызове метода <b>JIT-компилятор</b> переводит IL в машинные инструкции. С .NET Core работает <b>tiered compilation</b>: горячие методы сначала компилируются быстро (Tier-0), а когда метод «разогрелся» — перекомпилируются с оптимизациями (Tier-1). Вызовите метод и посмотрите:</p>
+    <div class="demo reveal">
+      <div class="demo-h"><span class="live"></span><span class="ttl">int Add(int a, int b) => a + b;</span>
+        <button class="btn" id="j1">Вызвать ×1</button>
+        <button class="btn teal" id="j30">Вызвать ×30</button>
+        <button class="btn ghost" id="jRst">Сброс</button></div>
+      <div class="demo-b">
+        <div class="varrow" style="margin-bottom:12px">
+          <div class="vbox">вызовов<b id="jCalls">0</b></div>
+          <div class="vbox">уровень кода<b id="jTier">—</b></div>
+          <div class="vbox">инструкций в коде<b id="jIns">—</b></div>
+        </div>
+        <div class="pipes">
+          <div class="pipebox"><div class="pt">C# ИСХОДНИК</div>
+<pre>public static int Add(
+    int a, int b)
+    => a + b;</pre></div>
+          <div class="pipebox dim" id="jIL"><div class="pt">IL В СБОРКЕ</div>
+<pre>ldarg.0      // a
+ldarg.1      // b
+add
+ret</pre></div>
+          <div class="pipebox dim" id="jMC"><div class="pt">МАШИННЫЙ КОД (x64)<span class="badge" id="jBadge" style="display:none"></span></div>
+<pre id="jMCText">// ещё не скомпилирован</pre></div>
+        </div>
+        <div class="log" id="jLog" style="margin-top:12px"></div>
+      </div>
+    </div>
+    <div class="note teal reveal"><b>Tiered compilation:</b> Tier-0 компилируется быстро и без оптимизаций (чтобы приложение стартовало быстрее), на горячих методах (~порог вызовов) включается Tier-1: инлайнинг, PGO (оптимизация по профилю), удаление проверок границ. Есть также <b>NativeAOT</b> — компиляция в машинный код заранее, без JIT, ценой гибкости.</div>
+  </div>
+</section>
+
+<!-- ================= 02 ОБЪЕКТ ================= -->
+<section id="m02">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">02</span><div><p class="skick">память</p><h2>Анатомия объекта: 16 байт, которых вы не писали</h2></div></div>
+    <p class="tx reveal">Каждый объект в куче начинается с <b>заголовка</b>: sync block (нужен для <code class="inline">lock</code>, хэш-кода, номера поколения GC) и указатель на <b>MethodTable</b> — «паспорт типа» с vtable виртуальных методов. Поэтому самый маленький класс занимает минимум <b>24 байта</b> на x64, даже с пустым телом. Структуры заголовка не имеют — в этом их дешевизна. Выберите тип и кликните по сегментам:</p>
+    <div class="demo reveal">
+      <div class="demo-h"><span class="live"></span><span class="ttl">Инспектор памяти (x64)</span>
+        <div class="seg" id="oiSeg">
+          <button data-t="point" class="on">Point</button>
+          <button data-t="user">User</button>
+          <button data-t="str">string</button>
+          <button data-t="arr">int[]</button>
+        </div></div>
+      <div class="demo-b">
+        <div class="mono" id="oiName" style="font-size:13px;color:var(--teal)"></div>
+        <div class="byterow" id="oiRow"></div>
+        <div class="mono" style="font-size:12px;color:var(--dim)">итого: <b id="oiTotal" style="color:var(--tx)"></b> · кликните по сегменту</div>
+        <div class="bsel" id="oiExpl" style="margin-top:12px">—</div>
+      </div>
+    </div>
+    <div class="grid2 reveal" style="margin-top:20px">
+      <div class="codewrap">
+        <div class="codebar"><span class="fn">Layout.cs</span><span class="tag info">что видит CLR</span></div>
+<pre class="code">class Point { public int X, Y; }   // 16 + 8 = 24 байта
+class Empty { }                    // всё равно 24 байта!
+
+// Порядок полей может переупорядочиваться CLR
+// (автоматическая упаковка для экономии места),
+// если не задан [StructLayout(LayoutKind.Sequential)]
+
+// Что лежит в sync block:
+lock (obj) { }      // → индекс монитора в sync block
+obj.GetHashCode()   // → может закрепить хэш там же</pre>
+      </div>
+      <div class="note" style="margin:0"><b>Следствия:</b> массив из 1000 маленьких классов — это 1000 заголовков и 1000 разбросанных объектов. Массив структур — один сплошной блок памяти без заголовков на элемент: лучше кэш CPU, меньше работа GC. Поэтому в hot-коде и играх структуры выбирают не из эстетики.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 03 BOXING ================= -->
+<section id="m03">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">03</span><div><p class="skick">цена неявности</p><h2>Boxing: сколько стоит object</h2></div></div>
+    <p class="tx reveal"><b>Boxing</b> — упаковка значимого типа в объект в куче: аллокация ~24+ байта и копирование. Происходит неявно: присваивание в <code class="inline">object</code>, не-generic коллекции, интерфейсные вызовы у структур. Unboxing — обратное копирование, уже без аллокации. Посчитайте аллокации:</p>
+    <div class="grid2 reveal">
+      <div class="demo">
+        <div class="demo-h"><span class="live"></span><span class="ttl">Счётчик аллокаций в куче</span>
+          <button class="btn ghost" id="bRst">Сброс</button></div>
+        <div class="demo-b">
+          <div class="varrow" style="margin-bottom:10px">
+            <button class="btn sm" id="bBox">object o = i;</button>
+            <button class="btn sm" id="bBox2">object o2 = i;</button>
+            <button class="btn sm teal" id="bUnbox">int j = (int)o;</button>
+            <button class="btn sm rose" id="bArrL">ArrayList ×1000</button>
+            <button class="btn sm lime" id="bList">List&lt;int&gt; ×1000</button>
+          </div>
+          <div class="memarea">
+            <div style="font:600 10.5px var(--mono);letter-spacing:.1em;color:var(--dim)">СТЕК</div>
+            <div id="bStack" style="margin-bottom:10px"></div>
+            <div style="font:600 10.5px var(--mono);letter-spacing:.1em;color:var(--dim)">КУЧА</div>
+            <div id="bHeap" style="min-height:56px"></div>
+          </div>
+          <div class="gres mono" style="margin-top:12px;font-size:13px">аллокаций: <b id="bCnt" style="color:var(--rose);font-size:17px">0</b></div>
+          <div class="log" id="bLog" style="margin-top:10px"></div>
+        </div>
+      </div>
+      <div class="codewrap">
+        <div class="codebar"><span class="fn">Boxing.cs</span><span class="tag bad">скрытые аллокации</span></div>
+<pre class="code">int i = 5;
+object o = i;          // BOX: объект в куче (24 байта)
+object o2 = i;         // BOX: ещё один — коробок на каждый раз!
+int j = (int)o;        // UNBOX: копирование без аллокации
+
+var al = new ArrayList();   // object[] внутри
+al.Add(1);                  // box ×1
+var li = new List&lt;int&gt;();
+li.Add(1);                  // 0 box — generics!
+
+// Другие места, где боксинг прячется:
+string.Format("{0}", myStruct);       // params object[]
+foreach (object x in arrayList) { }
+((IComparable)myStruct).CompareTo(..); // вызов через интерфейс</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 04 GC ================= -->
+<section id="m04">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">04</span><div><p class="skick">сборка мусора</p><h2>GC: поколения, mark и compact</h2></div></div>
+    <p class="tx reveal">Сборщик делит кучу на <b>поколения</b>: гипотеза «большинство объектов умирает молодыми». Новые объекты попадают в <b>gen 0</b>; пережившие сборку продвигаются в gen 1, затем в gen 2. Маленькие сборки частые и дешёвые, gen 2 — редкие и дорогие. Объекты &gt; 85 КБ идут сразу в <b>LOH</b> и не уплотняются. Кликайте по объектам, чтобы сделать их «укоренёнными» (живыми), и запускайте сборку:</p>
+    <div class="demo reveal">
+      <div class="demo-h"><span class="live"></span><span class="ttl">Песочница сборщика</span>
+        <button class="btn sm" id="gAlloc">+ Alloc(5)</button>
+        <button class="btn sm rose" id="gBig">+ объект 85 КБ (LOH)</button>
+        <button class="btn teal" id="gC0">GC.Collect(0)</button>
+        <button class="btn" id="gC2">GC.Collect(2) — полная</button>
+        <button class="btn ghost" id="gAuto">▶ Авто-режим</button></div>
+      <div class="demo-b">
+        <div class="gcreg"><div class="rt"><span>GEN 0 — молодые (бюджет ~256 КБ)</span><span id="gc0n"></span></div><div class="gcrow" id="gc0"></div></div>
+        <div class="gcreg"><div class="rt"><span>GEN 1 — пережившие одну сборку</span><span id="gc1n"></span></div><div class="gcrow" id="gc1"></div></div>
+        <div class="gcreg"><div class="rt"><span>GEN 2 — долгожители (полная сборка)</span><span id="gc2n"></span></div><div class="gcrow" id="gc2"></div></div>
+        <div class="gcreg"><div class="rt"><span>LOH — объекты &gt; 85 000 байт (не уплотняется)</span><span id="gcln"></span></div><div class="gcrow" id="gcl"></div></div>
+        <div class="gstats">
+          <span>аллоцировано: <b id="gAl">0</b></span>
+          <span>освобождено: <b id="gFr">0</b></span>
+          <span>сборок: g0 <b id="gS0">0</b> · g1 <b id="gS1">0</b> · g2 <b id="gS2">0</b></span>
+          <span>последняя пауза: <b id="gPa">—</b></span>
+        </div>
+        <div class="mono" style="font-size:11px;color:var(--dim);margin-top:8px">клик по объекту = корень (стек/статика/регистры): сборщик его не тронет; тусклые — мусор</div>
+      </div>
+    </div>
+    <div class="grid2 reveal" style="margin-top:20px">
+      <div class="codewrap">
+        <div class="codebar"><span class="fn">GC.cs</span><span class="tag info">ручки управления</span></div>
+<pre class="code">GC.Collect();              // явная сборка (обычно не нужно)
+GC.GetTotalMemory(false);
+GC.GetGeneration(obj);     // в каком поколении объект
+GC.TryStartNoGCRegion(4_000_000); // «без GC» на критической секции
+
+// Режимы: Workstation (по умолчанию) и Server
+// (куча на каждое ядро, параллельные сборки).
+// &lt;ServerGarbageCollection&gt;true&lt;/ServerGarbageCollection&gt;</pre>
+      </div>
+      <div class="note teal" style="margin:0"><b>Жизненный цикл:</b> allocate — почти бесплатно (просто сдвиг указателя в gen 0); collect(0) — часто, миллисекунды; пережившие сборку едут в gen 1/2. Поэтому лучшая оптимизация под GC — <b>меньше аллоцировать</b>: переиспользовать буферы, пулы объектов (<code class="inline">ArrayPool&lt;T&gt;</code>), структуры вместо классов в hot-путях.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 05 FINALIZERS ================= -->
+<section id="m05">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">05</span><div><p class="skick">цена финализации</p><h2>Финализаторы: объект умирает дважды</h2></div></div>
+    <p class="tx reveal">Объект с финализатором (<code class="inline">~Class()</code>) CLR регистрирует в специальной очереди. На первой сборке такой объект <b>нельзя освобождать</b>: он продлевает себе жизнь и попадает в <b>f-reachable</b>, пока отдельный поток финализаторов (один на процесс!) не выполнит финализатор. И только на <b>следующей</b> сборке объект умрёт. Сравните судьбы двух объектов:</p>
+    <div class="demo reveal">
+      <div class="demo-h"><span class="live"></span><span class="ttl">Два объекта, две судьбы</span>
+        <button class="btn" id="fNext">Шаг →</button>
+        <button class="btn ghost" id="fRst">Сброс</button></div>
+      <div class="demo-b">
+        <div class="varrow" style="align-items:stretch">
+          <div class="finobj" id="fA"><div class="nm" style="color:var(--lime)">using var a = new Res()</div><div class="fst" id="fAs">создан · Dispose() вызван</div></div>
+          <div class="finobj" id="fB"><div class="nm" style="color:var(--rose)">var b = new Res() — забыт</div><div class="fst" id="fBs">создан · зарегистрирован в очереди финализации</div></div>
+        </div>
+        <div class="fq" id="fQ">f-reachable queue: пусто</div>
+        <div class="log" id="fLog" style="margin-top:12px"></div>
+      </div>
+    </div>
+    <div class="grid2 reveal" style="margin-top:20px">
+      <div class="codewrap">
+        <div class="codebar"><span class="fn">Resource.cs</span><span class="tag good">правильный паттерн</span></div>
+<pre class="code">class Res : IDisposable
+{
+    ~Res() { /* финализатор: аварийная уборка */ }
+
+    public void Dispose()
+    {
+        Cleanup();                     // освободить сейчас
+        GC.SuppressFinalize(this);     // вычеркнуть из очереди!
+    }
+}
+
+using var a = new Res();  // Dispose вызовется сам в конце блока</pre>
+      </div>
+      <div class="note rose" style="margin:0"><b>Выводы:</b> финализатор удлиняет жизнь объекта минимум на две сборки и нагружает единственный поток финализаторов. <code class="inline">Dispose</code> + <code class="inline">using</code> — детерминированно и дёшево; финализатор — только страховка для unmanaged-ресурсов. В .NET вместо финализаторов чаще берут <code class="inline">SafeHandle</code>.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 06 STRINGS ================= -->
+<section id="m06">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">06</span><div><p class="skick">текст внутри</p><h2>Строки: пул интернирования и неизменяемость</h2></div></div>
+    <p class="tx reveal">Все строковые <b>литералы</b> компилятор интернирует: одинаковый текст во всём приложении представлен <b>одним объектом</b>. Результат конкатенации переменных — всегда новый объект в куче. Проверьте ссылки:</p>
+    <div class="grid2 reveal">
+      <div class="demo">
+        <div class="demo-h"><span class="live"></span><span class="ttl">Пул интернированных строк</span>
+          <button class="btn ghost" id="iRst">Сброс</button></div>
+        <div class="demo-b">
+          <div class="varrow" style="margin-bottom:10px">
+            <button class="btn sm" id="iLit1">string a = "кот";</button>
+            <button class="btn sm" id="iLit2">string b = "кот";</button>
+            <button class="btn sm teal" id="iCon">var c = x + y;</button>
+            <button class="btn sm lime" id="iIntern">string.Intern(c)</button>
+          </div>
+          <div class="mono" style="font-size:11px;color:var(--dim);margin-bottom:4px">INTER POOL (живёт вечно)</div>
+          <div id="iPool" style="border:1px solid var(--line);border-radius:10px;padding:6px 10px;min-height:48px;background:#0a1020"></div>
+          <div class="mono" style="font-size:11px;color:var(--dim);margin:10px 0 4px">КУЧА</div>
+          <div id="iHeap" style="min-height:48px"></div>
+          <div class="log" id="iLog" style="margin-top:12px"></div>
+        </div>
+      </div>
+      <div class="codewrap">
+        <div class="codebar"><span class="fn">Intern.cs</span><span class="tag info">почему так</span></div>
+<pre class="code">string a = "кот";
+string b = "кот";
+ReferenceEquals(a, b);    // True — один объект из пула
+
+string x = "ко", y = "т"; // из переменных
+string c = x + y;         // НОВЫЙ объект "кот" в куче
+c == b;                   // True  — сравнивается текст
+ReferenceEquals(c, b);    // False — объекты разные
+string.Intern(c);         // теперь возьмётся из пула
+
+// Строка неизменяема: «правка» = новый объект.
+// Для чтения без копий: Memory&lt;char&gt; / ReadOnlySpan&lt;char&gt;
+"привет".AsSpan(0, 6);    // 0 аллокаций</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 07 VTABLE ================= -->
+<section id="m07">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">07</span><div><p class="skick">полиморфизм внутри</p><h2>MethodTable и разрешение виртуальных вызовов</h2></div></div>
+    <p class="tx reveal">У каждого типа есть <b>MethodTable</b> со слотами виртуальных методов. Инструкция <code class="inline">callvirt</code> берёт MethodTable <b>фактического</b> объекта и прыгает в нужный слот — так работает полиморфизм. Невиртуальные и sealed-вызовы JIT заменяет прямым <code class="inline">call</code> (devirtualization) — без таблицы. Проследите путь вызова:</p>
+    <div class="grid2 reveal">
+      <div class="demo">
+        <div class="demo-h"><span class="live"></span><span class="ttl">Разрешение вызова</span>
+          <div class="seg" id="vObj"><button data-o="dog" class="on">объект: Dog</button><button data-o="cat">объект: SealedCat</button></div></div>
+        <div class="demo-b">
+          <div class="varrow" style="margin-bottom:10px">
+            <button class="btn sm" id="vV">((Animal)obj).Speak()</button>
+            <button class="btn sm teal" id="vN">obj.Walk()</button>
+          </div>
+          <div class="mono" style="font-size:11px;color:var(--dim);margin-bottom:4px">METHOD TABLE + VTABLE</div>
+          <div id="vSlots">
+            <div class="slot" id="vs0"><span class="si">slot 0</span><span id="vs0t">Speak → …</span></div>
+            <div class="slot" id="vs1"><span class="si">slot 1</span><span>Walk → Animal.Walk</span></div>
+          </div>
+          <div class="log" id="vLog" style="margin-top:12px"></div>
+        </div>
+      </div>
+      <div class="codewrap">
+        <div class="codebar"><span class="fn">Dispatch.cs</span><span class="tag info">callvirt vs call</span></div>
+<pre class="code">class Animal
+{
+    public virtual string Speak() => "…";  // попадает в vtable
+    public void Walk() { }                 // обычный call
+}
+class Dog : Animal
+{
+    public override string Speak() => "Гав!"; // тот же слот!
+}
+sealed class SealedCat : Animal
+{
+    public override string Speak() => "Мяу!";
+}
+
+Animal a = new Dog();
+a.Speak();  // IL: callvirt → MethodTable(Dog) → slot 0
+// sealed/невиртуальный вызов JIT часто превращает
+// в прямой call — одна инструкция, без таблицы.</pre>
+      </div>
+    </div>
+    <div class="note reveal"><b>Интерфейсные вызовы</b> дороже виртуальных: у каждого типа своя карта интерфейсов, слот ищется через неё. Поэтому в горячих циклах <code class="inline">List&lt;T&gt;</code> c <code class="inline">for</code> бывает заметно быстрее <code class="inline">foreach</code> через <code class="inline">IEnumerable&lt;T&gt;</code>.</div>
+  </div>
+</section>
+
+<!-- ================= 08 STRUCT / SPAN ================= -->
+<section id="m08">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">08</span><div><p class="skick">значимые типы глубже</p><h2>Структуры: защитные копии и Span&lt;T&gt;</h2></div></div>
+    <p class="tx reveal">Компилятор иногда молча копирует структуру — <b>defensive copy</b>: когда метод <i>может</i> её изменить, а менять оригинал запрещено семантикой. <code class="inline">readonly struct</code> — обещание неизменяемости, которое снимает эти копии. Посчитайте копии для разных паттернов:</p>
+    <div class="grid2 reveal">
+      <div class="demo">
+        <div class="demo-h"><span class="live"></span><span class="ttl">Счётчик копий структуры</span>
+          <button class="btn ghost" id="cpRst">Сброс</button></div>
+        <div class="demo-b">
+          <button class="cpbtn" data-c="0">int x = local.X;  // локальная struct<b>0 копий</b></button>
+          <button class="cpbtn" data-c="1">int x = Prop.X;  // свойство вернуло struct по значению<b>+1 копия</b></button>
+          <button class="cpbtn" data-c="1">local.ToString();  // struct НЕ readonly<b>+1 копия</b></button>
+          <button class="cpbtn" data-c="0">roLocal.ToString();  // readonly struct<b>0 копий</b></button>
+          <button class="cpbtn" data-c="1">foreach (var v in structList)  // struct-энумератор копируется при IEnumerable<b>+1</b></button>
+          <div class="gres mono" style="margin-top:12px">всего скрытых копий: <b id="cpCnt" style="color:var(--rose);font-size:17px">0</b></div>
+        </div>
+      </div>
+      <div class="demo">
+        <div class="demo-h"><span class="live"></span><span class="ttl">Span&lt;T&gt; — окно в память без копий</span>
+          <button class="btn sm" id="spSlice">arr.AsSpan(2, 4)</button>
+          <button class="btn sm teal" id="spMut">span[1] = 99</button>
+          <button class="btn sm ghost" id="spRst">Сброс</button></div>
+        <div class="demo-b">
+          <div class="cells" id="spArr"></div>
+          <div class="log" id="spLog" style="margin-top:12px;min-height:60px"></div>
+        </div>
+      </div>
+    </div>
+    <div class="codewrap reveal" style="margin-top:20px">
+      <div class="codebar"><span class="fn">RefStruct.cs</span><span class="tag new">stack-only</span></div>
+<pre class="code">Span&lt;int&gt; span = stackalloc int[64];  // стек, 0 аллокаций
+Span&lt;int&gt; view = arr.AsSpan(2, 4);    // указатель + длина
+
+// Span&lt;T&gt; — ref struct: живёт ТОЛЬКО в стеке.
+// Нельзя: поле класса, переменная в лямбде, локальная в async.
+// Компилятор гарантирует: указатель никогда не укажет в кучу
+// после её освобождения — безопасность без сборщика.
+
+// Родственники: Memory&lt;T&gt; (можно хранить, .Slice().Span),
+// ReadOnlySequence&lt;T&gt;, ArrayPool&lt;T&gt;.Shared.Rent(1024)</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 09 CLOSURES ================= -->
+<section id="m09">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">09</span><div><p class="skick">лямбды внутри</p><h2>Замыкания: display-классы и ловушка цикла</h2></div></div>
+    <p class="tx reveal">Когда лямбда захватывает переменную, компилятор создаёт <b>display-класс</b> в куче: переменная становится его полем, а делегат хранит ссылку на экземпляр. Лямбда без захвата — статический кэш <code class="inline">&lt;&gt;c&lt;&gt;.Instance</code>, ноль аллокаций. Классическая ловушка: переменная цикла <code class="inline">for</code> у всех лямбд одна.</p>
+    <div class="grid2 reveal">
+      <div class="demo">
+        <div class="demo-h"><span class="live"></span><span class="ttl">Что создаст компилятор?</span></div>
+        <div class="demo-b">
+          <div class="varrow" style="margin-bottom:10px">
+            <button class="btn sm" id="clCap">x => x > threshold  (захват)</button>
+            <button class="btn sm teal" id="clNo">x => x > 10  (без захвата)</button>
+          </div>
+          <div id="clView" class="disp" style="display:none"></div>
+          <div class="log" id="clLog" style="margin-top:12px"></div>
+        </div>
+      </div>
+      <div class="demo">
+        <div class="demo-h"><span class="live"></span><span class="ttl">Ловушка переменной цикла</span>
+          <button class="btn sm rose" id="clBad">for + () => i</button>
+          <button class="btn sm lime" id="clGood">for + int local = i</button></div>
+        <div class="demo-b">
+          <div class="log" id="clLoop" style="min-height:130px"></div>
+        </div>
+      </div>
+    </div>
+    <div class="note rose reveal"><b>foreach</b> начиная с C# 5 создаёт новую переменную на каждой итерации — там ловушки нет. В <code class="inline">for</code> переменная одна на весь цикл: лямбды захватывают <i>её</i>, а не снимок значения. Лечение: локальная копия внутри тела цикла.</div>
+  </div>
+</section>
+
+<!-- ================= 10 ITERATORS ================= -->
+<section id="m10">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">10</span><div><p class="skick">машина генератора</p><h2>yield return: итератор — это state machine</h2></div></div>
+    <p class="tx reveal">Метод с <code class="inline">yield return</code> компилируется в класс-итератор с полем состояния: тело <b>не выполняется</b> при вызове — оно возобновляется по одному шагу на каждый <code class="inline">MoveNext()</code>, запоминая, где остановилось. Пошагайте вручную:</p>
+    <div class="grid2 wide reveal">
+      <div class="demo">
+        <div class="demo-h"><span class="live"></span><span class="ttl">IEnumerable&lt;int&gt; Squares()</span>
+          <button class="btn" id="yMove">MoveNext()</button>
+          <button class="btn teal" id="yEach">foreach (авто)</button>
+          <button class="btn ghost" id="yRst">Сброс</button></div>
+        <div class="demo-b">
+          <div class="varrow" style="margin-bottom:10px">
+            <span class="stbadge" id="yState">state: ещё не создан</span>
+            <span class="stbadge" style="background:rgba(63,224,197,.12);color:var(--teal);border-color:rgba(63,224,197,.4)">Current: <span id="yCur">—</span></span>
+          </div>
+          <div class="log" style="max-height:none">
+            <div class="codeline" id="yL0">IEnumerable&lt;int&gt; Squares()</div>
+            <div class="codeline" id="yL1">{</div>
+            <div class="codeline" id="yL2">    for (int i = 1; i &lt;= 3; i++)</div>
+            <div class="codeline" id="yL3">        yield return i * i;   // пауза</div>
+            <div class="codeline" id="yL4">}</div>
+          </div>
+          <div class="mono" style="margin-top:10px;font-size:12px;color:var(--dim)">выдано: <span id="yOut" style="color:var(--lime)"></span></div>
+        </div>
+      </div>
+      <div class="codewrap">
+        <div class="codebar"><span class="fn">Iterator.cs</span><span class="tag info">что генерирует компилятор</span></div>
+<pre class="code">// Грубый эквивалент сгенерированного класса:
+class Squares_Enumerator : IEnumerator&lt;int&gt;
+{
+    int state = 0, i, current;
+    public bool MoveNext()
+    {
+        // state 0: вход, i = 1
+        // state 1: проверить i &lt;= 3, current = i*i,
+        //          state = 2, return true  (пауза!)
+        // state 2: i++, goto state 1
+        // конец: return false
+    }
+    public int Current => current;
+}
+// Следствия: один аллоцированный объект-итератор,
+// отложенное выполнение, повторный foreach = новый итератор.</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 11 ASYNC MACHINE ================= -->
+<section id="m11">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">11</span><div><p class="skick">асинхронность внутри</p><h2>async/await: машина состояний под капотом</h2></div></div>
+    <p class="tx reveal">Каждый async-метод компилируется в структуру, реализующую <code class="inline">IAsyncStateMachine</code>: поле <code class="inline">state</code>, локальные переменные как поля, метод <code class="inline">MoveNext()</code>. На незавершённом await метод <b>возвращает управление</b>, регистрируя продолжение; поток освобождается. Пройдите по шагам:</p>
+    <div class="grid2 wide reveal">
+      <div class="demo">
+        <div class="demo-h"><span class="live"></span><span class="ttl">LoadAsync() — пошагово</span>
+          <button class="btn" id="aStep">Шаг →</button>
+          <button class="btn ghost" id="aRst">Сброс</button></div>
+        <div class="demo-b">
+          <div class="varrow" style="margin-bottom:10px">
+            <span class="stbadge" id="aState">state: —</span>
+            <span class="thr busy" id="aThr">поток: занят</span>
+            <span class="mono" style="font-size:11.5px;color:var(--dim)">поля автомата: <span id="aHeap" style="color:var(--vio)">a=?, b=?</span></span>
+          </div>
+          <div class="log" style="max-height:none">
+            <div class="codeline" id="aL0">async Task&lt;string&gt; LoadAsync()</div>
+            <div class="codeline" id="aL1">{</div>
+            <div class="codeline" id="aL2">    var a = await GetA();      // state 0 → 1</div>
+            <div class="codeline" id="aL3">    var b = await GetB(a);     // state 1 → 2</div>
+            <div class="codeline" id="aL4">    return a + b;</div>
+            <div class="codeline" id="aL5">}</div>
+          </div>
+          <div class="log" id="aLog" style="margin-top:10px"></div>
+        </div>
+      </div>
+      <div class="codewrap">
+        <div class="codebar"><span class="fn">StateMachine.cs</span><span class="tag info">цена и оптимизации</span></div>
+<pre class="code">// Эквивалент того, что строит компилятор:
+struct LoadAsync_SM : IAsyncStateMachine
+{
+    public int state;          // -1 выполняется, 0,1,2…
+    public string a, b;        // локальные переменные
+    TaskAwaiter&lt;string&gt; aw;
+    public void MoveNext() { /* switch (state) … */ }
+}
+
+// Оптимизации .NET 6+:
+// 1) await уже завершённой задачи — без «парковки», синхронно
+// 2) пул объектов состояния — меньше аллокаций
+// 3) ValueTask / IValueTaskSource — для очень частых вызовов
+// 4) AsyncMethodBuilder-кастомизация для библиотек</pre>
+      </div>
+    </div>
+    <div class="note teal reveal"><b>Продолжение возвращается</b> туда, откуда ждали: в UI-потоке — через SynchronizationContext, в библиотеках без контекста — в пул. Отсюда правило: в библиотеках <code class="inline">ConfigureAwait(false)</code>, и никакого <code class="inline">.Result</code> поверх async — классический дедлок строится именно на этом механизме.</div>
+  </div>
+</section>
+
+<!-- ================= 12 EXCEPTIONS ================= -->
+<section id="m12">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">12</span><div><p class="skick">исключения внутри</p><h2>Два прохода: поиск обработчика и раскрутка</h2></div></div>
+    <p class="tx reveal">Когда брошено исключение, CLR делает <b>два прохода</b> по стеку вызовов: первый ищет подходящий <code class="inline">catch</code>, второй — раскручивает стек, выполняя <code class="inline">finally</code> в пройденных кадрах. Исключение — объект, и stack trace заполняется в момент throw. Запустите:</p>
+    <div class="grid2 wide reveal">
+      <div class="demo">
+        <div class="demo-h"><span class="live"></span><span class="ttl">Стек вызовов: Main → A → B → C</span>
+          <button class="btn rose" id="exThrow">throw new DivideByZeroException()</button>
+          <button class="btn ghost" id="exRst">Сброс</button></div>
+        <div class="demo-b">
+          <div class="frame" id="frMain">Main<span class="fd"> — точка входа</span></div>
+          <div class="frame" id="frA">A()<span class="fd"> — catch (DivideByZeroException)</span></div>
+          <div class="frame" id="frB">B()<span class="fd"> — только finally</span></div>
+          <div class="frame" id="frC">C()<span class="fd"> — здесь бросят исключение</span></div>
+          <div class="log" id="exLog" style="margin-top:12px"></div>
+        </div>
+      </div>
+      <div class="codewrap">
+        <div class="codebar"><span class="fn">Cost.cs</span><span class="tag bad">цена throw</span></div>
+<pre class="code">// throw = новый объект + stack trace + ДВА прохода
+// по стеку. Дёшево для редких аварий, дорого в циклах.
+
+// АНТИПАТТЕРН: исключения как управление потоком
+for (int i = 0; i &lt; n; i++)
+    try { arr[i] = int.Parse(input[i]); }
+    catch (FormatException) { }      // медленно!
+
+// ПАТТЕРН: TryX вместо исключений
+if (int.TryParse(s, out var v)) { }
+dict.TryGetValue(k, out var val);
+
+// catch фильтры (не ловят лишнего):
+catch (HttpException e) when (e.Status == 404) { }</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 13 COLLECTIONS ================= -->
+<section id="m13">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">13</span><div><p class="skick">коллекции внутри</p><h2>Dictionary: корзины, цепочки и rehash</h2></div></div>
+    <p class="tx reveal">Внутри словаря — массив корзин и связные цепочки записей. При переполнении порога (ёмкость × 0.72) происходит <b>resize</b>: новый массив примерно вдвое больше (простое число), и <b>все</b> записи пересчитываются заново — это дорого, но амортизируется. Добавьте записи и поймайте resize:</p>
+    <div class="demo reveal">
+      <div class="demo-h"><span class="live"></span><span class="ttl">capacity = <span id="dcCap">4</span> · count = <span id="dcCnt">0</span> · threshold = <span id="dcTh">2</span></span>
+        <button class="btn" id="dcAdd">Добавить следующего зверя</button>
+        <button class="btn ghost" id="dcRst">Сброс</button></div>
+      <div class="demo-b">
+        <div class="buckets" id="dcBk">
+          <div class="bucket" id="db0"><div class="bt">корзина 0</div></div>
+          <div class="bucket" id="db1"><div class="bt">корзина 1</div></div>
+          <div class="bucket" id="db2"><div class="bt">корзина 2</div></div>
+          <div class="bucket" id="db3"><div class="bt">корзина 3</div></div>
+        </div>
+        <div class="log" id="dcLog" style="margin-top:12px"></div>
+      </div>
+    </div>
+    <div class="grid2 reveal" style="margin-top:20px">
+      <div class="codewrap">
+        <div class="codebar"><span class="fn">Capacity.cs</span><span class="tag info">и List&lt;T&gt; тоже</span></div>
+<pre class="code">// Угадали ёмкость заранее — ни одного resize:
+var dict = new Dictionary&lt;string, int&gt;(capacity: 10_000);
+var list = new List&lt;int&gt;(capacity: 10_000);
+
+// List&lt;T&gt;: массив T[], при Add сверх capacity —
+// удвоение и копирование всего массива: 4 → 8 → 16…
+// Отсюда амортизированное O(1) на Add и деградация
+// Insert(0) до O(n) — элементы сдвигаются.
+
+// Dictionary: цепочки в одной корзине = O(цепочка).
+// Плохой GetHashCode() превращает словарь в список.</pre>
+      </div>
+      <div class="note" style="margin:0"><b>Вывод для продакшена:</b> если знаете размер заранее — задавайте <code class="inline">capacity</code> в конструкторе; для словаря пишите честный <code class="inline">GetHashCode</code> (и <code class="inline">Equals</code>!) или передавайте <code class="inline">IEqualityComparer&lt;T&gt;</code>. Горячие множества — <code class="inline">HashSet&lt;T&gt;</code>, очереди — <code class="inline">Queue/ConcurrentQueue</code>.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 14 EXAM ================= -->
+<section id="m14">
+  <div class="wrap">
+    <div class="shead reveal"><span class="snum">14</span><div><p class="skick">практика</p><h2>Прайс-лист аллокаций и экзамен</h2></div></div>
+    <h3 class="reveal">Что и сколько аллоцирует (и как избежать)</h3>
+    <div class="reveal" style="overflow-x:auto">
+      <table class="tbl">
+        <tr><th>Действие</th><th>Цена</th><th>Как избежать</th></tr>
+        <tr><td>boxing структуры</td><td class="m">+24 байта/раз, нагрузка на GC</td><td>generics, List&lt;T&gt; вместо ArrayList</td></tr>
+        <tr><td>лямбда с захватом</td><td class="m">display-класс + делегат</td><td>статические лямбды, передавать состояние параметром</td></tr>
+        <tr><td>итератор yield</td><td class="m">объект-итератор на каждый вызов</td><td>для hot-path — обычные методы со Span/List</td></tr>
+        <tr><td>async-метод</td><td class="m">state machine (иногда)</td><td>ValueTask, fast-path до первого await</td></tr>
+        <tr><td>LINQ-цепочка</td><td class="m">делегат + итератор на каждую операцию</td><td>один проход вручную, span-циклы</td></tr>
+        <tr><td>s += в цикле</td><td class="m">N новых строк</td><td>StringBuilder, string.Create</td></tr>
+        <tr><td>new делегат на каждый вызов</td><td class="m">объект делегата</td><td>кэшировать, static-методы</td></tr>
+        <tr><td>params object[]</td><td class="m">массив + boxing структур</td><td>перегрузки с конкретными арностями / span</td></tr>
+        <tr><td>foreach по IEnumerable&lt;T&gt; из struct-энумератора</td><td class="m">boxing энумератора</td><td>var list + for, либо конкретный тип переменной</td></tr>
+        <tr><td>resize коллекций</td><td class="m">новый массив + копирование</td><td>ёмкость в конструкторе</td></tr>
+      </table>
+    </div>
+    <div class="note teal reveal"><b>Как измерять правильно:</b> BenchmarkDotNet (разогрев, много итераций, отдельные процессы), Release-сборка без отладчика, <code class="inline">[MemoryDiagnoser]</code> для аллокаций. Микро-бенчмарки врут: JIT, инлайнинг и удаление мёртвого кода искажают результаты — измеряйте сценарий, а не строку.</div>
+
+    <h3 class="reveal" style="margin-top:34px">Экзамен <span class="score">Счёт: <span id="quizScore">0</span>/10</span></h3>
+
+    <div class="qz reveal"><p class="qt">1. Сколько байт занимает пустой class Empty { } на x64?</p>
+      <div class="opts">
+        <button class="opt">0 байт — полей же нет</button>
+        <button class="opt">8 байт — только указатель типа</button>
+        <button class="opt" data-ok>24 байта: sync block (8) + указатель MethodTable (8) + выравнивание</button>
+        <button class="opt">Зависит от сборщика мусора</button>
+      </div><div class="expl">Заголовок обязателен у любого объекта в куче: sync block для lock/хэш-кода и указатель на MethodTable. Минимум 24 байта на x64 (16 на x86).</div></div>
+
+    <div class="qz reveal">
+      <div class="codewrap"><div class="codebar"><span class="fn">Q2.cs</span></div>
+<pre class="code">int i = 42;
+object o = i;</pre></div>
+      <p class="qt">2. Где теперь живёт значение 42 из переменной o?</p>
+      <div class="opts">
+        <button class="opt">В стеке, рядом с o</button>
+        <button class="opt" data-ok>В куче, внутри объекта-«коробки» с заголовком; o — ссылка на него</button>
+        <button class="opt">В регистре процессора до первого GC</button>
+        <button class="opt">42 хранится прямо в ссылке o (small object optimization)</button>
+      </div><div class="expl">Это boxing: аллокация ~24 байта в куче и копирование значения. Каждая новая упаковка — новый объект.</div></div>
+
+    <div class="qz reveal"><p class="qt">3. Когда запускается сборка gen 0?</p>
+      <div class="opts">
+        <button class="opt">По таймеру раз в секунду</button>
+        <button class="opt" data-ok>Когда аллокации исчерпали бюджет gen 0 и не помещаются в сегмент</button>
+        <button class="opt">При каждом выходе из метода</button>
+        <button class="opt">Только по явному GC.Collect()</button>
+      </div><div class="expl">Сборка триггерится давлением аллокаций: бюджет gen 0 исчерпан → сборка, выжившие продвигаются в gen 1. Поэтому дешевле всего — меньше аллоцировать.</div></div>
+
+    <div class="qz reveal"><p class="qt">4. Объект с финализатором забыли задиспозить. Минимум сколько сборок GC нужно до освобождения памяти?</p>
+      <div class="opts">
+        <button class="opt">Одна</button>
+        <button class="opt" data-ok>Две: первая переводит в f-reachable, финализатор выполняется отдельным потоком, вторая освобождает</button>
+        <button class="opt">Три</button>
+        <button class="opt">Память не освободится никогда</button>
+      </div><div class="expl">Объект переживает первую сборку (его нельзя трогать до финализации), поток финализаторов вызывает ~Class(), и только следующая сборка освобождает память. Плюс объект успевает попасть в старшее поколение.</div></div>
+
+    <div class="qz reveal">
+      <div class="codewrap"><div class="codebar"><span class="fn">Q5.cs</span></div>
+<pre class="code">string a = "мир";
+string b = "мир";
+Console.WriteLine(ReferenceEquals(a, b));</pre></div>
+      <p class="qt">5. Что выведется?</p>
+      <div class="opts">
+        <button class="opt">False — две переменные, два объекта</button>
+        <button class="opt" data-ok>True — литералы интернируются, это один объект из пула</button>
+        <button class="opt">Зависит от культуры</button>
+        <button class="opt">Бросится исключение</button>
+      </div><div class="expl">Компилятор заносит литералы в пул интернированных строк: одинаковый текст — одна ссылка на всё приложение. Конкатенация переменных создаёт новые объекты вне пула.</div></div>
+
+    <div class="qz reveal"><p class="qt">6. Animal a = new Dog(); a.Speak(); — по чему CLR находит реализацию Speak?</p>
+      <div class="opts">
+        <button class="opt">По типу переменной a — Animal</button>
+        <button class="opt" data-ok>По MethodTable фактического объекта (Dog): callvirt → слот vtable</button>
+        <button class="opt">По алфавиту методов</button>
+        <button class="opt">Решает JIT на этапе компиляции сборки</button>
+      </div><div class="expl">callvirt берёт указатель MethodTable из заголовка объекта — а там тип Dog. Так и работает полиморфизм: слот один, реализации разные.</div></div>
+
+    <div class="qz reveal">
+      <div class="codewrap"><div class="codebar"><span class="fn">Q7.cs</span></div>
+<pre class="code">var acts = new List&lt;Action&gt;();
+for (int i = 0; i &lt; 3; i++)
+    acts.Add(() => Console.Write(i));
+foreach (var a in acts) a();</pre></div>
+      <p class="qt">7. Что напечатается?</p>
+      <div class="opts">
+        <button class="opt">012</button>
+        <button class="opt" data-ok>333</button>
+        <button class="opt">000</button>
+        <button class="opt">Ничего</button>
+      </div><div class="expl">Все лямбды захватили одну переменную i из display-класса. К моменту вызова цикл завершён и i == 3. Спасает локальная копия: int local = i внутри цикла. В foreach (с C# 5) переменная новая на каждой итерации.</div></div>
+
+    <div class="qz reveal"><p class="qt">8. Метод с yield return вызван, но результат ещё никто не перебирал. Что уже выполнилось из тела?</p>
+      <div class="opts">
+        <button class="opt">Всё тело заранее</button>
+        <button class="opt" data-ok>Ничего — выполнение отложено до первого MoveNext()</button>
+        <button class="opt">Первая строка</button>
+        <button class="opt">Тело выполнится в фоновом потоке</button>
+      </div><div class="expl">Вызов возвращает объект-итератор, тело стартует только при перечислении и приостанавливается на каждом yield return. Поэтому бросить исключение проверки аргументов до foreach не получится (частый источник багов).</div></div>
+
+    <div class="qz reveal"><p class="qt">9. В async-методе стоит await уже завершённой задачи (например, кэш вернул результат сразу). Что сделает машина состояний?</p>
+      <div class="opts">
+        <button class="opt">Всё равно припаркует метод и освободит поток</button>
+        <button class="opt" data-ok>Продолжит выполнение синхронно, без парковки и регистрации продолжения</button>
+        <button class="opt">Бросит InvalidOperationException</button>
+        <button class="opt">Перезапустит метод</button>
+      </div><div class="expl">awaiter.IsCompleted == true → продолжаем сразу. На этом строятся fast-path кэшей и ValueTask: частый синхронный результат без аллокаций и переключений.</div></div>
+
+    <div class="qz reveal"><p class="qt">10. Почему Span&lt;T&gt; запрещено хранить в полях класса или захватывать в лямбду?</p>
+      <div class="opts">
+        <button class="opt">Это устаревшее ограничение, скоро снимут</button>
+        <button class="opt" data-ok>Span — ref struct: он обязан жить только в стеке, иначе указатель может пережить данные, на которые смотрит</button>
+        <button class="opt">Span слишком медленный для кучи</button>
+        <button class="opt">Из-за конфликта с generics</button>
+      </div><div class="expl">ref struct — гарантия компилятора: указатель/срез никогда не окажется в куче и не «повиснет» после освобождения памяти. Это безопасность нулевой цены без сборщика.</div></div>
+
+    <h3 class="reveal" style="margin-top:30px">Мини-глоссарий</h3>
+    <p class="tx reveal"><code class="inline">IL</code> — промежуточный язык сборок · <code class="inline">JIT</code> — перевод IL в машинный код при первом вызове · <code class="inline">MethodTable</code> — метаданные типа + vtable · <code class="inline">sync block</code> — lock/хэш-код объекта · <code class="inline">SOH/LOH</code> — малая/большая куча · <code class="inline">gen 0/1/2</code> — поколения GC · <code class="inline">f-reachable</code> — очередь финализации · <code class="inline">display class</code> — класс захвата лямбды · <code class="inline">state machine</code> — итераторы и async · <code class="inline">PGO</code> — оптимизация по профилю · <code class="inline">work-stealing</code> — очереди пула потоков.</p>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>🔬 C# и CLR под микроскопом · 14 глав о внутренностях · x64 / .NET 6+</span>
+    <span>Симуляции упрощены для наглядности · размеры байтов приведены для x64</span>
+  </div>
+</footer>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+const CSRE=/(\/\/[^\n]*)|(\$?"(?:[^"\\]|\\.)*"|\$@"(?:[^"]|"")*")|('(?:[^'\\]|\\.)')|\b(async|await|abstract|as|base|break|case|catch|checked|class|const|continue|default|delegate|do|else|enum|event|explicit|extern|false|finally|fixed|for|foreach|goto|if|implicit|in|interface|internal|is|lock|nameof|namespace|new|not|null|object|operator|or|and|out|override|params|private|protected|public|readonly|record|ref|return|sealed|sizeof|stackalloc|static|string|struct|switch|this|throw|true|try|typeof|unchecked|unsafe|using|var|virtual|void|volatile|while|yield|int|long|double|float|bool|char|byte|decimal|uint|ulong|when|where|select|from|orderby|init|get|set|value|global|with)\b|\b([A-Za-z_][A-Za-z0-9_]*)(?=\s*\()|\b([A-Z][A-Za-z0-9_]*)\b|\b(\d[\d_]*(?:\.\d+)?)\b/g;
+function hlCs(src){let out='',last=0,m;CSRE.lastIndex=0;
+  while((m=CSRE.exec(src))){out+=esc(src.slice(last,m.index));
+    const cls=m[1]?'c-cm':m[2]?'c-st':m[3]?'c-st':m[4]?'c-kw':m[5]?'c-fn':m[6]?'c-ty':'c-nu';
+    out+='<span class="'+cls+'">'+esc(m[0])+'</span>';last=m.index+m[0].length;}
+  return out+esc(src.slice(last));}
+$$('pre.code').forEach(p=>p.innerHTML=hlCs(p.textContent));
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.12});
+$$('.reveal').forEach(el=>io.observe(el));
+addEventListener('scroll',()=>{const h=document.documentElement;$('#prog').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%'},{passive:true});
+const railIO=new IntersectionObserver(es=>es.forEach(e=>{const a=$('#rail a[href="#'+e.target.id+'"]');if(a)a.classList.toggle('on',e.isIntersecting)}),{rootMargin:'-30% 0px -55% 0px'});
+$$('main section').forEach(s=>railIO.observe(s));
+function logLine(box,text,cls){const d=document.createElement('div');d.className='ll '+(cls||'');d.textContent=text;box.appendChild(d);while(box.children.length>60)box.firstChild.remove();box.scrollTop=box.scrollHeight}
+
+/* герой */
+(function(){
+  const scenes=[
+    {c:'object o = 42;',o:'box System.Int32 → +24 байта в куче, копирование значения'},
+    {c:'var xs = new int[1024];',o:'newarr → 4 КБ + заголовок массива в SOH (gen 0)'},
+    {c:'dog.Speak();',o:'callvirt → MethodTable(Dog) → slot 0 → jmp Dog.Speak'},
+    {c:'await Task.Delay(1);',o:'state machine: парк, поток пула свободен, continuation позже'}
+  ];
+  const codeEl=$('#heroCode'),outEl=$('#heroOut');let si=0;
+  async function play(){
+    const s=scenes[si];outEl.textContent='';
+    for(let i=0;i<=s.c.length;i++){codeEl.innerHTML=hlCs(s.c.slice(0,i))+'<span class="caret"></span>';await sleep(30)}
+    await sleep(300);outEl.textContent=s.o;await sleep(2800);si=(si+1)%scenes.length;play();
+  }
+  play();
+})();
+
+/* 01 JIT */
+(function(){
+  let calls=0,tier=0,busy=false;
+  const TIER0='push rbp\nmov  rbp, rsp\nmov  [rbp-04], ecx   ; a\nmov  [rbp-08], edx   ; b\nmov  eax, [rbp-04]\nadd  eax, [rbp-08]\npop  rbp\nret';
+  const TIER1='lea  eax, [rcx+rdx]  ; одна инструкция\nret';
+  function paint(){
+    $('#jCalls').textContent=calls;
+    $('#jTier').textContent=tier===0?'—':('Tier-'+tier);
+    $('#jIns').textContent=tier===0?'—':(tier===1?8:2);
+  }
+  async function call(n){
+    if(busy)return;busy=true;
+    for(let i=0;i<n;i++){
+      calls++;
+      if(calls===1){
+        tier=1;$('#jIL').classList.remove('dim');
+        logLine($('#jLog'),'первый вызов: JIT компилирует Tier-0 (быстро, без оптимизаций)…','l-info');
+        await sleep(500);
+        $('#jMC').classList.remove('dim');$('#jMCText').textContent=TIER0;
+        logLine($('#jLog'),'Tier-0 готов: 8 инструкций, проверки границ и рамка кадра на месте','l-tea');
+      }
+      if(calls===30){
+        tier=2;$('#jMC').classList.add('hot');
+        $('#jBadge').style.display='inline-block';$('#jBadge').textContent='перекомпилирован';
+        logLine($('#jLog'),'метод «горячий» (30 вызовов): фоновая перекомпиляция Tier-1 с оптимизациями…','l-warn');
+        await sleep(600);
+        $('#jMCText').textContent=TIER1;
+        logLine($('#jLog'),'Tier-1: инлайнинг, убрана рамка кадра — 2 инструкции вместо 8','l-ok');
+      }
+      paint();
+      if(n>1)await sleep(25);
+    }
+    busy=false;
+  }
+  $('#j1').addEventListener('click',()=>call(1));
+  $('#j30').addEventListener('click',()=>call(30));
+  $('#jRst').addEventListener('click',()=>{calls=0;tier=0;paint();
+    $('#jIL').classList.add('dim');$('#jMC').classList.add('dim');$('#jMC').classList.remove('hot');
+    $('#jBadge').style.display='none';$('#jMCText').textContent='// ещё не скомпилирован';$('#jLog').innerHTML=''});
+  paint();
+})();
+
+/* 02 объект */
+(function(){
+  const SEG={
+    sync:'sync block (8 Б): индекс монитора для lock, кэшированный GetHashCode, данные GC. Находится ПЕРЕД указателем на объект — ссылка на самом деле указывает сюда минус 8 байт.',
+    mt:'MethodTable* (8 Б): указатель на «паспорт типа» — метаданные, список интерфейсов и vtable виртуальных методов. Именно его читает callvirt.',
+    pad:'Выравнивание: размер объекта в куче кратен 8 байтам (x64), иначе GC не сможет компактно размещать объекты.',
+    f:'Поле объекта. Порядок полей CLR может переупорядочивать для экономии места (automatic layout).'
+  };
+  const TYPES={
+    point:{name:'class Point { public int X, Y; }',segs:[['sync',8],['mt',8],['X : int',4],['Y : int',4]],total:'24 байта — минимальный осмысленный объект'},
+    user:{name:'class User { int Id; string Name; bool Active; }',segs:[['sync',8],['mt',8],['Id : int',4],['Name : string*',8],['Active : bool',1],['pad',3]],total:'32 байта (29 → выравнивание до 32)'},
+    str:{name:'string "привет" (6 символов UTF-16)',segs:[['sync',8],['mt',8],['_stringLength : int',4],['символы ×2 = 12 Б',12],['"\\0" : 2 Б',2],['pad',6]],total:'40 байт (+2 байта терминатор)'},
+    arr:{name:'int[] { 1, 2, 3 }',segs:[['sync',8],['mt',8],['numComponents : 8 Б',8],['_numItems : 8 Б',8],['элементы 3×4 = 12 Б',12],['pad',4]],total:'48 байт — у массивов свой расширенный заголовок'}
+  };
+  const COLS={sync:'var(--rose)',mt:'var(--teal)',pad:'var(--dim)'};
+  function draw(k){
+    const t=TYPES[k];
+    $('#oiName').textContent=t.name;
+    $('#oiTotal').textContent=t.total;
+    const row=$('#oiRow');row.innerHTML='';
+    t.segs.forEach(s=>{
+      const key=s[0]==='sync'||s[0]==='mt'||s[0]==='pad'?s[0]:'f';
+      const d=document.createElement('div');d.className='bseg';
+      d.style.flexGrow=s[1];
+      d.style.background=COLS[key]||(['var(--amber)','var(--sky)','var(--vio)'][row.children.length%3]);
+      d.innerHTML='<span>'+esc(s[0])+'</span><i>'+s[1]+' Б</i>';
+      d.addEventListener('click',()=>{$('#oiExpl').textContent=SEG[key]});
+      row.appendChild(d);
+    });
+  }
+  $$('#oiSeg button').forEach(b=>b.addEventListener('click',()=>{
+    $$('#oiSeg button').forEach(x=>x.classList.remove('on'));b.classList.add('on');draw(b.dataset.t);
+  }));
+  draw('point');
+})();
+
+/* 03 boxing */
+(function(){
+  let alloc=0;
+  const st=$('#bStack'),hp=$('#bHeap'),L=$('#bLog');
+  function stackCell(n,v){return '<div class="vbox" style="min-width:90px">'+n+'<b>'+v+'</b></div>'}
+  function render(stacks,heaps){st.innerHTML=stacks.join('');hp.innerHTML=heaps.length?heaps.join(''):'<span style="color:var(--dim);font-size:12px" class="mono">пусто</span>'}
+  function box(v){return '<span class="heapobj" style="border-color:rgba(255,180,84,.5);color:var(--amber)">box: заголовок 16Б + int '+v+'</span>'}
+  function paintInit(){alloc=0;$('#bCnt').textContent='0';L.innerHTML='';
+    render([stackCell('int i',5)],[]);}
+  $('#bBox').addEventListener('click',()=>{alloc++;$('#bCnt').textContent=alloc;
+    render([stackCell('int i',5),stackCell('object o','→ box')],[box(5)]);
+    logLine(L,'BOX: аллокация ~24 байта в куче + копирование значения 5','l-warn')});
+  $('#bBox2').addEventListener('click',()=>{alloc++;$('#bCnt').textContent=alloc;
+    render([stackCell('int i',5),stackCell('object o','→ box₁'),stackCell('object o2','→ box₂')],[box(5),box(5)]);
+    logLine(L,'BOX ещё раз: второй объект — коробки НЕ переиспользуются','l-warn')});
+  $('#bUnbox').addEventListener('click',()=>{
+    render([stackCell('int i',5),stackCell('object o','→ box'),stackCell('int j',5)],[box(5)]);
+    logLine(L,'UNBOX: проверка типа + копирование из кучи. Аллокаций: 0','l-tea')});
+  $('#bArrL').addEventListener('click',()=>{alloc+=1000;$('#bCnt').textContent=alloc;
+    logLine(L,'ArrayList.Add(int) ×1000: каждый элемент упакован → 1000 объектов!','l-err')});
+  $('#bList').addEventListener('click',()=>{
+    logLine(L,'List<int>.Add ×1000: generic хранит int напрямую → 0 коробок','l-ok')});
+  paintInit();
+})();
+
+/* 04 GC */
+(function(){
+  let objs=[],nextId=1,stats={al:0,fr:0,s0:0,s1:0,s2:0},auto=null,busy=false;
+  const GEN_COLORS=['#3fe0c5','#ffb454','#c08bff'];
+  function render(mark){
+    const rows={0:$('#gc0'),1:$('#gc1'),2:$('#gc2'),l:$('#gcl')};
+    Object.values(rows).forEach(r=>r.innerHTML='');
+    objs.forEach(o=>{
+      const c=document.createElement('span');
+      c.className='gchip'+(o.big?' big':'')+(o.dead?' dead':'');
+      c.style.background=o.big?'var(--rose)':GEN_COLORS[o.gen];
+      c.textContent=(o.rooted?'⚓ ':'')+o.id+(o.big?' ·85КБ':'');
+      c.addEventListener('click',()=>{if(!busy){o.rooted=!o.rooted;render()}});
+      rows[o.big?'l':o.gen].appendChild(c);
+    });
+    const cnt=g=>objs.filter(o=>!o.big&&o.gen===g&&!o.dead).length;
+    $('#gc0n').textContent=cnt(0)+' объектов';$('#gc1n').textContent=cnt(1)+' объектов';
+    $('#gc2n').textContent=cnt(2)+' объектов';$('#gcln').textContent=objs.filter(o=>o.big&&!o.dead).length+' объектов';
+    $('#gAl').textContent=stats.al;$('#gFr').textContent=stats.fr;
+    $('#gS0').textContent=stats.s0;$('#gS1').textContent=stats.s1;$('#gS2').textContent=stats.s2;
+  }
+  function alloc(n,big){
+    for(let i=0;i<n;i++){
+      objs.push({id:nextId++,gen:0,rooted:Math.random()<0.3,big:big||false});stats.al++;
+    }
+    render();
+  }
+  async function collect(maxGen){
+    if(busy)return;busy=true;
+    // mark
+    objs.forEach(o=>{
+      if(o.big){if(maxGen===2&&!o.rooted)o.dead=true;return}
+      if(o.gen<=maxGen&&!o.rooted)o.dead=true;
+    });
+    render(true);
+    const affected=objs.filter(o=>o.big?maxGen===2:o.gen<=maxGen);
+    const pause=(affected.length*0.4+0.5).toFixed(1);
+    await sleep(650);
+    // promote & sweep
+    let promoted=0,freed=0;
+    objs.forEach(o=>{
+      if(o.dead){freed++;return}
+      if(!o.big&&o.gen<2&&o.gen<maxGen+0){}
+      if(!o.big&&o.gen<=maxGen&&o.gen<2){o.gen++;promoted++}
+    });
+    objs=objs.filter(o=>!o.dead);
+    stats.fr+=freed;
+    if(maxGen===0)stats.s0++;
+    if(maxGen===1){stats.s0++;stats.s1++}
+    if(maxGen===2){stats.s0++;stats.s1++;stats.s2++}
+    $('#gPa').textContent=pause+' мс';
+    render();
+    logGen(freed,promoted,maxGen,pause);
+    busy=false;
+  }
+  function logGen(freed,promoted,g,pause){
+    const box=$('#gcLogHolder');
+    // используем простой alert-лог в секции статистики: добавим строку в консоль секции
+    console.log('');
+  }
+  $('#gAlloc').addEventListener('click',()=>alloc(5,false));
+  $('#gBig').addEventListener('click',()=>alloc(1,true));
+  $('#gC0').addEventListener('click',()=>collect(0));
+  $('#gC2').addEventListener('click',()=>collect(2));
+  $('#gAuto').addEventListener('click',e=>{
+    if(auto){clearInterval(auto);auto=null;e.target.textContent='▶ Авто-режим';return}
+    e.target.textContent='⏹ Стоп';
+    auto=setInterval(()=>{
+      if(document.hidden||busy)return;
+      alloc(3,false);
+      if(objs.filter(o=>!o.big&&o.gen===0).length>=14)collect(0);
+      if(objs.filter(o=>!o.big&&o.gen===2).length>=18)collect(2);
+    },800);
+  });
+  alloc(6,false);
+})();
+
+/* 05 финализаторы */
+(function(){
+  let stage=0;
+  const STEPS=[
+    ()=>{logLine($('#fLog'),'созданы два объекта с финализатором ~Res()','l-info');
+      logLine($('#fLog'),'CLR регистрирует оба в очереди финализации','l-tea');},
+    ()=>{$('#fAs').textContent='Dispose() подавил финализатор (SuppressFinalize) → объект в обычной куче';
+      $('#fBs').textContent='GC №1: умирать нельзя — объект живёт дальше и попадает в f-reachable';
+      $('#fB').classList.add('queue');$('#fQ').textContent='f-reachable queue: [ Res#2 ]';
+      logLine($('#fLog'),'GC №1: объект A освобождён сразу; объект B продлён до финализации','l-warn');},
+    ()=>{$('#fBs').textContent='поток финализаторов выполняет ~Res() … (один поток на весь процесс!)';
+      logLine($('#fLog'),'финализатор работает в отдельном потоке, асинхронно от вашего кода','l-err');},
+    ()=>{$('#fAs').textContent='✓ память освобождена на GC №1';$('#fA').classList.add('freed');
+      $('#fBs').textContent='✓ GC №2: наконец-то освобождён (спустя две сборки)';$('#fB').classList.remove('queue');$('#fB').classList.add('freed');
+      $('#fQ').textContent='f-reachable queue: пусто';
+      logLine($('#fLog'),'GC №2: объект B освобождён. Итог: +1 сборка + время финализатора','l-ok');}
+  ];
+  $('#fNext').addEventListener('click',()=>{if(stage<4){STEPS[stage]();stage++}});
+  $('#fRst').addEventListener('click',()=>{stage=0;$('#fLog').innerHTML='';
+    $('#fA').classList.remove('freed');$('#fB').classList.remove('freed','queue');
+    $('#fAs').textContent='создан · Dispose() вызван';$('#fBs').textContent='создан · зарегистрирован в очереди финализации';
+    $('#fQ').textContent='f-reachable queue: пусто'});
+})();
+
+/* 06 строки */
+(function(){
+  let pool={},heap=[],cMade=false;
+  const P=$('#iPool'),H=$('#iHeap'),L=$('#iLog');
+  function render(){
+    P.innerHTML=Object.keys(pool).length?Object.keys(pool).map(k=>'<div class="poolrow"><span class="pk">"'+esc(k)+'"</span><span class="pv">объект #'+pool[k]+'</span></div>').join(''):'<span style="color:var(--dim);font-size:12px">пусто</span>';
+    H.innerHTML=heap.length?heap.map(o=>'<span class="heapobj">'+esc(o)+'</span>').join(''):'<span style="color:var(--dim);font-size:12px" class="mono">пусто</span>';
+  }
+  $('#iLit1').addEventListener('click',()=>{
+    if(pool['кот']){logLine(L,'"кот" уже в пуле — a получает готовую ссылку','l-ok')}
+    else{pool['кот']='#100';logLine(L,'литерал "кот" интернирован: объект создан один раз','l-tea')}
+    render()});
+  $('#iLit2').addEventListener('click',()=>{
+    if(pool['кот']){logLine(L,'b = та же ссылка, что у a: ReferenceEquals(a,b) == TRUE','l-ok')}
+    else logLine(L,'сначала выполните string a = "кот"','l-err');
+    render()});
+  $('#iCon').addEventListener('click',()=>{
+    heap.push('объект #200: "кот" (из x+y)');cMade=true;
+    logLine(L,'конкатенация ПЕРЕМЕННЫХ: новый объект в куче, мимо пула','l-warn');
+    logLine(L,'c == b → True (текст), ReferenceEquals(c,b) → False (объекты)','l-info');
+    render()});
+  $('#iIntern').addEventListener('click',()=>{
+    if(!cMade){logLine(L,'сначала создайте c = x + y','l-err');return}
+    if(!pool['кот'])pool['кот']='#100';
+    heap=[];logLine(L,'string.Intern(c): строка добавлена в пул, возвращается ссылка из пула','l-ok');render()});
+  $('#iRst').addEventListener('click',()=>{pool={};heap=[];cMade=false;L.innerHTML='';render()});
+  render();
+})();
+
+/* 07 vtable */
+(function(){
+  let obj='dog';
+  const MT={dog:'Dog.Speak (override)',cat:'SealedCat.Speak (override)'};
+  function paintSlots(){$('#vs0t').textContent='Speak → '+MT[obj]}
+  function clear(){$$('#vSlots .slot').forEach(s=>s.classList.remove('hit','direct'))}
+  async function run(kind){
+    clear();const L=$('#vLog');L.innerHTML='';
+    if(kind==='virtual'){
+      logLine(L,'1) IL: callvirt — нужен фактический тип объекта','l-info');await sleep(450);
+      logLine(L,'2) читаем MethodTable из заголовка: тип = '+obj.toUpperCase(),'l-tea');await sleep(450);
+      $('#vs0').classList.add('hit');
+      logLine(L,'3) слот 0 → '+MT[obj]+' → jmp. Итог: '+(obj==='dog'?'«Гав!»':'«Мяу!»'),'l-ok');
+    }else{
+      $('#vs1').classList.add('direct');
+      logLine(L,'Walk() невиртуальный: компилятор знает адрес заранее','l-info');await sleep(450);
+      logLine(L,'IL: call (прямой) — без таблицы, быстрее','l-ok');await sleep(300);
+      if(obj==='cat')logLine(L,'бонус: для sealed-типов JIT может девиртуализовать даже virtual-вызовы','l-tea');
+    }
+  }
+  $$('#vObj button').forEach(b=>b.addEventListener('click',()=>{
+    $$('#vObj button').forEach(x=>x.classList.remove('on'));b.classList.add('on');obj=b.dataset.o;paintSlots();clear();
+  }));
+  $('#vV').addEventListener('click',()=>run('virtual'));
+  $('#vN').addEventListener('click',()=>run('direct'));
+  paintSlots();
+})();
+
+/* 08 struct/span */
+(function(){
+  let cp=0;
+  $$('.cpbtn').forEach(b=>b.addEventListener('click',()=>{
+    cp+=+b.dataset.c;$('#cpCnt').textContent=cp;
+    b.style.borderColor='+b.dataset.c'? 'var(--rose)':'var(--lime)';
+    setTimeout(()=>b.style.borderColor='',500);
+  }));
+  $('#cpRst').addEventListener('click',()=>{cp=0;$('#cpCnt').textContent=0});
+  const ARR=[10,20,30,40,50,60,70,80];let sliced=false;
+  function paint(mut){
+    $('#spArr').innerHTML=ARR.map((v,i)=>{
+      let c='cell';if(sliced&&i>=2&&i<6)c+=' in';if(mut&&i===3)c+=' mut';
+      return '<span class="'+c+'">'+v+'</span>';
+    }).join('');
+  }
+  $('#spSlice').addEventListener('click',()=>{sliced=true;paint();
+    logLine($('#spLog'),'Span<int> view = arr.AsSpan(2,4): указатель на arr[2] + длина 4. Аллокаций: 0','l-tea')});
+  $('#spMut').addEventListener('click',()=>{
+    if(!sliced){logLine($('#spLog'),'сначала создайте срез: AsSpan(2,4)','l-err');return}
+    ARR[3]=99;paint(true);
+    logLine($('#spLog'),'span[1] = 99 → arr[3] стал 99: срез смотрит в ту же память, копий нет','l-ok')});
+  $('#spRst').addEventListener('click',()=>{ARR[3]=40;sliced=false;paint();$('#spLog').innerHTML=''});
+  paint();
+})();
+
+/* 09 замыкания */
+(function(){
+  $('#clCap').addEventListener('click',()=>{
+    const v=$('#clView');v.style.display='block';
+    v.innerHTML='<div class="dt">&lt;&gt;c__DisplayClass0_0</div>public int threshold;<div class="arrw">▲ экземпляр в КУЧЕ: переменная переехала в поле</div><div class="dt">Func&lt;int,bool&gt;</div>target → DisplayClass · method → &lt;M&gt;b__0';
+    logLine($('#clLog'),'захват = 2 аллокации: display-класс + делегат','l-warn');
+  });
+  $('#clNo').addEventListener('click',()=>{
+    const v=$('#clView');v.style.display='block';
+    v.innerHTML='<div class="dt">&lt;&gt;c.Instance</div>статический кэш делегата — один на всё приложение<div class="arrw">0 аллокаций на каждый вызов</div>';
+    logLine($('#clLog'),'без захвата: компилятор кэширует делегат в static-поле','l-ok');
+  });
+  $('#clBad').addEventListener('click',()=>{
+    const L=$('#clLoop');L.innerHTML='';
+    logLine(L,'for (int i = 0; i < 3; i++) acts.Add(() => Console.Write(i));','l-info');
+    logLine(L,'все 3 лямбды ссылаются на ОДНУ переменную i в display-классе','l-warn');
+    setTimeout(()=>logLine(L,'вызов после цикла (i уже == 3):  →  3 3 3','l-err'),500);
+  });
+  $('#clGood').addEventListener('click',()=>{
+    const L=$('#clLoop');L.innerHTML='';
+    logLine(L,'for (int i = 0; i < 3; i++) { int local = i; acts.Add(() => Console.Write(local)); }','l-info');
+    logLine(L,'на каждой итерации — СВОЙ local в своём display-классе','l-tea');
+    setTimeout(()=>logLine(L,'вызов:  →  0 1 2','l-ok'),500);
+  });
+})();
+
+/* 10 yield */
+(function(){
+  let step=0,vals=[],busy=false;
+  function hl(n){for(let i=0;i<5;i++)$('#yL'+i).classList.toggle('hl',i===n)}
+  function paint(){$('#yOut').textContent=vals.join(' · ')||'—'}
+  async function move(){
+    if(busy)return;busy=true;
+    if(step===0){$('#yState').textContent='state: 0 (создан)';hl(0);
+      logY('GetEnumerator(): объект-итератор создан, ТЕЛО ещё не выполнялось');
+      step=1;busy=false;return}
+    if(step>=4){logY('MoveNext() → false: итератор исчерпан','l-err');busy=false;return}
+    const i=step;hl(2);await sleep(300);hl(3);
+    $('#yState').textContent='state: '+step;
+    const v=i*i;$('#yCur').textContent=v;vals.push(v);paint();
+    logY('MoveNext(): возобновление → i='+i+' → yield return '+v+' → ПАУЗА','l-ok');
+    step++;busy=false;
+  }
+  function logY(t,c){logLine($('#yLogHolder')||document.body,'','');}
+  // простой лог внутри демо
+  const holder=document.createElement('div');
+  function init(){
+    const box=$('#yMove').closest('.demo-b');
+    holder.className='log';holder.style.marginTop='10px';
+    box.appendChild(holder);
+  }
+  init();
+  function log(t,c){logLine(holder,t,c)}
+  $('#yMove').addEventListener('click',()=>move());
+  $('#yEach').addEventListener('click',async()=>{
+    while(step<4&&!busy){await move();await sleep(350)}
+  });
+  $('#yRst').addEventListener('click',()=>{step=0;vals=[];$('#yCur').textContent='—';$('#yState').textContent='state: ещё не создан';hl(-1);paint();holder.innerHTML=''});
+})();
+
+/* 11 async машина */
+(function(){
+  const PH=[
+    {st:'—',thr:1,ln:2,a:'?',b:'?',log:'вызов LoadAsync(): выполняется синхронно до первого await',lc:''},
+    {st:'0',thr:1,ln:2,a:'?',b:'?',log:'GetA() вернул НЕзавершённый Task',lc:''},
+    {st:'0 → park',thr:1,ln:2,a:'?',b:'?',log:'await: aw.IsCompleted == false → регистрируем продолжение (OnCompleted), возвращаем незавершённый Task вызывающему',lc:'l-warn'},
+    {st:'0 → park',thr:0,ln:-1,a:'?',b:'?',log:'ПОТОК СВОБОДЕН и выполняет другие работы. Автомат хранит state=0 и поля в куче',lc:'l-tea'},
+    {st:'1',thr:1,ln:2,a:'"A"',b:'?',log:'GetA завершился → continuation в пул → MoveNext(): state=1, забираем результат a',lc:'l-ok'},
+    {st:'1 → park',thr:0,ln:3,a:'"A"',b:'?',log:'GetB(a) не готов → снова парк, поток свободен',lc:'l-warn'},
+    {st:'2',thr:1,ln:4,a:'"A"',b:'"B"',log:'GetB готов → MoveNext(): state=2, забираем b',lc:'l-ok'},
+    {st:'done',thr:1,ln:4,a:'"A"',b:'"B"',log:'return a+b → SetResult на возвращённом Task. Завершено без единого заблокированного потока',lc:'l-ok'}
+  ];
+  let i=0;
+  function paint(){
+    const p=PH[Math.min(i,PH.length-1)];
+    $('#aState').textContent='state: '+p.st;
+    const t=$('#aThr');t.textContent='поток: '+(p.thr?'занят методом':'СВОБОДЕН');
+    t.className='thr '+(p.thr?'busy':'free');
+    $('#aHeap').textContent='a='+p.a+', b='+p.b;
+    for(let k=0;k<6;k++)$('#aL'+k).classList.toggle('hl',k===p.ln);
+  }
+  $('#aStep').addEventListener('click',()=>{
+    if(i>=PH.length)return;
+    const p=PH[i];logLine($('#aLog'),p.log,p.lc);i++;paint();
+  });
+  $('#aRst').addEventListener('click',()=>{i=0;$('#aLog').innerHTML='';paint()});
+  paint();
+})();
+
+/* 12 исключения */
+(function(){
+  let busy=false;
+  const fr={Main:$('#frMain'),A:$('#frA'),B:$('#frB'),C:$('#frC')};
+  function clear(){Object.values(fr).forEach(f=>f.classList.remove('scan','finally','caught','throwr'));$('#exLog').innerHTML=''}
+  $('#exThrow').addEventListener('click',async()=>{
+    if(busy)return;busy=true;clear();
+    const L=$('#exLog');
+    fr.C.classList.add('throwr');
+    logLine(L,'throw в C(): создан объект исключения + заполнен stack trace','l-err');await sleep(600);
+    logLine(L,'— ПРОХОД 1: поиск обработчика вверх по стеку —','l-info');
+    fr.C.classList.add('scan');await sleep(450);
+    logLine(L,'кадр C: catch нет','l-warn');fr.C.classList.remove('scan');
+    fr.B.classList.add('scan');await sleep(450);
+    logLine(L,'кадр B: только finally — ловить нечем, идём выше','l-warn');fr.B.classList.remove('scan');
+    fr.A.classList.add('scan');await sleep(450);
+    logLine(L,'кадр A: catch (DivideByZeroException) — ТИП СОВПАЛ ✓','l-ok');
+    await sleep(500);
+    logLine(L,'— ПРОХОД 2: раскрутка стека —','l-info');
+    fr.B.classList.add('finally');await sleep(500);
+    logLine(L,'кадр B: finally выполняется при раскрутке (ресурсы закрыты)','l-tea');
+    fr.A.classList.remove('scan');fr.A.classList.add('caught');
+    logLine(L,'кадр A: catch обработал исключение, выполнение продолжено','l-ok');
+    busy=false;
+  });
+  $('#exRst').addEventListener('click',clear);
+})();
+
+/* 13 dictionary resize */
+(function(){
+  const KEYS=['кот','пёс','лиса','волк','ёж','сом','зубр'];
+  let cap=4,entries=[],ki=0;
+  const hash=s=>[...s].reduce((a,c)=>a+c.charCodeAt(0),0);
+  const th=()=>Math.floor(cap*0.72);
+  function render(hit){
+    const bk=$('#dcBk');
+    if(bk.children.length!==cap){
+      bk.style.gridTemplateColumns='repeat('+Math.min(cap,8)+',1fr)';
+      bk.innerHTML='';
+      for(let i=0;i<cap;i++)bk.innerHTML+='<div class="bucket" id="db'+i+'"><div class="bt">корзина '+i+'</div></div>';
+    }
+    for(let i=0;i<cap;i++){
+      const b=$('#db'+i);
+      const es=entries.filter(e=>hash(e.k)%cap===i);
+      b.innerHTML='<div class="bt">корзина '+i+'</div>'+es.map((e,j)=>'<div class="bent'+(j>0?' chain':'')+'">'+esc(e.k)+' → '+e.v+'</div>').join('');
+      b.classList.toggle('hit',hit===i);
+    }
+    $('#dcCap').textContent=cap;$('#dcCnt').textContent=entries.length;$('#dcTh').textContent=th();
+  }
+  $('#dcAdd').addEventListener('click',async()=>{
+    if(ki>=KEYS.length)return;
+    const k=KEYS[ki++],L=$('#dcLog');
+    if(entries.length>=th()){
+      logLine(L,'count == threshold ('+th()+') → RESIZE: новый массив capacity '+cap+' → '+(cap*2),'l-warn');
+      await sleep(400);
+      cap*=2;
+      logLine(L,'rehash: ВСЕ '+entries.length+' записей пересчитаны в новые корзины','l-tea');
+      render();await sleep(300);
+    }
+    const bi=hash(k)%cap;
+    entries.push({k:k,v:k.length});
+    const chain=entries.filter(e=>hash(e.k)%cap===bi).length;
+    logLine(L,'add("'+k+'"): хэш='+hash(k)+' → корзина '+bi+(chain>1?' · коллизия: цепочка длины '+chain:''),'l-ok');
+    render(bi);
+  });
+  $('#dcRst').addEventListener('click',()=>{cap=4;entries=[];ki=0;$('#dcLog').innerHTML='';
+    const bk=$('#dcBk');bk.innerHTML='';
+    for(let i=0;i<4;i++)bk.innerHTML+='<div class="bucket" id="db'+i+'"><div class="bt">корзина '+i+'</div></div>';
+    render()});
+  render();
+})();
+
+/* квиз */
+(function(){
+  let score=0;
+  $$('.qz').forEach(q=>{
+    q.querySelectorAll('.opt').forEach(o=>o.addEventListener('click',()=>{
+      if(q.classList.contains('done'))return;
+      q.classList.add('done');
+      if(o.hasAttribute('data-ok')){o.classList.add('ok');score++}
+      else{o.classList.add('bad');const r=q.querySelector('.opt[data-ok]');if(r)r.classList.add('ok')}
+      $('#quizScore').textContent=score;
+    }));
+  });
+})();
+</script>
+</body>
+</html>

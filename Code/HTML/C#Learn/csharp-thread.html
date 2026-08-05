@@ -1,0 +1,1694 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>.NET · C# · интерактивный разбор</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧵</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0f1c; --bg2:#0d1526; --panel:#111a2e; --panel2:#0d1524;
+  --line:#22304a; --line2:#31456d;
+  --tx:#e7edf7; --mut:#93a3bd; --dim:#647591;
+  --amber:#ffb454; --teal:#3fe0c5; --lime:#a5e86f; --rose:#ff5d7d; --sky:#6fc3ff; --vio:#c08bff;
+  --disp:'Unbounded',sans-serif; --body:'IBM Plex Sans',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font:400 16px/1.65 var(--body); color:var(--tx); background:
+  radial-gradient(900px 520px at 88% -5%, rgba(255,180,84,.08), transparent 60%),
+  radial-gradient(820px 620px at -12% 32%, rgba(63,224,197,.06), transparent 60%),
+  radial-gradient(760px 540px at 55% 112%, rgba(192,139,255,.06), transparent 60%),
+  var(--bg);
+  overflow-x:hidden;
+}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(111,195,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(111,195,255,.045) 1px,transparent 1px);
+  background-size:46px 46px;}
+::selection{background:rgba(255,180,84,.35)}
+main,header,footer{position:relative;z-index:1}
+.wrap{max-width:1180px;margin:0 auto;padding:0 26px}
+a{color:var(--sky)}
+h1,h2,h3{font-family:var(--disp)}
+.mono{font-family:var(--mono)}
+
+/* ---------- прогресс и навигация ---------- */
+#prog{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--amber),var(--teal));z-index:99}
+#rail{position:fixed;left:16px;top:50%;transform:translateY(-50%);z-index:50;display:flex;flex-direction:column;gap:3px}
+#rail a{display:flex;gap:10px;align-items:baseline;color:var(--dim);font:500 11px var(--mono);padding:6px 9px;border-radius:8px;text-decoration:none;border:1px solid transparent;transition:.25s}
+#rail a .n{opacity:.75}
+#rail a:hover{color:var(--tx);transform:translateX(3px)}
+#rail a.on{color:var(--amber);background:rgba(255,180,84,.09);border-color:rgba(255,180,84,.28)}
+@media(max-width:1240px){#rail{display:none}}
+
+/* ---------- герой ---------- */
+.hero{max-width:1240px;margin:0 auto;padding:64px 28px 44px;display:grid;grid-template-columns:1.02fr .98fr;gap:38px;align-items:center}
+@media(max-width:1000px){.hero{grid-template-columns:1fr;padding-top:44px}}
+.kick{display:inline-flex;align-items:center;gap:8px;font:600 12px var(--mono);letter-spacing:.14em;color:var(--teal);text-transform:uppercase;border:1px solid rgba(63,224,197,.3);padding:6px 12px;border-radius:6px;background:rgba(63,224,197,.06)}
+.kick::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 10px var(--teal);animation:blink 1.8s infinite}
+@keyframes blink{50%{opacity:.35}}
+h1{font-weight:800;font-size:clamp(32px,4.5vw,58px);line-height:1.1;margin:22px 0 18px;letter-spacing:-.01em}
+h1 .aw{color:var(--amber);font-family:var(--mono);font-weight:700;font-size:.9em}
+.lead{color:var(--mut);font-size:17px;max-width:560px}
+.hstats{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+.hchip{font:500 12px var(--mono);color:var(--mut);border:1px solid var(--line);padding:7px 12px;border-radius:8px;background:rgba(255,255,255,.02);transition:.2s}
+.hchip:hover{color:var(--tx);border-color:var(--line2);transform:translateY(-2px)}
+.hchip b{color:var(--amber);font-weight:700}
+
+.sched{background:var(--panel2);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 30px 70px rgba(0,0,0,.45)}
+.sched-h{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.02)}
+.sched-h .t{font:600 12px var(--mono);color:var(--mut);margin-right:auto}
+.sched-h .t b{color:var(--teal)}
+#schedCv{display:block;width:100%;height:220px}
+.sched-stats{display:flex;gap:18px;flex-wrap:wrap;padding:10px 14px;border-top:1px solid var(--line);font:500 11.5px var(--mono);color:var(--dim)}
+.sched-stats b{color:var(--tx)}
+
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:600 11px var(--mono);color:var(--mut);background:transparent;border:0;padding:7px 11px;cursor:pointer;transition:.2s}
+.seg button:hover{color:var(--tx)}
+.seg button.on{background:rgba(255,180,84,.15);color:var(--amber)}
+
+.ticker{overflow:hidden;border-block:1px solid var(--line);background:#0b1220}
+.tk{display:flex;gap:38px;width:max-content;padding:12px 0;animation:tk 34s linear infinite;font:500 12px var(--mono);color:var(--dim);white-space:nowrap}
+.tk span i{font-style:normal;color:var(--amber)}
+@keyframes tk{to{transform:translateX(-50%)}}
+@media(prefers-reduced-motion:reduce){.tk{animation:none}}
+
+/* ---------- секции ---------- */
+section{padding:76px 0;scroll-margin-top:20px}
+.shead{display:flex;gap:22px;align-items:flex-start;margin-bottom:34px}
+.snum{font:800 clamp(56px,8vw,110px)/0.9 var(--disp);color:transparent;-webkit-text-stroke:1.5px rgba(255,180,84,.3);user-select:none}
+.skick{font:600 11px var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--teal);margin-bottom:8px}
+h2{font-weight:600;font-size:clamp(24px,3.2vw,40px);line-height:1.15}
+h3{font-size:18px;font-weight:600;margin:26px 0 12px}
+p.tx{color:var(--mut);max-width:820px;margin:12px 0}
+p.tx b, li b{color:var(--tx)}
+code.inline{font:500 .86em var(--mono);color:var(--amber);background:rgba(255,180,84,.09);border:1px solid rgba(255,180,84,.18);padding:1px 6px;border-radius:5px;white-space:nowrap}
+.note{border-left:3px solid var(--amber);background:rgba(255,180,84,.06);padding:14px 18px;border-radius:0 10px 10px 0;color:var(--mut);margin:20px 0;max-width:820px}
+.note b{color:var(--amber)}
+.note.teal{border-color:var(--teal);background:rgba(63,224,197,.06)}.note.teal b{color:var(--teal)}
+.note.rose{border-color:var(--rose);background:rgba(255,93,125,.07)}.note.rose b{color:var(--rose)}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+.grid2.wide{grid-template-columns:1.15fr .85fr}
+.grid2.wide2{grid-template-columns:.9fr 1.1fr}
+@media(max-width:880px){.grid2,.grid2.wide,.grid2.wide2{grid-template-columns:1fr}}
+
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s ease}
+.reveal.in{opacity:1;transform:none}
+
+/* ---------- код ---------- */
+.codewrap{background:#0b1222;border:1px solid var(--line);border-radius:12px;overflow:hidden;transition:border-color .25s}
+.codewrap:hover{border-color:var(--line2)}
+.codebar{display:flex;gap:7px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--line)}
+.codebar .d{width:9px;height:9px;border-radius:50%}
+.codebar .fn{margin-left:8px;font:500 11px var(--mono);color:var(--dim)}
+.codebar .tag{margin-left:auto;font:600 10px var(--mono);letter-spacing:.1em;padding:3px 8px;border-radius:5px}
+.tag.bad{color:var(--rose);background:rgba(255,93,125,.12)}
+.tag.good{color:var(--lime);background:rgba(165,232,111,.12)}
+.tag.info{color:var(--sky);background:rgba(111,195,255,.12)}
+pre.code{margin:0;padding:16px 18px;overflow:auto;font:400 13px/1.7 var(--mono);color:#c9daf0;white-space:pre;tab-size:4}
+.c-kw{color:#ff9e64}.c-ty{color:#7cc7ff}.c-st{color:#a5e86f}.c-cm{color:#5c6f8e;font-style:italic}.c-nu{color:#ffd479}.c-fn{color:#4fe3c1}
+
+/* ---------- демо-панели ---------- */
+.demo{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.demo-h{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.02)}
+.demo-h .live{width:8px;height:8px;border-radius:50%;background:var(--lime);box-shadow:0 0 10px var(--lime);animation:blink 1.6s infinite}
+.demo-h .ttl{font:600 13px var(--mono);color:var(--tx);margin-right:auto}
+.demo-b{padding:18px}
+.btn{font:700 12.5px var(--mono);letter-spacing:.02em;color:#141005;background:var(--amber);border:0;padding:9px 15px;border-radius:8px;cursor:pointer;transition:.18s;box-shadow:0 3px 0 rgba(0,0,0,.4)}
+.btn:hover{transform:translateY(-2px);box-shadow:0 9px 20px rgba(255,180,84,.28)}
+.btn:active{transform:translateY(1px);box-shadow:none}
+.btn[disabled]{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn.ghost{background:transparent;color:var(--tx);border:1px solid var(--line2);box-shadow:none}
+.btn.ghost:hover{border-color:var(--amber);color:var(--amber);box-shadow:none}
+.btn.teal{background:var(--teal)} .btn.teal:hover{box-shadow:0 9px 20px rgba(63,224,197,.25)}
+.btn.rose{background:var(--rose);color:#2a0510}.btn.rose:hover{box-shadow:0 9px 20px rgba(255,93,125,.3)}
+.btn.lime{background:var(--lime)}.btn.lime:hover{box-shadow:0 9px 20px rgba(165,232,111,.25)}
+.log{font:12px/1.75 var(--mono);background:#0a1020;border:1px solid var(--line);border-radius:10px;padding:10px 13px;max-height:230px;overflow:auto}
+.ll{white-space:pre-wrap;word-break:break-word;color:var(--mut)}
+.l-ok{color:var(--lime)} .l-err{color:var(--rose)} .l-warn{color:var(--amber)} .l-info{color:var(--sky)} .l-tea{color:var(--teal)}
+
+.tbl{width:100%;border-collapse:collapse;font-size:14px;margin:16px 0}
+.tbl th{font:600 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--amber);text-align:left;padding:10px 12px;border-bottom:2px solid var(--line2)}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--line);color:var(--mut);vertical-align:top}
+.tbl tr:hover td{background:rgba(255,255,255,.025);color:var(--tx)}
+.tbl td:first-child{color:var(--tx);font-weight:600}
+.tbl .m{font:600 12.5px var(--mono);color:var(--teal)}
+
+/* ---------- анатомия ---------- */
+.anat{border:1.5px dashed var(--line2);border-radius:14px;padding:20px;background:rgba(255,255,255,.015)}
+.anat .ptag{font:600 12px var(--mono);color:var(--sky);letter-spacing:.06em}
+.heap{margin:14px 0;padding:14px;border-radius:10px;background:rgba(111,195,255,.08);border:1px solid rgba(111,195,255,.25);font:500 13px var(--mono);color:var(--sky)}
+.tcols{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:640px){.tcols{grid-template-columns:1fr}}
+.tcol{background:#0c1424;border:1px solid var(--line);border-radius:10px;padding:12px}
+.tcol b{display:block;font:600 12.5px var(--mono);margin-bottom:8px}
+.tcol:nth-child(1) b{color:var(--amber)}.tcol:nth-child(2) b{color:var(--teal)}.tcol:nth-child(3) b{color:var(--vio)}
+.tcol i{display:block;font:400 12px var(--mono);font-style:normal;color:var(--dim);padding:4px 8px;border-left:2px solid var(--line);margin:5px 0}
+
+/* ---------- cost demo ---------- */
+.costrow{display:grid;grid-template-columns:150px 1fr 120px;gap:12px;align-items:center;margin:12px 0;font:500 13px var(--mono)}
+@media(max-width:640px){.costrow{grid-template-columns:110px 1fr 90px}}
+.costbar{height:22px;border-radius:6px;background:#0a1020;border:1px solid var(--line);overflow:hidden}
+.costbar i{display:block;height:100%;width:0;border-radius:5px;transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
+.costval{text-align:right;color:var(--tx)}
+
+/* ---------- interleave ---------- */
+.lane{display:flex;align-items:center;gap:10px;margin:9px 0;flex-wrap:wrap}
+.lane .nm{font:600 12px var(--mono);width:78px}
+.step{font:600 11px var(--mono);padding:5px 10px;border-radius:6px;border:1px dashed var(--line2);color:var(--dim);transition:.3s}
+.step.done{border-style:solid;color:#10131c}
+
+/* ---------- gantt ---------- */
+.gtrack{position:relative;padding-top:26px}
+.grow{display:grid;grid-template-columns:130px 1fr;gap:12px;align-items:center;margin:8px 0}
+@media(max-width:640px){.grow{grid-template-columns:96px 1fr}}
+.gname{font:500 12.5px var(--mono);color:var(--mut);text-align:right}
+.gbar{position:relative;height:26px;background:#0a1020;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.gfill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:6px;display:flex;align-items:center;justify-content:flex-end;padding-right:7px;font:700 10.5px var(--mono);color:#10131c}
+.gcursor{position:absolute;top:18px;bottom:0;width:2px;background:var(--amber);box-shadow:0 0 12px var(--amber);left:0}
+.gticks{display:flex;justify-content:space-between;margin-left:142px;font:400 10px var(--mono);color:var(--dim)}
+@media(max-width:640px){.gticks{margin-left:108px}}
+.gres{margin-top:14px;font:600 14px var(--mono)}
+
+/* ---------- app windows ---------- */
+.appwin{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#0c1424}
+.appwin .bar{display:flex;align-items:center;gap:7px;padding:9px 12px;background:#101a2e;border-bottom:1px solid var(--line)}
+.appwin .bar .fn{font:500 11px var(--mono);color:var(--dim);margin-left:6px}
+.appwin .bd{padding:18px;min-height:190px}
+.appwin.frozen .bd{filter:grayscale(.7);opacity:.75}
+.appwin.frozen .spin{animation-play-state:paused}
+.cnt{font:800 15px var(--disp);background:transparent;border:1px solid var(--line2);color:var(--tx);border-radius:9px;padding:12px 16px;cursor:pointer;transition:.15s;width:100%}
+.cnt:hover{border-color:var(--amber);color:var(--amber)}
+.cnt:active{transform:scale(.97)}
+.spin{width:18px;height:18px;border-radius:50%;border:2.5px solid var(--line2);border-top-color:var(--teal);animation:rot 1s linear infinite;display:inline-block;vertical-align:-4px;margin-left:8px}
+@keyframes rot{to{transform:rotate(360deg)}}
+.appst{font:500 12px var(--mono);color:var(--dim);margin-top:12px;min-height:20px}
+
+/* ---------- race ---------- */
+.racegrid{display:grid;grid-template-columns:1fr 120px 1fr;gap:14px;align-items:stretch}
+@media(max-width:760px){.racegrid{grid-template-columns:1fr}}
+.rl{border:1px solid var(--line);border-radius:11px;padding:13px;background:#0c1424}
+.rl .nm{font:700 13px var(--mono);margin-bottom:8px}
+.rl.a .nm{color:var(--amber)}.rl.b .nm{color:var(--teal)}
+.ph{display:inline-block;font:600 11px var(--mono);padding:4px 10px;border-radius:6px;background:#0a1020;border:1px solid var(--line);color:var(--dim);margin:3px 0}
+.rreg{font:500 12px var(--mono);color:var(--mut)}
+.rmid{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);border-radius:11px;background:#0c1424;padding:12px}
+#raceVal{font:800 34px var(--disp);color:var(--tx);transition:.2s}
+#raceVal.bump{transform:scale(1.25);color:var(--amber)}
+#lockBadge{font:600 10.5px var(--mono);color:var(--dim);border:1px dashed var(--line2);padding:4px 9px;border-radius:6px;transition:.3s}
+#lockBadge.held{color:#10131c;background:var(--rose);border-color:var(--rose);font-weight:700}
+.sw{display:inline-flex;align-items:center;gap:8px;font:600 12px var(--mono);color:var(--mut);cursor:pointer;user-select:none}
+.sw input{accent-color:var(--amber);width:16px;height:16px}
+
+/* ---------- deadlock ---------- */
+.dlgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:640px){.dlgrid{grid-template-columns:1fr}}
+.actor{border:1px solid var(--line);border-radius:11px;padding:13px;background:#0c1424;transition:.3s}
+.actor .nm{font:700 13px var(--mono)}
+.actor .dst{font:500 12px var(--mono);color:var(--dim);margin-top:6px;min-height:18px}
+.th.wait{border-color:var(--amber)}
+.th.dead{border-color:var(--rose);animation:shake .5s ease infinite}
+.th.ok{border-color:var(--lime)}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
+.res.held{border-color:var(--rose)}
+.res.free{border-color:var(--line)}
+.dl-banner{margin-top:14px;font:700 13px var(--mono);padding:13px 16px;border-radius:10px;transition:.3s}
+.dl-banner.hide{opacity:0}
+.dl-banner.bad{background:rgba(255,93,125,.14);border:1px solid var(--rose);color:var(--rose);animation:blink 1.2s infinite}
+.dl-banner.ok{background:rgba(165,232,111,.12);border:1px solid var(--lime);color:var(--lime)}
+
+/* ---------- tabs ---------- */
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.tab{font:600 12px var(--mono);color:var(--mut);background:transparent;border:1px solid var(--line);padding:9px 15px;border-radius:8px;cursor:pointer;transition:.2s}
+.tab:hover{color:var(--tx);transform:translateY(-2px)}
+.tab.on{color:var(--amber);border-color:var(--amber);background:rgba(255,180,84,.09)}
+.tpanel{display:none}.tpanel.on{display:block;animation:fadein .35s ease}
+@keyframes fadein{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* semaphore */
+.parking{display:grid;grid-template-columns:1fr;gap:14px}
+.bays{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.bay{min-height:64px;border:1.5px dashed var(--line2);border-radius:10px;display:flex;align-items:center;justify-content:center;font:600 11px var(--mono);color:var(--dim);background:#0a1020}
+.qrow{min-height:52px;border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;gap:8px;flex-wrap:wrap;background:#0a1020}
+.car{font:700 11px var(--mono);color:#10131c;padding:7px 11px;border-radius:8px;animation:pop .35s ease}
+@keyframes pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+
+/* event */
+.evttrack{position:relative;height:120px;background:#0a1020;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.gate{position:absolute;left:62%;top:0;bottom:0;width:6px;background:var(--rose);box-shadow:0 0 14px var(--rose);transition:.35s}
+.gate.open{background:var(--lime);box-shadow:0 0 14px var(--lime)}
+.glab{position:absolute;left:62%;transform:translateX(-50%);top:6px;font:600 10px var(--mono);color:var(--dim)}
+.wtok{position:absolute;width:16px;height:16px;border-radius:50%;top:64px;background:var(--sky);box-shadow:0 0 8px rgba(111,195,255,.6)}
+.exitlab{position:absolute;right:10px;top:6px;font:600 10px var(--mono);color:var(--lime)}
+
+/* rw */
+.rwbox{border:1px solid var(--line);background:#0a1020;border-radius:10px;padding:12px;min-height:92px;display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start}
+.chip{font:600 11px var(--mono);padding:6px 10px;border-radius:7px;animation:pop .3s ease}
+.chip.r{background:rgba(165,232,111,.16);color:var(--lime);border:1px solid rgba(165,232,111,.4)}
+.chip.w{background:rgba(255,180,84,.16);color:var(--amber);border:1px solid rgba(255,180,84,.45)}
+.chip.q{opacity:.55}
+
+/* interlocked */
+.itrow{display:grid;grid-template-columns:210px 1fr 110px;gap:12px;align-items:center;margin:14px 0;font:500 12.5px var(--mono)}
+@media(max-width:680px){.itrow{grid-template-columns:140px 1fr 80px}}
+.itval{text-align:right;font-weight:700}
+
+/* cancel */
+.dlbar{height:26px;background:#0a1020;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.dlfill{height:100%;width:0;background:linear-gradient(90deg,var(--teal),var(--sky));transition:width .12s linear;border-radius:7px}
+.dlfill.cut{background:var(--dim)}
+.dlst{font:600 12.5px var(--mono);color:var(--dim);margin-top:10px;min-height:20px}
+
+/* channel */
+.convey{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center}
+@media(max-width:640px){.convey{grid-template-columns:1fr}}
+.node{border:1px solid var(--line);border-radius:11px;padding:14px;background:#0c1424;text-align:center}
+.node .nm{font:700 12.5px var(--mono)}
+.node .st{font:500 11px var(--mono);color:var(--dim);min-height:18px;margin-top:5px}
+.slots{display:flex;gap:8px;justify-content:center}
+.slot{width:44px;height:44px;border:1.5px dashed var(--line2);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:19px}
+.slot.full{border-style:solid;border-color:var(--amber);background:rgba(255,180,84,.1);animation:pop .3s ease}
+
+/* ---------- quiz ---------- */
+.qz{border:1px solid var(--line);border-radius:13px;background:var(--panel2);padding:20px;margin-bottom:18px;transition:border-color .25s}
+.qz:hover{border-color:var(--line2)}
+.qz .qt{font:600 15px var(--body);margin:12px 0}
+.opts{display:grid;gap:8px;margin-top:12px}
+.opt{text-align:left;font:400 13.5px var(--body);color:var(--mut);background:#0c1424;border:1px solid var(--line);border-radius:9px;padding:11px 14px;cursor:pointer;transition:.2s}
+.opt:hover{border-color:var(--line2);color:var(--tx);transform:translateX(4px)}
+.opt.ok{border-color:var(--lime);background:rgba(165,232,111,.12);color:var(--tx)}
+.opt.bad{border-color:var(--rose);background:rgba(255,93,125,.1);animation:shake .4s}
+.qz .expl{display:none;margin-top:12px;font-size:13.5px;color:var(--mut);border-left:3px solid var(--teal);padding:10px 14px;background:rgba(63,224,197,.05);border-radius:0 8px 8px 0}
+.qz.done .expl{display:block}
+.score{font:700 13px var(--mono);color:var(--amber);border:1px solid rgba(255,180,84,.35);padding:8px 14px;border-radius:8px;background:rgba(255,180,84,.08)}
+
+/* ---------- cheatsheet ---------- */
+.dd{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:760px){.dd{grid-template-columns:1fr}}
+.dd .col{border:1px solid var(--line);border-radius:12px;padding:18px;background:var(--panel2)}
+.dd h4{font:700 13px var(--mono);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px}
+.dd ul{list-style:none}
+.dd li{padding:8px 0 8px 26px;position:relative;color:var(--mut);font-size:14px;border-bottom:1px dashed var(--line)}
+.dd li:last-child{border:0}
+.dd li::before{position:absolute;left:0;font:700 13px var(--mono)}
+.do li::before{content:'✓';color:var(--lime)}
+.dont li::before{content:'✗';color:var(--rose)}
+.do h4{color:var(--lime)}.dont h4{color:var(--rose)}
+
+footer{border-top:1px solid var(--line);padding:34px 0 44px;margin-top:40px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;font:400 12.5px var(--mono);color:var(--dim)}
+</style>
+</head>
+<body>
+<div id="prog"></div>
+
+<nav id="rail">
+  <a href="#model"><span class="n">01</span>Модель</a>
+  <a href="#threads"><span class="n">02</span>Потоки</a>
+  <a href="#tasks"><span class="n">03</span>Task</a>
+  <a href="#async"><span class="n">04</span>await</a>
+  <a href="#races"><span class="n">05</span>Гонки</a>
+  <a href="#prims"><span class="n">06</span>Примитивы</a>
+  <a href="#tools"><span class="n">07</span>Координация</a>
+  <a href="#practice"><span class="n">08</span>Практика</a>
+</nav>
+
+<!-- ================= ГЕРОЙ ================= -->
+<header class="hero">
+  <div>
+    <span class="kick">.NET · C# · интерактивный разбор</span>
+    <h1>Потоки, задачи и&nbsp;<span class="aw">await</span></h1>
+    <p class="lead">Как на самом деле устроены многопоточность и асинхронность в .NET — от <code class="inline">Thread</code> до <code class="inline">Channel&lt;T&gt;</code>. Живые симуляции планировщика, гонки, дедлоки и все главные примитивы синхронизации. Теория сразу проверяется практикой.</p>
+    <div class="hstats">
+      <span class="hchip"><b>8</b> разделов</span>
+      <span class="hchip"><b>12+</b> интерактивов</span>
+      <span class="hchip"><b>7</b> вопросов квиза</span>
+      <span class="hchip">от простого → к сложному</span>
+    </div>
+  </div>
+  <div class="sched" id="schedWrap">
+    <div class="sched-h">
+      <span class="t"><b>task-scheduler</b> — живая модель пула потоков</span>
+      <div class="seg" id="coreSeg">
+        <button data-c="2">2 ядра</button>
+        <button data-c="4" class="on">4</button>
+        <button data-c="8">8</button>
+      </div>
+      <button class="btn ghost" id="schedPause">⏸</button>
+    </div>
+    <canvas id="schedCv"></canvas>
+    <div class="sched-stats">
+      <span>в очереди: <b id="stQ">0</b></span>
+      <span>завершено: <b id="stDone">0</b></span>
+      <span>потоков в пуле: <b id="stPool">4</b></span>
+      <span style="margin-left:auto">время течёт →  ← задачи едут влево</span>
+    </div>
+  </div>
+</header>
+
+<div class="ticker"><div class="tk" id="tk">
+  <span>Thread</span><span>ThreadPool</span><span>Task&lt;T&gt;</span><span><i>async / await</i></span><span>Monitor · lock</span><span>SemaphoreSlim</span><span>Interlocked</span><span>Mutex</span><span>ManualResetEvent</span><span>ReaderWriterLockSlim</span><span>Channel&lt;T&gt;</span><span>CancellationToken</span><span>ConfigureAwait(false)</span><span>race condition</span><span>deadlock</span><span>Task.WhenAll</span>
+  <span>Thread</span><span>ThreadPool</span><span>Task&lt;T&gt;</span><span><i>async / await</i></span><span>Monitor · lock</span><span>SemaphoreSlim</span><span>Interlocked</span><span>Mutex</span><span>ManualResetEvent</span><span>ReaderWriterLockSlim</span><span>Channel&lt;T&gt;</span><span>CancellationToken</span><span>ConfigureAwait(false)</span><span>race condition</span><span>deadlock</span><span>Task.WhenAll</span>
+</div></div>
+
+<main>
+
+<!-- ================= 01 МОДЕЛЬ ================= -->
+<section id="model">
+  <div class="wrap">
+    <div class="shead reveal">
+      <span class="snum">01</span>
+      <div><p class="skick">теория · фундамент</p><h2>Процесс → поток → задача</h2></div>
+    </div>
+    <p class="tx reveal"><b>Процесс</b> — изолированный контейнер запущенной программы: своё адресное пространство, свои дескрипторы. <b>Поток</b> — единица исполнения внутри процесса: у него <b>свой стек</b> (~1 МБ), свои регистры, но <b>общая куча</b> с остальными потоками. Именно потоки ОС распределяет по ядрам CPU и переключает между собой.</p>
+    <p class="tx reveal"><b>Task</b> — это <i>не</i> поток. Это «обещание результата»: абстракция над работой, которую выполнит пул потоков, таймер или порт завершения I/O. async-метод возвращает Task и может вообще не занимать поток на время ожидания.</p>
+
+    <div class="anat reveal">
+      <span class="ptag">▣ процесс «MyApp.exe» — изолированная память</span>
+      <div class="heap">общая куча (GC): объекты, данные — видна ВСЕМ потокам ⚠ источник гонок</div>
+      <div class="tcols">
+        <div class="tcol"><b>Поток 1</b><i>свой стек ~1 МБ</i><i>регистры CPU</i><i>thread-local storage</i></div>
+        <div class="tcol"><b>Поток 2</b><i>свой стек ~1 МБ</i><i>регистры CPU</i><i>thread-local storage</i></div>
+        <div class="tcol"><b>Поток 3</b><i>свой стек ~1 МБ</i><i>регистры CPU</i><i>thread-local storage</i></div>
+      </div>
+    </div>
+
+    <h3 class="reveal">Зачем это нужно</h3>
+    <p class="tx reveal">① <b>Параллелизм</b> — загрузить все ядра CPU-задачей. ② <b>Отзывчивость</b> — не замораживать UI, пока идёт долгая работа. ③ <b>Асинхронный I/O</b> — сеть и диск через IOCP-порты завершения: пока ждём ответ сервера, <b>ни один поток не занят</b>.</p>
+
+    <div class="grid2 reveal" style="margin-top:26px">
+      <div class="demo">
+        <div class="demo-h"><span class="live"></span><span class="ttl">Сколько стоит поток?</span>
+          <button class="btn" id="costRun">Измерить ×1000</button></div>
+        <div class="demo-b">
+          <div class="costrow"><span style="color:var(--rose)">new Thread()</span><div class="costbar"><i id="costTh" style="background:var(--rose)"></i></div><span class="costval" id="costThV">—</span></div>
+          <div class="costrow"><span style="color:var(--teal)">Task.Run()</span><div class="costbar"><i id="costTk" style="background:var(--teal)"></i></div><span class="costval" id="costTkV">—</span></div>
+          <p class="tx" style="font-size:13.5px;margin-top:10px">Типичные цифры на 8-ядерной машине: каждый <code class="inline">Thread</code> резервирует ~1 МБ стека и стартует около миллисекунды. Задачи берут <b>готовые потоки из пула</b> и переиспользуют их.</p>
+        </div>
+      </div>
+      <div class="codewrap">
+        <div class="codebar"><span class="d" style="background:var(--rose)"></span><span class="d" style="background:var(--amber)"></span><span class="d" style="background:var(--lime)"></span><span class="fn">Cost.cs</span><span class="tag info">типовой замер</span></div>
+<pre class="code">var sw = Stopwatch.StartNew();
+
+// 1000 потоков: ~1 ГБ стеков, ~1 c запуска
+var ts = Enumerable.Range(0, 1000)
+    .Select(_ => new Thread(() => { }))
+    .ToList();
+ts.ForEach(t => t.Start());
+
+// 1000 задач: потоки пула, миллисекунды
+Parallel.For(0, 1000, _ => { });
+// или Task.Run(...) — работа уходит в ThreadPool</pre>
+      </div>
+    </div>
+
+    <h3 class="reveal">Thread vs Task vs async-метод</h3>
+    <div class="reveal" style="overflow-x:auto">
+      <table class="tbl">
+        <tr><th>Критерий</th><th>Thread</th><th>Task</th><th>async-метод</th></tr>
+        <tr><td>Кто выполняет</td><td>выделенный поток вручную</td><td class="m">ThreadPool</td><td>пул / UI-контекст / порты I/O</td></tr>
+        <tr><td>Цена</td><td>~1 МБ стека + ~1 мс</td><td>дёшево</td><td>почти бесплатно</td></tr>
+        <tr><td>Результат</td><td>нет</td><td class="m">Task&lt;T&gt;</td><td class="m">Task&lt;T&gt; / ValueTask&lt;T&gt;</td></tr>
+        <tr><td>Отмена</td><td>Abort (устарел ⚠)</td><td class="m">CancellationToken</td><td class="m">CancellationToken</td></tr>
+        <tr><td>Когда применять</td><td>долгий фон, приоритеты, STA</td><td>CPU-параллелизм</td><td>I/O, UI, композиция операций</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 02 THREAD ================= -->
+<section id="threads">
+  <div class="wrap">
+    <div class="shead reveal">
+      <span class="snum">02</span>
+      <div><p class="skick">пример 1 · от простого</p><h2>Свои потоки: порядок не гарантирован</h2></div>
+    </div>
+    <p class="tx reveal">Два потока выполняют одну и ту же функцию. Кто и когда получит процессорное время — решает планировщик ОС и CLR. Запустите симуляцию несколько раз: <b>порядок строк каждый раз разный</b>. Вывод: никогда не стройте логику на предположении «этот поток выполнится первым».</p>
+    <div class="grid2 wide reveal">
+      <div class="demo">
+        <div class="demo-h"><span class="live"></span><span class="ttl">Симуляция переключений</span>
+          <div class="seg" id="thCount"><button data-n="2" class="on">2 потока</button><button data-n="3">3 потока</button></div>
+          <button class="btn" id="ilRun">▶ Запустить</button></div>
+        <div class="demo-b">
+          <div id="ilLanes"></div>
+          <div class="log" id="ilLog" style="margin-top:14px;min-height:120px"></div>
+        </div>
+      </div>
+      <div class="codewrap">
+        <div class="codebar"><span class="d" style="background:var(--rose)"></span><span class="d" style="background:var(--amber)"></span><span class="d" style="background:var(--lime)"></span><span class="fn">Program.cs</span></div>
+<pre class="code">using System.Threading;
+
+void Work(string name)
+{
+    for (int i = 0; i &lt; 4; i++)
+        Console.WriteLine($"{name}: шаг {i}");
+}
+
+var t1 = new Thread(() => Work("Поток-1"));
+var t2 = new Thread(() => Work("Поток-2"));
+t1.Start();
+t2.Start();
+t1.Join();  // дождаться завершения (если нужно)
+
+// Порядок строк в консоли случаен
+// и меняется от запуска к запуску</pre>
+      </div>
+    </div>
+    <div class="note reveal"><b>Thread</b> сегодня нужен редко: фоновые long-running задачи с приоритетом, COM/STA-модели. Для 99% случаев берите <code class="inline">Task.Run</code> и пул потоков — он переиспользует потоки и балансирует очередь work-stealing алгоритмом.</div>
+  </div>
+</section>
+
+<!-- ================= 03 TASK ================= -->
+<section id="tasks">
+  <div class="wrap">
+    <div class="shead reveal">
+      <span class="snum">03</span>
+      <div><p class="skick">пример 2 · параллельность</p><h2>Завтрак: 23 минуты или 8?</h2></div>
+    </div>
+    <p class="tx reveal">Классический пример из документации Microsoft: яичница (8 мин), бекон (6), кофе (3), тост (4), сок (2). Готовить по очереди — <b>23 минуты</b>. Запустить всё одновременно и дождаться через <code class="inline">Task.WhenAll</code> — <b>8 минут</b> (длительность самой долгой задачи). Нажмите оба режима и посмотрите на диаграмму Ганта.</p>
+
+    <div class="demo reveal">
+      <div class="demo-h"><span class="live"></span><span class="ttl">Кухня: диаграмма Ганта</span>
+        <button class="btn ghost" id="gSeq">Последовательно</button>
+        <button class="btn teal" id="gPar">Параллельно (WhenAll)</button>
+        <span class="gres" id="gRes"></span></div>
+      <div class="demo-b">
+        <div class="gtrack" id="gTrack"><div class="gcursor" id="gCur"></div></div>
+        <div class="gticks" id="gTicks"></div>
+      </div>
+    </div>
+
+    <div class="grid2 reveal" style="margin-top:22px">
+      <div class="codewrap">
+        <div class="codebar"><span class="d" style="background:var(--rose)"></span><span class="d" style="background:var(--amber)"></span><span class="d" style="background:var(--lime)"></span><span class="fn">Breakfast.cs</span><span class="tag bad">23 минуты</span></div>
+<pre class="code">// Каждая операция блокирует до готовности
+void MakeBreakfast()
+{
+    CookEggs();    // ждём 8 мин
+    CookBacon();   // ещё 6 мин
+    MakeCoffee();  // ещё 3 мин
+    MakeToast();   // ещё 4 мин
+    PourJuice();   // ещё 2 мин
+}</pre>
+      </div>
+      <div class="codewrap">
+        <div class="codebar"><span class="d" style="background:var(--rose)"></span><span class="d" style="background:var(--amber)"></span><span class="d" style="background:var(--lime)"></span><span class="fn">BreakfastAsync.cs</span><span class="tag good">8 минут</span></div>
+<pre class="code">// Запустили всё сразу, ждём один раз
+async Task MakeBreakfastAsync()
+{
+    Task eggs   = CookEggsAsync();
+    Task bacon  = CookBaconAsync();
+    Task coffee = MakeCoffeeAsync();
+    Task toast  = MakeToastAsync();
+    Task juice  = PourJuiceAsync();
+
+    await Task.WhenAll(eggs, bacon, coffee, toast, juice);
+}
+// Есть и Task.WhenAny — «кто закончил первым»</pre>
+      </div>
+    </div>
+    <div class="note teal reveal"><b>Важно:</b> параллельность здесь возможна, потому что задачи <b>независимы</b> и в основном ждут внешние устройства (плиту, тостер). Если бы они делили одну сковороду — понадобилась бы синхронизация. К ней вернёмся в разделе 05.</div>
+  </div>
+</section>
+
+<!-- ================= 04 ASYNC ================= -->
+<section id="async">
+  <div class="wrap">
+    <div class="shead reveal">
+      <span class="snum">04</span>
+      <div><p class="skick">пример 3 · механика</p><h2>async/await изнутри</h2></div>
+    </div>
+    <p class="tx reveal"><code class="inline">await</code> не создаёт поток и не блокирует его. Компилятор разрезает метод на <b>конечный автомат</b>: локальные переменные уезжают в объект состояния, поток освобождается, а продолжение (continuation) возвращается, когда задача завершится — в UI-поток через <code class="inline">SynchronizationContext</code> или в пул. Кликните по шагам:</p>
+
+    <div class="grid2 reveal">
+      <div>
+        <div class="opts" id="smSteps">
+          <button class="opt" data-s="1"><b style="color:var(--amber)">①</b> Вызов метода — код выполняется синхронно, как обычный, до первого await.</button>
+          <button class="opt" data-s="2"><b style="color:var(--amber)">②</b> await проверяет: задача уже завершена? Тогда продолжаем сразу, без «парковки».</button>
+          <button class="opt" data-s="3"><b style="color:var(--amber)">③</b> Иначе метод «паркуется»: состояние сохраняется, поток возвращён пулу/UI и свободен для другой работы.</button>
+          <button class="opt" data-s="4"><b style="color:var(--amber)">④</b> Операция завершилась (ответ сети, таймер) — продолжение постится обратно и метод возобновляется со следующей строки.</button>
+        </div>
+        <div class="note" style="margin-top:16px"><b>await ≠ поток.</b> <code class="inline">await Task.Delay(5000)</code> — это таймер, потоки не заняты. <code class="inline">Thread.Sleep(5000)</code> — поток стоит и ничего не делает. Разницу почувствуете ниже.</div>
+      </div>
+      <div class="codewrap">
+        <div class="codebar"><span class="d" style="background:var(--rose)"></span><span class="d" style="background:var(--amber)"></span><span class="d" style="background:var(--lime)"></span><span class="fn">StateMachine.cs</span><span class="tag info">шаг <span id="smCur">1</span>/4</span></div>
+<pre class="code"><span id="smL1" class="sml">async Task&lt;string&gt; LoadAsync()
+{</span>
+<span id="smL2" class="sml">    var url = BuildUrl();                       // выполняется сразу</span>
+<span id="smL3" class="sml">    var data = await Http.GetStringAsync(url);  // паркуемся здесь</span>
+<span id="smL4" class="sml">    return Parse(data);                         // продолжение
+}</span></pre>
+      </div>
+    </div>
+
+    <h3 class="reveal">Почему это важно для UI: блокировка против await</h3>
+    <p class="tx reveal">Два одинаковых окна. В обоих — кнопка-счётчик и кнопка «Загрузить данные на 1,6 секунды». Левое окно блокирует свой поток (<code class="inline">Thread.Sleep</code>), правое — использует <code class="inline">await Task.Delay</code>. <b>Попробуйте кликать по счётчикам во время загрузки.</b></p>
+
+    <div class="grid2 reveal">
+      <div class="appwin" id="syncWin">
+        <div class="bar"><span class="d" style="background:var(--rose)"></span><span class="d" style="background:var(--amber)"></span><span class="d" style="background:var(--lime)"></span><span class="fn">MainWindow — Thread.Sleep (ПЛОХО)</span></div>
+        <div class="bd">
+          <button class="cnt" id="syncCnt">🖱 Кликов: 0 — попробуйте!</button>
+          <div style="margin-top:12px"><button class="btn rose" id="syncLoad">Загрузить данные (Sleep 1.6 c)</button><span class="spin" id="syncSpin" style="border-top-color:var(--rose)"></span></div>
+          <div class="appst" id="syncSt">окно отвечает</div>
+        </div>
+      </div>
+      <div class="appwin">
+        <div class="bar"><span class="d" style="background:var(--rose)"></span><span class="d" style="background:var(--amber)"></span><span class="d" style="background:var(--lime)"></span><span class="fn">MainWindow — await Task.Delay (ХОРОШО)</span></div>
+        <div class="bd">
+          <button class="cnt" id="asyncCnt">🖱 Кликов: 0 — попробуйте!</button>
+          <div style="margin-top:12px"><button class="btn lime" id="asyncLoad">Загрузить данные (await 1.6 c)</button><span class="spin" id="asyncSpin"></span></div>
+          <div class="appst" id="asyncSt">окно отвечает</div>
+        </div>
+      </div>
+    </div>
+    <div class="note rose reveal"><b>Левое окно подвисло по-настоящему</b> — страница реально не обрабатывала клики 1,6 секунды, потому что JS (как и UI-поток WPF) один, и его заняли. Именно так выглядит <code class="inline">.Result</code>, <code class="inline">.Wait()</code> или <code class="inline">Thread.Sleep</code> в обработчике кнопки.</div>
+
+    <div class="grid2 reveal" style="margin-top:18px">
+      <div class="codewrap">
+        <div class="codebar"><span class="d" style="background:var(--rose)"></span><span class="d" style="background:var(--amber)"></span><span class="d" style="background:var(--lime)"></span><span class="fn">Bad.cs</span><span class="tag bad">блокирует UI</span></div>
+<pre class="code">// ПЛОХО: UI-поток занят всё время загрузки
+void OnLoad(object s, EventArgs e)
+{
+    Thread.Sleep(1600);      // или .Result / .Wait()
+    var data = Download();
+    Show(data);              // окно «не отвечает»
+}</pre>
+      </div>
+      <div class="codewrap">
+        <div class="codebar"><span class="d" style="background:var(--rose)"></span><span class="d" style="background:var(--amber)"></span><span class="d" style="background:var(--lime)"></span><span class="fn">Good.cs</span><span class="tag good">UI жив</span></div>
+<pre class="code">// ХОРОШО: поток свободен, продолжение
+// вернётся в UI-поток через SynchronizationContext
+async void OnLoad(object s, EventArgs e)
+{
+    var data = await DownloadAsync();
+    Show(data);
+}</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 05 ГОНКИ ================= -->
+<section id="races">
+  <div class="wrap">
+    <div class="shead reveal">
+      <span class="snum">05</span>
+      <div><p class="skick">пример 4 · общая память</p><h2>Гонки, lock и дедлоки</h2></div>
+    </div>
+    <p class="tx reveal"><code class="inline">counter++</code> — это <b>три</b> операции: прочитать, прибавить, записать. Если два потока выполняют их вперемешку, чужая запись перекрывает нашу — инкремент теряется. Это <b>состояние гонки</b> (race condition). Запустите симуляцию без блокировки несколько раз — итог почти никогда не равен ожидаемому. Затем включите <code class="inline">lock</code>.</p>
+
+    <div class="demo reveal">
+      <div class="demo-h"><span class="live"></span><span class="ttl">Общий счётчик: 2 потока × 5 инкрементов</span>
+        <label class="sw"><input type="checkbox" id="raceLock"> lock (_sync)</label>
+        <button class="btn" id="raceRun">▶ Запустить</button>
+        <button class="btn ghost" id="raceReset">Сброс</button></div>
+      <div class="demo-b">
+        <div class="racegrid">
+          <div class="rl a"><div class="nm">🟠 Поток A</div><span class="ph" id="phA">ожидает</span><div class="rreg" id="regA">регистр: —</div></div>
+          <div class="rmid"><div style="font:600 10px var(--mono);color:var(--dim)">ОБЩИЙ СЧЁТЧИК</div><div id="raceVal">0</div><span id="lockBadge">lock: свободен</span></div>
+          <div class="rl b"><div class="nm">🟢 Поток B</div><span class="ph" id="phB">ожидает</span><div class="rreg" id="regB">регистр: —</div></div>
+        </div>
+        <div class="gres" id="raceSum" style="margin-top:12px"></div>
+        <div class="log" id="raceLog" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <div class="grid2 reveal" style="margin-top:22px">
+      <div class="codewrap">
+        <div class="codebar"><span class="d" style="background:var(--rose)"></span><span class="d" style="background:var(--amber)"></span><span class="d" style="background:var(--lime)"></span><span class="fn">Race.cs</span><span class="tag bad">теряет данные</span></div>
+<pre class="code">int counter = 0;
+
+void Increment()
+{
+    for (int i = 0; i &lt; 100_000; i++)
+        counter++;   // НЕ атомарно:
+        // 1) tmp = counter  2) tmp++  3) counter = tmp
+}
+
+Parallel.Invoke(Increment, Increment);
+Console.WriteLine(counter); // почти никогда не 200 000</pre>
+      </div>
+      <div class="codewrap">
+        <div class="codebar"><span class="d" style="background:var(--rose)"></span><span class="d" style="background:var(--amber)"></span><span class="d" style="background:var(--lime)"></span><span class="fn">Safe.cs</span><span class="tag good">атомарно</span></div>
+<pre class="code">private readonly object _sync = new();
+
+lock (_sync) counter++;
+// сахар над:
+// Monitor.Enter(_sync);
+// try { counter++; } finally { Monitor.Exit(_sync); }
+
+// Или без блокировки вовсе — атомарная CPU-инструкция:
+Interlocked.Increment(ref counter);</pre>
+      </div>
+    </div>
+
+    <h3 class="reveal">Дедлок: два потока, два ресурса</h3>
+    <p class="tx reveal">Для дедлока нужны 4 условия: взаимное исключение, «держи и жди», отсутствие вытеснения и <b>циклическое ожидание</b>. Ломаем любое — дедлок исчезает. Проще всего — порядок захвата ресурсов: все потоки берут их <b>одинаково</b>.</p>
+
+    <div class="demo reveal">
+      <div class="demo-h"><span class="live"></span><span class="ttl">Сценарий дедлока</span>
+        <button class="btn rose" id="dlBad">💀 Сценарий с ошибкой</button>
+        <button class="btn lime" id="dlGood">✓ Исправленный порядок</button></div>
+      <div class="demo-b">
+        <div class="dlgrid">
+          <div class="actor th" id="dlA"><div class="nm">🟠 Поток A</div><div class="dst">готов</div></div>
+          <div class="actor th" id="dlB"><div class="nm">🟢 Поток B</div><div class="dst">готов</div></div>
+          <div class="actor res free" id="dlL1"><div class="nm" style="color:var(--rose)">Ресурс L1</div><div class="rown" style="font:500 12px var(--mono);color:var(--dim);margin-top:6px">свободно</div></div>
+          <div class="actor res free" id="dlL2"><div class="nm" style="color:var(--vio)">Ресурс L2</div><div class="rown" style="font:500 12px var(--mono);color:var(--dim);margin-top:6px">свободно</div></div>
+        </div>
+        <div class="dl-banner hide" id="dlBanner"></div>
+      </div>
+    </div>
+
+    <div class="grid2 reveal" style="margin-top:22px">
+      <div class="codewrap">
+        <div class="codebar"><span class="d" style="background:var(--rose)"></span><span class="d" style="background:var(--amber)"></span><span class="d" style="background:var(--lime)"></span><span class="fn">Deadlock.cs</span><span class="tag bad">💀 виснет навсегда</span></div>
+<pre class="code">// Поток A                    // Поток B
+lock (lockA)                   lock (lockB)
+{                              {
+    Thread.Sleep(50);              Thread.Sleep(50);
+    lock (lockB) { … }             lock (lockA) { … }
+}                              // каждый держит своё и ждёт чужое</pre>
+      </div>
+      <div class="codewrap">
+        <div class="codebar"><span class="d" style="background:var(--rose)"></span><span class="d" style="background:var(--amber)"></span><span class="d" style="background:var(--lime)"></span><span class="fn">Fixed.cs</span><span class="tag good">прогресс есть</span></div>
+<pre class="code">// Оба потока берут ресурсы в ОДИНАКОВОМ порядке
+lock (lockA)
+    lock (lockB) { … }   // всегда сначала lockA
+
+// Другие страховки:
+Monitor.TryEnter(lockA, TimeSpan.FromMilliseconds(200));
+// таймаут вместо вечного ожидания;
+// SemaphoreSlim; отказ от вложенных блокировок</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 06 ПРИМИТИВЫ ================= -->
+<section id="prims">
+  <div class="wrap">
+    <div class="shead reveal">
+      <span class="snum">06</span>
+      <div><p class="skick">пример 5 · инструментарий</p><h2>Примитивы синхронизации</h2></div>
+    </div>
+    <p class="tx reveal">Каждый примитив решает свой класс задач. Переключайте вкладки и запускайте симуляции — поведение видно вживую.</p>
+
+    <div class="tabs reveal">
+      <button class="tab on" data-t="sem">SemaphoreSlim</button>
+      <button class="tab" data-t="evt">ManualResetEvent</button>
+      <button class="tab" data-t="rwl">ReaderWriterLock</button>
+      <button class="tab" data-t="itl">Interlocked</button>
+      <button class="tab" data-t="mtx">Mutex</button>
+    </div>
+
+    <!-- Semaphore -->
+    <div class="tpanel on" data-t="sem">
+      <div class="grid2">
+        <div class="demo">
+          <div class="demo-h"><span class="live"></span><span class="ttl">Парковка на 3 места · SemaphoreSlim(3)</span>
+            <button class="btn" id="semStart">▶ Поехали</button><button class="btn ghost" id="semStop">Стоп</button></div>
+          <div class="demo-b parking">
+            <div class="bays" id="semBays"><div class="bay">место 1</div><div class="bay">место 2</div><div class="bay">место 3</div></div>
+            <div style="font:600 10.5px var(--mono);color:var(--dim)">ОЧЕРЕДЬ WaitAsync() · <span id="semOcc">занято 0/3</span></div>
+            <div class="qrow" id="semQueue"></div>
+            <div class="log" id="semLog"></div>
+          </div>
+        </div>
+        <div class="codewrap">
+          <div class="codebar"><span class="d" style="background:var(--rose)"></span><span class="d" style="background:var(--amber)"></span><span class="d" style="background:var(--lime)"></span><span class="fn">Semaphore.cs</span><span class="tag info">ограничить N</span></div>
+<pre class="code">var slots = new SemaphoreSlim(3); // максимум 3 сразу
+
+async Task UseResource(int id)
+{
+    await slots.WaitAsync();   // нет мест? ждём в очереди
+    try
+    {
+        Console.WriteLine($"#{id} работает");
+        await Task.Delay(2000);
+    }
+    finally { slots.Release(); } // освобождаем всегда!
+}
+// Типичное применение: ограничить число одновременных
+// HTTP-запросов, подключений к БД, потоков парсера.</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Event -->
+    <div class="tpanel" data-t="evt">
+      <div class="grid2">
+        <div class="demo">
+          <div class="demo-h"><span class="live"></span><span class="ttl">Шлюз · ManualResetEventSlim</span>
+            <button class="btn lime" id="evtSet">Set()</button>
+            <button class="btn rose" id="evtReset">Reset()</button>
+            <button class="btn ghost" id="evtAdd">+ Поток</button>
+            <button class="btn ghost" id="evtAuto">Авто-режим</button></div>
+          <div class="demo-b">
+            <div class="evttrack" id="evtTrack">
+              <div class="gate" id="evtGate"></div>
+              <span class="glab">gate.Wait()</span>
+              <span class="exitlab">→ прошли: <b id="evtPassed">0</b></span>
+            </div>
+            <div class="log" id="evtLog" style="margin-top:12px"></div>
+          </div>
+        </div>
+        <div class="codewrap">
+          <div class="codebar"><span class="d" style="background:var(--rose)"></span><span class="d" style="background:var(--amber)"></span><span class="d" style="background:var(--lime)"></span><span class="fn">Gate.cs</span><span class="tag info">сигнал</span></div>
+<pre class="code">var gate = new ManualResetEventSlim(false); // закрыт
+
+// Ожидающие потоки:
+gate.Wait();          // стоят, пока сигнал не станет true
+
+// Сигнальный поток:
+gate.Set();           // открыли — проходят ВСЕ ожидающие
+gate.Reset();         // закрыли снова
+
+// AutoResetEvent: каждый Set() пропускает ровно ОДИН
+// поток, как турникет. Manual — «дверь настежь».
+// Асинхронный аналог одноразового сигнала —
+// TaskCompletionSource&lt;T&gt;.</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- RW -->
+    <div class="tpanel" data-t="rwl">
+      <div class="grid2">
+        <div class="demo">
+          <div class="demo-h"><span class="live"></span><span class="ttl">📄 Документ: читатели и писатель</span>
+            <button class="btn" id="rwStart">▶ Запустить</button><button class="btn ghost" id="rwStop">Стоп</button><button class="btn ghost" id="rwClr">Очистить</button></div>
+          <div class="demo-b">
+            <div style="font:600 10.5px var(--mono);color:var(--dim);margin-bottom:6px">ВНУТРИ РЕСУРСА · <span id="rwStat">читателей: 0 · писателей: 0</span></div>
+            <div class="rwbox" id="rwInside"></div>
+            <div style="font:600 10.5px var(--mono);color:var(--dim);margin:10px 0 6px">ОЧЕРЕДЬ</div>
+            <div class="rwbox" id="rwQueue" style="min-height:54px"></div>
+            <div class="log" id="rwLog" style="margin-top:12px"></div>
+          </div>
+        </div>
+        <div class="codewrap">
+          <div class="codebar"><span class="d" style="background:var(--rose)"></span><span class="d" style="background:var(--amber)"></span><span class="d" style="background:var(--lime)"></span><span class="fn">Cache.cs</span><span class="tag info">чтение ≫ запись</span></div>
+<pre class="code">var rw = new ReaderWriterLockSlim();
+
+T Read()
+{
+    rw.EnterReadLock();      // читателей может быть МНОГО
+    try { return data; }     // одновременно
+    finally { rw.ExitReadLock(); }
+}
+
+void Write(T value)
+{
+    rw.EnterWriteLock();     // писатель — ОДИН,
+    try { data = value; }    // читателей внутри нет
+    finally { rw.ExitWriteLock(); }
+}
+// Классика для кэшей: тысячи чтений, редкие записи.</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interlocked -->
+    <div class="tpanel" data-t="itl">
+      <div class="grid2">
+        <div class="demo">
+          <div class="demo-h"><span class="live"></span><span class="ttl">4 потока × 25 000 инкрементов = 100 000?</span>
+            <button class="btn" id="itRun">▶ Посчитать</button></div>
+          <div class="demo-b">
+            <div class="itrow"><span style="color:var(--rose)">обычный counter++</span><div class="costbar"><i id="itBad" style="background:var(--rose)"></i></div><span class="itval" id="itBadV">—</span></div>
+            <div class="itrow"><span style="color:var(--lime)">Interlocked.Increment</span><div class="costbar"><i id="itGood" style="background:var(--lime)"></i></div><span class="itval" id="itGoodV">—</span></div>
+            <div class="gres" id="itRes"></div>
+          </div>
+        </div>
+        <div class="codewrap">
+          <div class="codebar"><span class="d" style="background:var(--rose)"></span><span class="d" style="background:var(--amber)"></span><span class="d" style="background:var(--lime)"></span><span class="fn">Atomic.cs</span><span class="tag good">без lock</span></div>
+<pre class="code">long counter = 0;
+
+// Атомарные операции на уровне CPU
+// (LOCK XADD / compare-and-swap) — быстрее lock:
+Interlocked.Increment(ref counter);
+Interlocked.Add(ref counter, 42);
+Interlocked.CompareExchange(ref counter, 1, 0);
+Interlocked.Exchange(ref flag, 1);   // спин-замки строят на нём
+
+// Родственник: volatile — гарантирует видимость
+// последней записи, но НЕ атомарность операций.</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mutex -->
+    <div class="tpanel" data-t="mtx">
+      <div class="grid2">
+        <div class="demo">
+          <div class="demo-h"><span class="live"></span><span class="ttl">Mutex — единственный «межпроцессный» примитив</span></div>
+          <div class="demo-b">
+            <p class="tx" style="margin:0 0 10px">В отличие от lock/Monitor, <b>именованный Mutex виден другим процессам ОС</b> — это способ договориться между разными программами (или копиями одной). Классика — защита от второго экземпляра приложения.</p>
+            <p class="tx" style="margin:0">Особенности: захватить и освободить должен <b>один и тот же поток</b> (thread affinity); если поток умер, не отпустив мьютекс, следующий владелец получит <code class="inline">AbandonedMutexException</code> — сигнал, что где-то упал процесс. Медленнее Monitor: это объект ядра ОС.</p>
+          </div>
+        </div>
+        <div class="codewrap">
+          <div class="codebar"><span class="d" style="background:var(--rose)"></span><span class="d" style="background:var(--amber)"></span><span class="d" style="background:var(--lime)"></span><span class="fn">SingleInstance.cs</span><span class="tag info">между процессами</span></div>
+<pre class="code">// Имя с префиксом Global\ видно всем сессиям ОС
+using var mutex = new Mutex(false, @"Global\MyApp.Single");
+
+if (!mutex.WaitOne(0))
+{
+    Console.WriteLine("Приложение уже запущено");
+    return;
+}
+
+try
+{
+    // … работаем в единственном экземпляре …
+}
+finally
+{
+    mutex.ReleaseMutex(); // тот же поток, что захватил!
+}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 07 АСИНХРОННАЯ КООРДИНАЦИЯ ================= -->
+<section id="tools">
+  <div class="wrap">
+    <div class="shead reveal">
+      <span class="snum">07</span>
+      <div><p class="skick">пример 6 · async-мир</p><h2>Отмена и конвейер</h2></div>
+    </div>
+    <p class="tx reveal">В асинхронном коде вместо блокирующих примитивов — свои инструменты: <code class="inline">CancellationToken</code> для кооперативной отмены, <code class="inline">Channel&lt;T&gt;</code> для «производитель → потребитель», <code class="inline">Task.WhenAll/WhenAny</code> для композиции.</p>
+
+    <h3 class="reveal">CancellationToken: вежливая отмена</h3>
+    <div class="grid2 wide reveal">
+      <div class="demo">
+        <div class="demo-h"><span class="live"></span><span class="ttl">Скачивание update.zip</span>
+          <button class="btn teal" id="ctStart">▶ Начать</button>
+          <button class="btn rose" id="ctCancel" disabled>✕ cts.Cancel()</button></div>
+        <div class="demo-b">
+          <div class="dlbar"><div class="dlfill" id="ctBar"></div></div>
+          <div class="dlst" id="ctSt">нажмите «Начать»</div>
+          <div class="log" id="ctLog" style="margin-top:12px;max-height:140px"></div>
+        </div>
+      </div>
+      <div class="codewrap">
+        <div class="codebar"><span class="d" style="background:var(--rose)"></span><span class="d" style="background:var(--amber)"></span><span class="d" style="background:var(--lime)"></span><span class="fn">Cancellation.cs</span><span class="tag info">кооперативно</span></div>
+<pre class="code">var cts = new CancellationTokenSource();
+
+async Task DownloadAsync(CancellationToken ct)
+{
+    for (int i = 0; i &lt; 100; i++)
+    {
+        ct.ThrowIfCancellationRequested(); // проверяем сами
+        await Task.Delay(50, ct);          // Delay тоже следит
+        progress.Report(i + 1);
+    }
+}
+
+cts.Cancel();        // из другого потока / по кнопке
+// → OperationCanceledException: ловим и сообщаем пользователю.
+// Отмена в .NET — просьба, а не kill: код должен проверять токен.</pre>
+      </div>
+    </div>
+
+    <h3 class="reveal">Channel&lt;T&gt;: производитель и потребитель</h3>
+    <p class="tx reveal">Производитель быстрее потребителя — буфер растёт. Ограничим его тремя элементами: когда буфер полон, <code class="inline">WriteAsync</code> ждёт — это <b>backpressure</b>, система сама притормаживает быстрых. Наблюдайте за статусом производителя.</p>
+    <div class="grid2 wide2 reveal">
+      <div class="codewrap">
+        <div class="codebar"><span class="d" style="background:var(--rose)"></span><span class="d" style="background:var(--amber)"></span><span class="d" style="background:var(--lime)"></span><span class="fn">Pipeline.cs</span><span class="tag info">bounded = 3</span></div>
+<pre class="code">var ch = Channel.CreateBounded&lt;int&gt;(3);
+
+async Task ProducerAsync()
+{
+    for (int i = 0; ; i++)
+        await ch.Writer.WriteAsync(i); // полон? ждём
+}
+
+async Task ConsumerAsync()
+{
+    await foreach (var item in ch.Reader.ReadAllAsync())
+        Process(item);
+}
+// Альтернатива «из коробки»: BlockingCollection&lt;T&gt;
+// (внутри — ConcurrentQueue и тот же паттерн).</pre>
+      </div>
+      <div class="demo">
+        <div class="demo-h"><span class="live"></span><span class="ttl">Конвейер · Channel.CreateBounded(3)</span>
+          <button class="btn" id="chStart">▶ Старт</button><button class="btn ghost" id="chStop">Стоп</button></div>
+        <div class="demo-b">
+          <div class="convey">
+            <div class="node"><div class="nm" style="color:var(--teal)">Производитель</div><div class="st" id="chProdSt">простаивает</div><div class="mono" style="margin-top:8px;color:var(--dim)">выпущено: <b id="chP" style="color:var(--tx)">0</b></div></div>
+            <div><div style="font:600 10px var(--mono);color:var(--dim);text-align:center;margin-bottom:6px">БУФЕР</div><div class="slots"><div class="slot" id="s0"></div><div class="slot" id="s1"></div><div class="slot" id="s2"></div></div></div>
+            <div class="node"><div class="nm" style="color:var(--amber)">Потребитель</div><div class="st" id="chConsSt">простаивает</div><div class="mono" style="margin-top:8px;color:var(--dim)">обработано: <b id="chC" style="color:var(--tx)">0</b></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="note teal reveal">Правила асинхронного мира: <b>async до самого низа</b> (от контроллера до БД), <code class="inline">ConfigureAwait(false)</code> в библиотеках, <code class="inline">async void</code> — только для обработчиков событий, и никаких <code class="inline">.Result</code>/<code class="inline">.Wait()</code> поверх async-кода.</div>
+  </div>
+</section>
+
+<!-- ================= 08 ПРАКТИКА ================= -->
+<section id="practice">
+  <div class="wrap">
+    <div class="shead reveal">
+      <span class="snum">08</span>
+      <div><p class="skick">практика · проверка себя</p><h2>Квиз: что выведет код?</h2></div>
+    </div>
+    <p class="tx reveal">Семь вопросов с подвохом — ровно те грабли, на которые наступают все. <span class="score">Счёт: <span id="quizScore">0</span>/7</span></p>
+
+    <div class="qz reveal">
+      <div class="codewrap"><div class="codebar"><span class="fn">Q1.cs</span></div>
+<pre class="code">for (int i = 0; i &lt; 5; i++)
+    new Thread(() => Console.Write(i)).Start();</pre></div>
+      <p class="qt">Что может появиться в консоли?</p>
+      <div class="opts">
+        <button class="opt">Всегда строго «01234»</button>
+        <button class="opt">Случайная перестановка цифр 0–4, но каждая ровно по разу</button>
+        <button class="opt" data-ok>Что угодно: хоть «55555», хоть «35135» — цифры могут повторяться</button>
+        <button class="opt">Ошибка компиляции: i нельзя использовать в лямбде</button>
+      </div>
+      <div class="expl">Лямбда захватывает <b>переменную</b> i, а не её значение. К моменту старта потоков цикл может давно завершиться и i станет равен 5. Лечение: <code class="inline">int local = i;</code> внутри цикла и захват local.</div>
+    </div>
+
+    <div class="qz reveal">
+      <div class="codewrap"><div class="codebar"><span class="fn">Q2.cs</span></div>
+<pre class="code">Console.Write("A");
+Thread.Sleep(1000);   // в асинхронном контексте
+Console.Write("B");
+// против
+await Task.Delay(1000);</pre></div>
+      <p class="qt">Чем Thread.Sleep отличается от await Task.Delay?</p>
+      <div class="opts">
+        <button class="opt">Ничем, это синонимы</button>
+        <button class="opt" data-ok>Sleep блокирует поток на секунду; Delay лишь ставит продолжение «на будильник», поток свободен</button>
+        <button class="opt">Delay создаёт отдельный поток-таймер</button>
+        <button class="opt">Sleep работает только в UI-потоке</button>
+      </div>
+      <div class="expl"><code class="inline">Thread.Sleep</code> замораживает поток (в UI — всё окно). <code class="inline">Task.Delay</code> — таймер: поток возвращается пулу и выполняет другую работу, а продолжение приходит по сигналу.</div>
+    </div>
+
+    <div class="qz reveal">
+      <div class="codewrap"><div class="codebar"><span class="fn">Q3.cs</span></div>
+<pre class="code">async Task&lt;int&gt; GetAsync()
+{
+    Console.Write("A");
+    await Task.Delay(1000);
+    Console.Write("B");
+    return 42;
+}
+
+GetAsync();
+Console.Write("C");</pre></div>
+      <p class="qt">Что выведется?</p>
+      <div class="opts">
+        <button class="opt">ABC</button>
+        <button class="opt" data-ok>ACB</button>
+        <button class="opt">CAB</button>
+        <button class="opt">Ничего — метод не запустится без await</button>
+      </div>
+      <div class="expl">async-метод выполняется синхронно только до первого незавершённого await, затем возвращает управление вызывающему. Поэтому «C» печатается сразу, а «B» — через секунду, когда придёт продолжение.</div>
+    </div>
+
+    <div class="qz reveal">
+      <div class="codewrap"><div class="codebar"><span class="fn">Q4.cs</span></div>
+<pre class="code">// Вызывается из UI-потока WPF/WinForms
+public string GetName()
+{
+    var task = httpClient.GetStringAsync(url);
+    return task.Result;   // ???
+}</pre></div>
+      <p class="qt">Что не так с этим кодом?</p>
+      <div class="opts">
+        <button class="opt">Всё в порядке, стандартный приём</button>
+        <button class="opt">Не скомпилируется</button>
+        <button class="opt" data-ok>.Result блокирует UI-поток, а в классическом UI-контексте это прямой путь к дедлоку и «окно не отвечает»</button>
+        <button class="opt">GetStringAsync нельзя вызывать без lock</button>
+      </div>
+      <div class="expl">Это «sync-over-async». Продолжение задачи хочет вернуться в UI-поток, а UI-поток заблокирован ожиданием .Result — классический дедлок (особенно в WPF/WinForms/старом ASP.NET). Решение: сделать метод async и написать <code class="inline">await</code>.</div>
+    </div>
+
+    <div class="qz reveal">
+      <div class="codewrap"><div class="codebar"><span class="fn">Q5.cs</span></div>
+<pre class="code">public void Save(Order o)
+{
+    lock (this)      // «защищаем состояние объекта»
+    {
+        db.Write(o);
+    }
+}</pre></div>
+      <p class="qt">Почему lock(this) — плохая практика?</p>
+      <div class="opts">
+        <button class="opt">lock принимает только struct</button>
+        <button class="opt" data-ok>Внешний код может заблокировать тот же объект снаружи — получим чужой неконтролируемый дедлок</button>
+        <button class="opt">Это медленнее, чем lock(typeof(Order))</button>
+        <button class="opt">this всегда равен null внутри lock</button>
+      </div>
+      <div class="expl">Монитор вешается на публично доступный объект. Правильно: приватное поле <code class="inline">private readonly object _sync = new();</code> и lock по нему. По тем же причинам не лочат typeof(T) и строки (интернирование).</div>
+    </div>
+
+    <div class="qz reveal">
+      <div class="codewrap"><div class="codebar"><span class="fn">Q6.cs</span></div>
+<pre class="code">var list = new List&lt;int&gt;();
+Parallel.For(0, 1000, i => list.Add(i));
+Console.WriteLine(list.Count);</pre></div>
+      <p class="qt">Что произойдёт?</p>
+      <div class="opts">
+        <button class="opt">Всегда 1000 — Parallel.For синхронизирует коллекции</button>
+        <button class="opt" data-ok>Возможны потерянные элементы, исключения и повреждённое состояние: List&lt;T&gt; не потокобезопасен</button>
+        <button class="opt">Компилятор запретит захват list в лямбде</button>
+        <button class="opt">List сам включит блокировки при параллельной записи</button>
+      </div>
+      <div class="expl">Обычные коллекции (List, Dictionary) не рассчитаны на конкурентную запись. Варианты: обернуть Add в lock, взять <code class="inline">ConcurrentQueue/ConcurrentDictionary</code> или собрать результаты через возвращаемые значения.</div>
+    </div>
+
+    <div class="qz reveal">
+      <div class="codewrap"><div class="codebar"><span class="fn">Q7.cs</span></div>
+<pre class="code">await Task.Delay(5000);</pre></div>
+      <p class="qt">Что await делает с текущим потоком на время ожидания?</p>
+      <div class="opts">
+        <button class="opt">Блокирует его до завершения операции</button>
+        <button class="opt" data-ok>Освобождает поток; продолжение метода вернётся позже (в UI-поток или в пул)</button>
+        <button class="opt">Всегда создаёт новый поток для остатка метода</button>
+        <button class="opt">Приостанавливает весь процесс</button>
+      </div>
+      <div class="expl">В этом суть async: на ожидании I/O потоки не простаивают. Метод «помнит» себя в объекте конечного автомата, а когда задача завершится, продолжение возобновляет его с того же места — с теми же локальными переменными.</div>
+    </div>
+
+    <h3 class="reveal" style="margin-top:44px">Шпаргалка: чем пользоваться</h3>
+    <div class="reveal" style="overflow-x:auto">
+      <table class="tbl">
+        <tr><th>Ситуация</th><th>Инструмент</th><th>Комментарий</th></tr>
+        <tr><td>UI висит от тяжёлой CPU-работы</td><td class="m">Task.Run + await</td><td>продолжение само вернётся в UI-поток</td></tr>
+        <tr><td>Много сетевых запросов разом</td><td class="m">Task.WhenAll + SemaphoreSlim(N)</td><td>WhenAll ждёт всех, семафор ограничивает напор</td></tr>
+        <tr><td>Общий счётчик / флаг</td><td class="m">Interlocked</td><td>быстрее lock, атомарная CPU-инструкция</td></tr>
+        <tr><td>Короткая критическая секция</td><td class="m">lock (Monitor)</td><td>без I/O и ожидания внутри; Release в finally</td></tr>
+        <tr><td>Производитель / потребитель</td><td class="m">Channel&lt;T&gt; / BlockingCollection</td><td>bounded-ёмкость даёт backpressure</td></tr>
+        <tr><td>Конкурентный кэш</td><td class="m">ConcurrentDictionary</td><td>точечные блокировки внутри</td></tr>
+        <tr><td>«Не больше N одновременно»</td><td class="m">SemaphoreSlim(N)</td><td>есть асинхронный WaitAsync</td></tr>
+        <tr><td>Одноразовый сигнал готовности</td><td class="m">TaskCompletionSource&lt;T&gt;</td><td>для потоков: ManualResetEventSlim</td></tr>
+        <tr><td>Читают часто, пишут редко</td><td class="m">ReaderWriterLockSlim</td><td>много читателей одновременно</td></tr>
+        <tr><td>Договор между процессами</td><td class="m">именованный Mutex</td><td>объект ядра ОС</td></tr>
+        <tr><td>Отмена чего угодно</td><td class="m">CancellationToken</td><td>пробрасывайте сквозь все слои</td></tr>
+      </table>
+    </div>
+
+    <div class="dd reveal" style="margin-top:26px">
+      <div class="col do"><h4>✓ Делайте</h4>
+        <ul>
+          <li>async «до самого дна»: от контроллера до запроса в БД</li>
+          <li><b>ConfigureAwait(false)</b> в библиотеках — не захватывайте чужой контекст</li>
+          <li>обрабатывайте исключения fire-and-forget задач</li>
+          <li>пробрасывайте CancellationToken и проверяйте его в долгих циклах</li>
+          <li>освобождайте блокировки в finally / using</li>
+          <li>держите критические секции короткими: вошёл → сделал → вышел</li>
+        </ul>
+      </div>
+      <div class="col dont"><h4>✗ Не делайте</h4>
+        <ul>
+          <li><b>async void</b> вне обработчиков событий — исключения улетят «в никуда»</li>
+          <li><b>.Result / .Wait()</b> поверх async — sync-over-async: голодание пула и дедлоки</li>
+          <li>lock(this), lock(typeof(T)), lock("строка")</li>
+          <li>await внутри lock — это ошибка компиляции; нужен SemaphoreSlim(1,1)</li>
+          <li>new Thread(…) на каждый запрос — для этого есть пул</li>
+          <li>не полагайтесь на порядок выполнения потоков</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>🧵 Учебный интерактив по многопоточности и async в .NET · C# 12 / .NET 8+</span>
+    <span>Примеры упрощены для наглядности · симуляции выполняются прямо в браузере</span>
+  </div>
+</footer>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const ri=(a,b)=>Math.floor(rnd(a,b+1));
+const fmt=n=>String(n).replace(/\B(?=(\d{3})+(?!\d))/g,'\u2009');
+
+/* ---------- подсветка C# ---------- */
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+const CSRE=/(\/\/[^\n]*)|(\$?"(?:[^"\\]|\\.)*"|\$@"(?:[^"]|"")*")|('(?:[^'\\]|\\.)')|\b(async|await|abstract|as|base|break|case|catch|checked|class|const|continue|default|delegate|do|else|enum|event|explicit|extern|false|finally|fixed|for|foreach|goto|if|implicit|in|interface|internal|is|lock|nameof|namespace|new|null|object|operator|out|override|params|private|protected|public|readonly|record|ref|return|sealed|sizeof|stackalloc|static|string|struct|switch|this|throw|true|try|typeof|unchecked|unsafe|using|var|virtual|void|volatile|while|yield|int|long|double|float|bool|char|byte|decimal|uint|ulong|when|where|select|from)\b|\b([A-Za-z_][A-Za-z0-9_]*)(?=\s*\()|\b([A-Z][A-Za-z0-9_]*)\b|\b(\d[\d_]*(?:\.\d+)?)\b/g;
+function hlCs(src){
+  let out='',last=0,m;CSRE.lastIndex=0;
+  while((m=CSRE.exec(src))){
+    out+=esc(src.slice(last,m.index));
+    const cls=m[1]?'c-cm':m[2]?'c-st':m[3]?'c-st':m[4]?'c-kw':m[5]?'c-fn':m[6]?'c-ty':'c-nu';
+    out+='<span class="'+cls+'">'+esc(m[0])+'</span>';
+    last=m.index+m[0].length;
+  }
+  return out+esc(src.slice(last));
+}
+$$('pre.code').forEach(p=>p.innerHTML=hlCs(p.textContent));
+
+/* ---------- reveal / прогресс / рейл ---------- */
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.12});
+$$('.reveal').forEach(el=>io.observe(el));
+addEventListener('scroll',()=>{
+  const h=document.documentElement;
+  $('#prog').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%';
+},{passive:true});
+const railIO=new IntersectionObserver(es=>es.forEach(e=>{
+  const a=$('#rail a[href="#'+e.target.id+'"]');
+  if(a)a.classList.toggle('on',e.isIntersecting);
+}),{rootMargin:'-30% 0px -55% 0px'});
+$$('main section').forEach(s=>railIO.observe(s));
+function onVisible(el,cb){new IntersectionObserver(es=>cb(es[0].isIntersecting),{rootMargin:'60px'}).observe(el)}
+
+/* ---------- лог ---------- */
+function logLine(box,text,cls){
+  const d=document.createElement('div');d.className='ll '+(cls||'');d.textContent=text;
+  box.appendChild(d);while(box.children.length>70)box.firstChild.remove();box.scrollTop=box.scrollHeight;
+}
+
+/* ================= планировщик в герое ================= */
+(function(){
+  const cv=$('#schedCv'),ctx=cv.getContext('2d');
+  let cores=4,rows=Array(4).fill(null),queue=[],nextId=1,done=0,paused=false,visible=true,last=performance.now();
+  const DPR=window.devicePixelRatio||1;
+  const COLORS=['#ffb454','#3fe0c5','#a5e86f','#ff5d7d','#6fc3ff','#c08bff'];
+  function resize(){cv.width=cv.clientWidth*DPR;cv.height=cv.clientHeight*DPR;ctx.setTransform(DPR,0,0,DPR,0,0)}
+  function setH(){cv.style.height=(cores*42+34)+'px';resize()}
+  setH();addEventListener('resize',resize);
+  onVisible($('#schedWrap'),v=>visible=v);
+  function frame(now){
+    requestAnimationFrame(frame);
+    if(paused||!visible||document.hidden){last=now;return}
+    last=now;
+    while(queue.length<5)queue.push({id:nextId++,dur:rnd(500,1800),color:COLORS[ri(0,5)]});
+    for(let i=0;i<cores;i++){
+      if(!rows[i]&&queue.length){const t=queue.shift();t.start=now;rows[i]=t}
+      const t=rows[i];
+      if(t&&now>=t.start+t.dur){done++;rows[i]=null}
+    }
+    const W=cv.clientWidth,H=cv.clientHeight,rowH=42,top=24,p=.12,cx=Math.max(240,W-165);
+    ctx.clearRect(0,0,W,H);
+    ctx.font='10px JetBrains Mono, monospace';
+    for(let i=0;i<cores;i++){
+      const y=top+i*rowH;
+      ctx.strokeStyle='rgba(255,255,255,.06)';ctx.beginPath();ctx.moveTo(66,y+rowH-10);ctx.lineTo(cx,y+rowH-10);ctx.stroke();
+      ctx.fillStyle='#647591';ctx.fillText('ядро '+i,8,y+rowH-14);
+    }
+    for(let i=0;i<cores;i++){
+      const t=rows[i];if(!t)continue;
+      const y=top+i*rowH,xs=cx-(now-t.start)*p,w=t.dur*p,x0=Math.max(70,xs-w);
+      ctx.fillStyle=t.color;
+      ctx.beginPath();ctx.roundRect(x0,y+4,Math.max(4,xs-x0),rowH-18,5);ctx.fill();
+      if(xs-x0>44){ctx.fillStyle='#10131c';ctx.fillText('T-'+t.id,x0+7,y+rowH-19)}
+    }
+    ctx.save();ctx.shadowColor='#ffb454';ctx.shadowBlur=10;ctx.strokeStyle='#ffb454';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(cx,top-12);ctx.lineTo(cx,H-6);ctx.stroke();ctx.restore();
+    ctx.fillStyle='#647591';ctx.fillText('очередь',cx+22,top-8);
+    for(let j=0;j<Math.min(queue.length,6);j++){
+      const q=queue[j],y=top+j*26;
+      ctx.fillStyle='#0e1830';ctx.strokeStyle='#22304a';
+      ctx.beginPath();ctx.roundRect(cx+22,y,112,20,5);ctx.fill();ctx.stroke();
+      ctx.fillStyle='#93a3bd';ctx.fillText('T-'+q.id+' · '+Math.round(q.dur)+'ms',cx+30,y+13);
+    }
+    $('#stQ').textContent=queue.length;$('#stDone').textContent=done;$('#stPool').textContent=cores;
+  }
+  requestAnimationFrame(frame);
+  $('#coreSeg').addEventListener('click',e=>{
+    const b=e.target.closest('button');if(!b)return;
+    $$('#coreSeg button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+    cores=+b.dataset.c;rows=Array(cores).fill(null);setH();
+  });
+  $('#schedPause').addEventListener('click',e=>{paused=!paused;e.target.textContent=paused?'▶':'⏸'});
+})();
+
+/* ================= стоимость потока ================= */
+$('#costRun').addEventListener('click',()=>{
+  $('#costTh').style.width='0%';$('#costTk').style.width='0%';
+  $('#costThV').textContent='…';$('#costTkV').textContent='…';
+  setTimeout(()=>{
+    $('#costTh').style.width='92%';$('#costTk').style.width='3%';
+    let t=0;const iv=setInterval(()=>{t+=1;$('#costThV').textContent=(t*14)+' мс · ~1 ГБ';$('#costTkV').textContent=Math.max(1,t*14/350|0)+' мс';if(t>=80)clearInterval(iv)},12);
+  },80);
+});
+
+/* ================= interleave ================= */
+(function(){
+  const COLS=['#ffb454','#3fe0c5','#c08bff'];
+  let n=2,running=false;
+  $('#thCount').addEventListener('click',e=>{
+    const b=e.target.closest('button');if(!b||running)return;
+    $$('#thCount button').forEach(x=>x.classList.remove('on'));b.classList.add('on');n=+b.dataset.n;buildLanes();
+  });
+  function buildLanes(){
+    const L=$('#ilLanes');L.innerHTML='';
+    for(let i=0;i<n;i++){
+      const d=document.createElement('div');d.className='lane';
+      d.innerHTML='<span class="nm" style="color:'+COLS[i]+'">Поток-'+(i+1)+'</span>'+
+        Array.from({length:4},(_,k)=>'<span class="step">шаг '+k+'</span>').join('');
+      L.appendChild(d);
+    }
+  }
+  buildLanes();
+  $('#ilRun').addEventListener('click',async()=>{
+    if(running)return;running=true;$('#ilRun').disabled=true;
+    $('#ilLog').innerHTML='';buildLanes();
+    const left=Array(n).fill(4);
+    logLine($('#ilLog'),'планировщик: потоки запущены, порядок переключений случаен','l-info');
+    while(left.some(l=>l>0)){
+      const avail=left.map((l,i)=>l>0?i:-1).filter(i=>i>=0);
+      const w=avail[ri(0,avail.length-1)];
+      const k=4-left[w];left[w]--;
+      const chip=$('#ilLanes').children[w].querySelectorAll('.step')[k];
+      chip.classList.add('done');chip.style.background=COLS[w];chip.style.borderColor=COLS[w];
+      logLine($('#ilLog'),'Поток-'+(w+1)+': шаг '+k);
+      await sleep(rnd(150,430));
+    }
+    logLine($('#ilLog'),'все потоки завершены. Запустите ещё раз — порядок будет другим!','l-ok');
+    running=false;$('#ilRun').disabled=false;
+  });
+})();
+
+/* ================= завтрак / Ганта ================= */
+(function(){
+  const dishes=[
+    {n:'🍳 Яичница',d:8,c:'#ffb454'},{n:'🥓 Бекон',d:6,c:'#ff5d7d'},
+    {n:'☕ Кофе',d:3,c:'#c08bff'},{n:'🍞 Тост',d:4,c:'#a5e86f'},{n:'🧃 Сок',d:2,c:'#3fe0c5'}
+  ];
+  const track=$('#gTrack');let fills=[],anim=null,running=false;
+  dishes.forEach(d=>{
+    const r=document.createElement('div');r.className='grow';
+    r.innerHTML='<span class="gname">'+d.n+' · '+d.d+' мин</span><div class="gbar"><div class="gfill" style="background:'+d.c+'">'+d.d+'м</div></div>';
+    track.appendChild(r);fills.push(r.querySelector('.gfill'));
+  });
+  function ticks(total){$('#gTicks').innerHTML=Array.from({length:6},(_,i)=>'<span>'+Math.round(total/5*i)+'м</span>').join('')}
+  function run(mode){
+    if(running)return;running=true;cancelAnimationFrame(anim);
+    const offs=[];let acc=0;
+    dishes.forEach((d,i)=>{offs.push(mode==='seq'?acc:0);if(mode==='seq')acc+=d.d});
+    const total=mode==='seq'?acc:8;ticks(total);
+    $('#gRes').textContent='';$('#gRes').style.color='';
+    const t0=performance.now(),msPerMin=mode==='seq'?280:420;
+    function step(now){
+      const m=(now-t0)/msPerMin;
+      dishes.forEach((d,i)=>{
+        const el=Math.max(0,Math.min(d.d,m-offs[i]));
+        const bar=fills[i];
+        bar.style.width=((offs[i]+el)/total*100)+'%';
+        bar.style.opacity=el>0?1:.25;
+      });
+      $('#gCur').style.left='calc(142px + (100% - 142px) * '+Math.min(1,m/total)+')';
+      if(m<total){anim=requestAnimationFrame(step)}
+      else{
+        running=false;
+        const R=$('#gRes');
+        if(mode==='seq'){R.textContent='⏱ 23 минуты. Кофе остыл, тост остыл тоже.';R.style.color='var(--rose)'}
+        else{R.textContent='⚡ 8 минут — всё готово одновременно!';R.style.color='var(--lime)'}
+      }
+    }
+    anim=requestAnimationFrame(step);
+  }
+  $('#gSeq').addEventListener('click',()=>run('seq'));
+  $('#gPar').addEventListener('click',()=>run('par'));
+  ticks(8);
+})();
+
+/* ================= state machine шаги ================= */
+(function(){
+  const map={1:['smL1'],2:['smL2'],3:['smL3'],4:['smL4']};
+  $$('#smSteps .opt').forEach(b=>b.addEventListener('click',()=>{
+    $$('#smSteps .opt').forEach(x=>x.style.borderColor='');b.style.borderColor='var(--amber)';
+    $$('.sml').forEach(s=>s.style.background='');
+    map[b.dataset.s].forEach(id=>{const el=$('#'+id);el.style.background='rgba(255,180,84,.12)';el.style.borderRadius='6px'});
+    $('#smCur').textContent=b.dataset.s;
+  }));
+  $$('#smSteps .opt')[0].click();
+})();
+
+/* ================= UI freeze ================= */
+(function(){
+  let sc=0,ac=0,sBusy=false,aBusy=false;
+  $('#syncCnt').addEventListener('click',()=>{if(sBusy)return;sc++;$('#syncCnt').textContent='🖱 Кликов: '+sc});
+  $('#asyncCnt').addEventListener('click',()=>{ac++;$('#asyncCnt').textContent='🖱 Кликов: '+ac});
+  $('#syncLoad').addEventListener('click',()=>{
+    if(sBusy)return;sBusy=true;
+    $('#syncWin').classList.add('frozen');
+    $('#syncSt').textContent='Thread.Sleep(1600)… окно НЕ отвечает';
+    setTimeout(()=>{
+      const t=performance.now();while(performance.now()-t<1600){} // настоящая блокировка!
+      $('#syncWin').classList.remove('frozen');
+      $('#syncSt').textContent='✓ загружено — но UI был мёртв 1,6 с';
+      $('#syncSt').style.color='var(--rose)';sBusy=false;
+    },40);
+  });
+  $('#asyncLoad').addEventListener('click',async()=>{
+    if(aBusy)return;aBusy=true;
+    $('#asyncSt').textContent='await Task.Delay(1600) — поток свободен, кликайте!';
+    $('#asyncSt').style.color='var(--teal)';
+    await sleep(1600);
+    $('#asyncSt').textContent='✓ загружено — UI отвечал всё это время';
+    $('#asyncSt').style.color='var(--lime)';aBusy=false;
+  });
+})();
+
+/* ================= гонка ================= */
+(function(){
+  let shared=0,lost=0,running=false;
+  const valEl=$('#raceVal'),lockB=$('#lockBadge');
+  function paint(){valEl.textContent=shared}
+  function bump(){valEl.classList.add('bump');setTimeout(()=>valEl.classList.remove('bump'),220)}
+  function ph(w,t){$('#ph'+w).textContent=t}
+  function reg(w,t){$('#reg'+w).textContent='регистр: '+t}
+  function reset(){shared=0;lost=0;paint();ph('A','ожидает');ph('B','ожидает');reg('A','—');reg('B','—');lockB.textContent='lock: свободен';lockB.classList.remove('held');$('#raceSum').textContent='';$('#raceLog').innerHTML=''}
+  $('#raceReset').addEventListener('click',()=>{if(!running)reset()});
+  $('#raceRun').addEventListener('click',async()=>{
+    if(running)return;running=true;reset();
+    $('#raceRun').disabled=true;$('#raceLock').disabled=true;
+    const locked=$('#raceLock').checked,L=$('#raceLog');
+    logLine(L,locked?'режим: lock(_sync) — каждый инкремент атомарен':'режим: без блокировки — операции read/modify/write перемешаются','l-info');
+    if(!locked){
+      const cur={A:0,B:0},rv={},cv={};
+      while(cur.A<15||cur.B<15){
+        const av=['A','B'].filter(w=>cur[w]<15);
+        const w=av[ri(0,av.length-1)],k=cur[w]%3;
+        if(k===0){rv[w]=shared;ph(w,'ЧИТАЕТ → '+shared);reg(w,rv[w]);logLine(L,'Поток '+w+': читаю счётчик = '+shared)}
+        else if(k===1){cv[w]=rv[w]+1;ph(w,'СЧИТАЕТ '+rv[w]+'+1');reg(w,rv[w]+'+1='+cv[w]);logLine(L,'Поток '+w+': считаю '+rv[w]+' + 1 = '+cv[w])}
+        else{
+          if(rv[w]!==shared){lost++;logLine(L,'⚠ Поток '+w+' пишет '+cv[w]+' поверх чужого значения '+shared+' — инкремент потерян!','l-err')}
+          else logLine(L,'Поток '+w+': пишу '+cv[w],'l-ok');
+          shared=cv[w];paint();bump();ph(w,'ПИШЕТ '+cv[w]);
+        }
+        cur[w]++;await sleep(rnd(300,640));
+      }
+    }else{
+      for(let i=0;i<10;i++){
+        const w=Math.random()<.5?'A':'B';
+        const other=w==='A'?'B':'A';
+        lockB.textContent='lock: Поток '+w;lockB.classList.add('held');
+        ph(other,'ждёт lock…');ph(w,'вошёл в lock');
+        await sleep(200);
+        rv=undefined;
+        const v=shared;ph(w,'ЧИТАЕТ → '+v);reg(w,v);await sleep(170);
+        ph(w,'СЧИТАЕТ '+v+'+1');await sleep(170);
+        shared=v+1;paint();bump();ph(w,'ПИШЕТ '+shared);
+        logLine(L,'Поток '+w+': '+v+' → '+shared+' (под защитой lock)','l-ok');
+        await sleep(180);
+        lockB.classList.remove('held');lockB.textContent='lock: свободен';
+        ph(w,'вышел из lock');
+        await sleep(120);
+      }
+    }
+    const S=$('#raceSum');
+    if(locked){S.textContent='✓ Итог: 10 из 10 — потерь нет. Lock сделал каждый инкремент атомарным.';S.style.color='var(--lime)'}
+    else{S.textContent='Итог: '+shared+' из 10'+(lost?' — потеряно '+lost+' обновления(ий). Запустите ещё раз — будет иначе.':' — повезло с планировщиком! Запустите ещё пару раз.');S.style.color=lost?'var(--rose)':'var(--amber)'}
+    running=false;$('#raceRun').disabled=false;$('#raceLock').disabled=false;
+  });
+})();
+
+/* ================= дедлок ================= */
+(function(){
+  let timers=[];
+  const th={A:$('#dlA'),B:$('#dlB')},res={L1:$('#dlL1'),L2:$('#dlL2')},banner=$('#dlBanner');
+  const step=(fn,d)=>timers.push(setTimeout(fn,d));
+  function setTh(w,t,c){th[w].querySelector('.dst').textContent=t;th[w].className='actor th '+(c||'')}
+  function setRes(r,own,wait){res[r].querySelector('.rown').textContent=own?('занято: Поток '+own):(wait?('ждёт: Поток '+wait):'свободно');res[r].className='actor res '+(own?'held':'free')}
+  function clear(){timers.forEach(clearTimeout);timers=[];banner.className='dl-banner hide';
+    setTh('A','готов');setTh('B','готов');setRes('L1');setRes('L2')}
+  $('#dlBad').addEventListener('click',()=>{
+    clear();
+    step(()=>setTh('A','lock(L1) — захватила','hold'),300);
+    step(()=>setRes('L1','A'),600);
+    step(()=>setTh('B','lock(L2) — захватил','hold'),1000);
+    step(()=>setRes('L2','B'),1300);
+    step(()=>setTh('A','хочет lock(L2)… ждёт','wait'),1900);
+    step(()=>setRes('L2','B','A'),2200);
+    step(()=>setTh('B','хочет lock(L1)… ждёт','wait'),2700);
+    step(()=>setRes('L1','A','B'),3000);
+    step(()=>{banner.textContent='💀 DEADLOCK: A держит L1 и ждёт L2, B держит L2 и ждёт L1 — циклическое ожидание, никто не продолжится';
+      banner.className='dl-banner bad';setTh('A','⛔ ждёт L2 вечно','dead');setTh('B','⛔ ждёт L1 вечно','dead')},3700);
+  });
+  $('#dlGood').addEventListener('click',()=>{
+    clear();
+    step(()=>setTh('A','lock(L1)','hold'),300);
+    step(()=>setRes('L1','A'),600);
+    step(()=>setTh('B','хочет L1 — ждёт в очереди','wait'),1000);
+    step(()=>setRes('L1','A','B'),1300);
+    step(()=>{setTh('A','lock(L2), работает…','hold');setRes('L2','A')},1900);
+    step(()=>{setRes('L2');setRes('L1');setTh('A','✓ закончил, оба lock отпущены','ok')},2800);
+    step(()=>{setTh('B','lock(L1) → lock(L2), работает…','hold');setRes('L1','B');setRes('L2','B')},3400);
+    step(()=>{setRes('L1');setRes('L2');setTh('B','✓ закончил','ok');
+      banner.textContent='✓ Прогресс: одинаковый порядок захвата исключает циклическое ожидание';
+      banner.className='dl-banner ok'},4400);
+  });
+})();
+
+/* ================= вкладки ================= */
+$$('.tab').forEach(b=>b.addEventListener('click',()=>{
+  $$('.tab').forEach(x=>x.classList.toggle('on',x===b));
+  $$('.tpanel').forEach(p=>p.classList.toggle('on',p.dataset.t===b.dataset.t));
+}));
+
+/* ================= семафор ================= */
+(function(){
+  const bays=[...$('#semBays').children],qE=$('#semQueue'),L=$('#semLog');
+  const CC=['#ffb454','#3fe0c5','#a5e86f','#6fc3ff','#c08bff','#ff5d7d'];
+  let spawnT=null,leaveT=[],cid=0,spawned=0,vis=true;
+  onVisible($('#prims'),v=>vis=v);
+  const free=()=>bays.filter(b=>!b.firstElementChild).length;
+  function occ(){$('#semOcc').textContent='занято '+(3-free())+'/3'}
+  function tryMove(){
+    let bi=bays.findIndex(b=>!b.firstElementChild);
+    while(bi>=0&&qE.firstElementChild){
+      const car=qE.firstElementChild;qE.removeChild(car);
+      bays[bi].replaceChildren(car);car.classList.remove('pop');void car.offsetWidth;car.classList.add('pop');
+      logLine(L,'🚗 #'+car.dataset.id+' занял(а) место '+(bi+1)+' — свободно: '+free(),'l-ok');
+      const myBi=bi;
+      leaveT.push(setTimeout(()=>{
+        if(!bays[myBi].contains(car))return;
+        bays[myBi].innerHTML='место '+(myBi+1);
+        logLine(L,'🚗 #'+car.dataset.id+' уехал(а), Release()','l-tea');occ();tryMove();
+      },rnd(2300,3400)));
+      occ();bi=bays.findIndex(b=>!b.firstElementChild);
+    }
+  }
+  function spawn(){
+    if(spawned>=10)return;
+    spawned++;cid++;
+    const c=document.createElement('div');c.className='car';c.dataset.id=cid;
+    c.style.background=CC[cid%CC.length];c.textContent='🚗 '+cid;
+    qE.appendChild(c);
+    logLine(L,'🚗 #'+cid+' подъехала — WaitAsync()');tryMove();occ();
+  }
+  $('#semStart').addEventListener('click',()=>{
+    stop();bays.forEach((b,i)=>b.innerHTML='место '+(i+1));qE.innerHTML='';L.innerHTML='';cid=0;spawned=0;
+    logLine(L,'SemaphoreSlim(3): парковка открыта','l-info');
+    spawn();spawn();
+    spawnT=setInterval(()=>{if(vis&&!document.hidden)spawn()},1000);occ();
+  });
+  function stop(){clearInterval(spawnT);leaveT.forEach(clearTimeout);leaveT=[]}
+  $('#semStop').addEventListener('click',stop);
+})();
+
+/* ================= событие-шлюз ================= */
+(function(){
+  const track=$('#evtTrack'),gate=$('#evtGate'),L=$('#evtLog');
+  let open=false,tokens=[],passed=0,autoOn=false,autoT=null,spawnT=null,tickT=null,passCd=0,vis=true;
+  onVisible($('#prims'),v=>vis=v);
+  function paint(){gate.classList.toggle('open',open)}
+  function addTok(){
+    const el=document.createElement('div');el.className='wtok';
+    track.appendChild(el);
+    tokens.push({el,x:-4,st:'in'});
+  }
+  function set(open_){
+    open=open_;paint();
+    if(open){
+      const waiting=tokens.filter(t=>t.st==='wait').length;
+      logLine(L,'Set() — шлюз открыт'+(waiting?', проходят '+waiting+' ожидающих':''),'l-ok');
+    }else logLine(L,'Reset() — шлюз закрыт, новые потоки останавливаются','l-warn');
+  }
+  function tick(){
+    if(document.hidden||!vis)return;
+    passCd=Math.max(0,passCd-1);
+    if(open&&passCd===0){
+      const w=tokens.find(t=>t.st==='wait');
+      if(w){w.st='pass';passCd=4}
+    }
+    const waits=tokens.filter(t=>t.st==='wait');
+    tokens.forEach(t=>{
+      if(t.st==='in'){t.x+=1.1;if(t.x>=46)t.st='wait'}
+      else if(t.st==='wait'){
+        const qi=waits.indexOf(t);
+        const target=57-qi*4.6;
+        t.x+=(target-t.x)*.25;
+      }
+      else if(t.st==='pass'){t.x+=1.6;if(t.x>102){t.dead=true;passed++;$('#evtPassed').textContent=passed}}
+      t.el.style.left=t.x+'%';
+      t.el.style.top=(58+((waits.indexOf(t)%3)+3)*0)+'px';
+    });
+    tokens=tokens.filter(t=>{if(t.dead)t.el.remove();return !t.dead});
+  }
+  tickT=setInterval(tick,50);
+  $('#evtSet').addEventListener('click',()=>set(true));
+  $('#evtReset').addEventListener('click',()=>set(false));
+  $('#evtAdd').addEventListener('click',()=>{addTok();logLine(L,'новый поток вызвал gate.Wait()')});
+  $('#evtAuto').addEventListener('click',e=>{
+    autoOn=!autoOn;e.target.textContent=autoOn?'⏹ Стоп авто':'Авто-режим';
+    if(autoOn){
+      logLine(L,'авто-режим: Set/Reset каждые 2,5 с, поток каждые 0,9 с','l-info');
+      autoT=setInterval(()=>{if(vis&&!document.hidden)set(!open)},2500);
+      spawnT=setInterval(()=>{if(vis&&!document.hidden)addTok()},900);
+    }else{clearInterval(autoT);clearInterval(spawnT)}
+  });
+  addTok();addTok();addTok();
+})();
+
+/* ================= читатели/писатель ================= */
+(function(){
+  const inside=$('#rwInside'),qE=$('#rwQueue'),L=$('#rwLog');
+  let readers=0,writer=false,q=[],active=[],uid=0,spawnT=null,leaveT=[],vis=true;
+  onVisible($('#prims'),v=>vis=v);
+  function render(){
+    inside.innerHTML=active.map(t=>'<span class="chip '+t.type+'">'+(t.type==='r'?'👁 Читатель-':'✍ Писатель-')+t.id+'</span>').join('')||'<span style="font:500 12px var(--mono);color:var(--dim)">пусто</span>';
+    qE.innerHTML=q.map(t=>'<span class="chip q '+t.type+'">'+(t.type==='r'?'👁 Ч-':'✍ П-')+t.id+'</span>').join('')||'<span style="font:500 12px var(--mono);color:var(--dim)">—</span>';
+    $('#rwStat').textContent='читателей: '+readers+' · писателей: '+(writer?1:0)+' · в очереди: '+q.length;
+  }
+  function tryEnter(){
+    while(q.length&&!writer){
+      const h=q[0];
+      if(h.type==='r'){q.shift();readers++;enter(h)}
+      else{if(readers===0){q.shift();writer=true;enter(h)}break}
+    }
+    render();
+  }
+  function enter(t){
+    active.push(t);
+    logLine(L,t.type==='r'?'👁 Читатель-'+t.id+' вошёл (читателей внутри: '+readers+')':'✍ Писатель-'+t.id+' начал запись — эксклюзивный доступ',t.type==='r'?'l-ok':'l-warn');
+    const dur=t.type==='r'?rnd(1500,2500):rnd(2600,3600);
+    leaveT.push(setTimeout(()=>{
+      active=active.filter(x=>x!==t);
+      if(t.type==='r')readers--;else writer=false;
+      logLine(L,(t.type==='r'?'👁 Читатель-':'✍ Писатель-')+t.id+' вышел','l-tea');
+      render();tryEnter();
+    },dur));
+    render();
+  }
+  $('#rwStart').addEventListener('click',()=>{
+    $('#rwStop').click();
+    logLine(L,'симуляция: читатели приходят чаще писателя','l-info');
+    spawnT=setInterval(()=>{if(vis&&!document.hidden){uid++;q.push({id:uid,type:Math.random()<0.62?'r':'w'});render();tryEnter()}},900);
+  });
+  $('#rwStop').addEventListener('click',()=>{clearInterval(spawnT)});
+  $('#rwClr').addEventListener('click',()=>{
+    clearInterval(spawnT);leaveT.forEach(clearTimeout);leaveT=[];
+    readers=0;writer=false;q=[];active=[];uid=0;L.innerHTML='';render();
+  });
+  render();
+})();
+
+/* ================= interlocked ================= */
+$('#itRun').addEventListener('click',()=>{
+  const target=100000,bad=target-ri(9000,42000);
+  const b=$('#itBad'),g=$('#itGood'),bv=$('#itBadV'),gv=$('#itGoodV');
+  b.style.width='0%';g.style.width='0%';bv.textContent='…';gv.textContent='…';$('#itRes').textContent='';
+  setTimeout(()=>{
+    b.style.width=(bad/target*100)+'%';g.style.width='100%';
+    let t=0;
+    const iv=setInterval(()=>{
+      t+=.03;const k=Math.min(1,t);
+      bv.textContent=fmt(Math.round(bad*k));gv.textContent=fmt(Math.round(target*k));
+      if(k>=1){clearInterval(iv);
+        $('#itRes').innerHTML='<span style="color:var(--rose)">потеряно '+fmt(target-bad)+' инкрементов</span> · Interlocked: <span style="color:var(--lime)">ровно '+fmt(target)+'</span>';
+        $('#itRes').style.marginTop='10px';$('#itRes').style.font='600 13px var(--mono)';
+      }
+    },20);
+  },80);
+});
+
+/* ================= отмена ================= */
+(function(){
+  let tm=null,state='idle',pct=0;
+  const bar=$('#ctBar'),st=$('#ctSt'),L=$('#ctLog');
+  $('#ctStart').addEventListener('click',()=>{
+    clearInterval(tm);pct=0;state='run';
+    bar.className='dlfill';bar.style.width='0%';
+    $('#ctCancel').disabled=false;
+    st.textContent='скачивание…';st.style.color='var(--teal)';
+    logLine(L,'DownloadAsync(ct) запущен','l-info');
+    tm=setInterval(()=>{
+      pct+=ri(1,2);
+      if(pct>=100){pct=100;clearInterval(tm);state='done';
+        bar.style.width='100%';st.textContent='✓ Загружено на 100%';st.style.color='var(--lime)';
+        logLine(L,'готово — отмена не понадобилась','l-ok');$('#ctCancel').disabled=true;return}
+      bar.style.width=pct+'%';st.textContent='скачивание… '+pct+'%';
+    },70);
+  });
+  $('#ctCancel').addEventListener('click',()=>{
+    if(state!=='run')return;state='cut';clearInterval(tm);
+    bar.classList.add('cut');
+    st.textContent='⚠ OperationCanceledException на '+pct+'%';st.style.color='var(--amber)';
+    logLine(L,'cts.Cancel() → токен отменён','l-warn');
+    logLine(L,'ct.ThrowIfCancellationRequested() бросил OperationCanceledException','l-err');
+    logLine(L,'задача корректно остановлена на '+pct+'%','l-ok');
+    $('#ctCancel').disabled=true;
+  });
+})();
+
+/* ================= конвейер ================= */
+(function(){
+  let prodT=null,consT=null,buf=[],pid=0,prod=0,cons=0,vis=true;
+  onVisible($('#tools'),v=>vis=v);
+  const slots=[$('#s0'),$('#s1'),$('#s2')];
+  function paint(){slots.forEach((s,i)=>{s.className='slot'+(buf[i]?' full':'');s.textContent=buf[i]?'📦':''})}
+  $('#chStart').addEventListener('click',()=>{
+    $('#chStop').click();buf=[];pid=0;prod=0;cons=0;paint();
+    $('#chP').textContent='0';$('#chC').textContent='0';
+    $('#chProdSt').textContent='работает';$('#chConsSt').textContent='работает';
+    prodT=setInterval(()=>{
+      if(!vis||document.hidden)return;
+      if(buf.length<3){pid++;prod++;buf.push(pid);$('#chP').textContent=prod;
+        $('#chProdSt').textContent='WriteAsync('+pid+') ✓';$('#chProdSt').style.color='var(--teal)';paint()}
+      else{$('#chProdSt').textContent='⛔ буфер полон — WriteAsync ждёт';$('#chProdSt').style.color='var(--rose)'}
+    },620);
+    consT=setInterval(()=>{
+      if(!vis||document.hidden)return;
+      if(buf.length){const it=buf.shift();cons++;$('#chC').textContent=cons;
+        $('#chConsSt').textContent='обрабатывает #'+it+'…';$('#chConsSt').style.color='var(--amber)';paint()}
+      else{$('#chConsSt').textContent='ждёт данные (ReadAsync)';$('#chConsSt').style.color='var(--dim)'}
+    },1080);
+  });
+  $('#chStop').addEventListener('click',()=>{clearInterval(prodT);clearInterval(consT)});
+  paint();
+})();
+
+/* ================= квиз ================= */
+(function(){
+  let score=0;
+  $$('.qz').forEach(q=>{
+    q.querySelectorAll('.opt').forEach(o=>o.addEventListener('click',()=>{
+      if(q.classList.contains('done'))return;
+      q.classList.add('done');
+      const ok=o.hasAttribute('data-ok');
+      if(ok){o.classList.add('ok');score++}
+      else{
+        o.classList.add('bad');
+        const right=q.querySelector('.opt[data-ok]');if(right)right.classList.add('ok');
+      }
+      $('#quizScore').textContent=score;
+    }));
+  });
+})();
+</script>
+</body>
+</html>
