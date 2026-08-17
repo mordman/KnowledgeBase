@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Крестики-нолики 3D — 3×3×3</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🧊</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Neucha&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg0:#0d1b22; --bg1:#153039;
+    --chalk:#eef3ec; --dim:rgba(238,243,236,.6); --faint:rgba(238,243,236,.18);
+    --x:#ff8a6e; --o:#5fe0c8; --sun:#ffd166; --ink:#13292f;
+    --you:var(--x); --foe:var(--o);
+    --disp:'Unbounded',sans-serif; --hand:'Neucha',cursive; --body:'Rubik',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    min-height:100vh;color:var(--chalk);font-family:var(--body);overflow-x:hidden;
+    background:
+      radial-gradient(1100px 700px at 78% -10%, rgba(95,224,200,.07), transparent 60%),
+      radial-gradient(900px 700px at 8% 110%, rgba(255,138,110,.06), transparent 55%),
+      linear-gradient(160deg, var(--bg1), var(--bg0) 70%);
+  }
+  body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.05;z-index:3;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E")}
+  #fx{position:fixed;inset:0;pointer-events:none;z-index:50}
+  .doodle{position:fixed;z-index:0;opacity:.08;pointer-events:none;stroke:var(--chalk);fill:none;stroke-linecap:round;
+    animation:floaty var(--dur,10s) ease-in-out var(--del,0s) infinite alternate}
+  .doodle *{stroke-width:4}
+  @keyframes floaty{from{transform:translateY(0) rotate(-3deg)}to{transform:translateY(-16px) rotate(4deg)}}
+
+  .wrap{position:relative;z-index:1;max-width:1120px;margin:0 auto;padding:30px 22px 60px}
+
+  header{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-end;justify-content:space-between;margin-bottom:28px}
+  h1{font-family:var(--disp);font-weight:900;font-size:clamp(1.8rem,4.4vw,3rem);line-height:1.05}
+  h1 .cube-ico{display:inline-block;color:var(--sun);animation:spin3d 7s linear infinite;font-size:.8em;margin-right:.15em}
+  @keyframes spin3d{from{transform:rotateY(0) rotateX(14deg)}to{transform:rotateY(360deg) rotateX(14deg)}}
+  .squiggle{display:block;margin-top:8px}
+  .squiggle path{stroke:var(--sun);stroke-width:4;fill:none;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;animation:draw 1s .3s ease forwards}
+  .tagline{font-family:var(--hand);font-size:1.3rem;color:var(--dim);margin-top:10px;transform:rotate(-.6deg)}
+
+  .head-right{display:flex;align-items:flex-start;gap:14px}
+  .chips{display:flex;gap:10px;flex-wrap:wrap}
+  .chip{font-family:var(--body);text-align:left;background:transparent;color:var(--chalk);cursor:pointer;
+    border:2px solid var(--faint);padding:9px 16px;touch-action:manipulation;
+    border-radius:14px 18px 12px 18px/18px 12px 18px 12px;transition:transform .18s,background .18s,border-color .18s,box-shadow .18s}
+  .chip strong{display:block;font-size:.95rem;font-weight:700}
+  .chip small{display:block;font-size:.72rem;color:var(--dim);margin-top:2px}
+  .chip:hover{transform:translateY(-3px) rotate(-1deg);border-color:var(--dim)}
+  .chip[aria-pressed="true"]{background:var(--chalk);color:var(--ink);border-color:var(--chalk);transform:rotate(-1.2deg);box-shadow:4px 5px 0 rgba(0,0,0,.35)}
+  .chip[aria-pressed="true"] small{color:rgba(19,41,47,.65)}
+  .icon-btn{width:46px;height:46px;flex:none;border-radius:50%;background:transparent;color:var(--chalk);
+    border:2px solid var(--faint);cursor:pointer;display:grid;place-items:center;transition:.18s}
+  .icon-btn:hover{border-color:var(--dim);transform:rotate(-8deg) scale(1.06)}
+  .icon-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .icon-btn .off{display:none}
+  .icon-btn.muted .on{display:none}.icon-btn.muted .off{display:block}
+
+  .game{display:grid;grid-template-columns:minmax(320px,580px) 340px;gap:36px;justify-content:center;align-items:start}
+  .status{font-family:var(--hand);font-size:1.5rem;min-height:2.3rem;margin-bottom:8px;transform:rotate(-.4deg)}
+  .status .cx{color:var(--x)} .status .co{color:var(--o)}
+  .dots i{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--chalk);margin-left:4px;animation:blink 1s infinite}
+  .dots i:nth-child(2){animation-delay:.18s}.dots i:nth-child(3){animation-delay:.36s}
+  @keyframes blink{0%,70%,100%{opacity:.15;transform:translateY(0)}35%{opacity:1;transform:translateY(-4px)}}
+
+  /* ---------- 3D сцена ---------- */
+  .stage{
+    position:relative;height:560px;border:3px solid rgba(238,243,236,.3);
+    border-radius:26px 32px 24px 30px/30px 24px 32px 24px;overflow:hidden;
+    background:radial-gradient(600px 340px at 50% 88%, rgba(95,224,200,.08), transparent 70%),
+               radial-gradient(500px 300px at 50% 8%, rgba(255,209,102,.05), transparent 70%),
+               linear-gradient(160deg, #17333e, #10222b);
+    perspective:1150px;perspective-origin:50% 40%;
+    cursor:grab;touch-action:none;user-select:none}
+  .stage:active{cursor:grabbing}
+  .stage::after{content:"";position:absolute;left:50%;bottom:6%;width:320px;height:56px;transform:translateX(-50%);
+    background:radial-gradient(closest-side, rgba(0,0,0,.5), transparent);filter:blur(6px);pointer-events:none}
+  .cube{position:absolute;left:50%;top:50%;width:0;height:0;transform-style:preserve-3d;will-change:transform;--spacing:110;--L:336px}
+  .layer{
+    position:absolute;left:calc(var(--L)/-2);top:calc(var(--L)/-2);width:var(--L);height:var(--L);
+    transform-style:preserve-3d;border:2px dashed rgba(238,243,236,.18);border-radius:18px;
+    background:rgba(255,255,255,.022);
+    display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:12px;
+    transform:translateY(calc(var(--k)*var(--spacing)*1px)) rotateX(90deg);
+    transition:box-shadow .25s}
+  .layer.hl{box-shadow:0 0 0 2px rgba(255,209,102,.45),0 0 34px rgba(255,209,102,.18)}
+  .layer-tag{position:absolute;left:10px;bottom:2px;transform:translateZ(1px);pointer-events:none;
+    font-family:var(--hand);font-size:15px;color:rgba(238,243,236,.4)}
+  .pillar{position:absolute;left:0;top:0;width:0;height:0;transform-style:preserve-3d;
+    transform:translate3d(var(--px),calc(var(--spacing)*-1px),var(--pz))}
+  .pillar i{position:absolute;left:-1px;top:0;width:2.5px;height:calc(var(--spacing)*2px);border-radius:2px;
+    background:linear-gradient(rgba(238,243,236,.3),rgba(238,243,236,.1))}
+  .pillar i:last-child{transform:rotateY(90deg)}
+
+  .tile{position:relative;border-radius:14px;background:rgba(238,243,236,.055);
+    border:2px solid rgba(238,243,236,.22);outline:none;cursor:default;
+    transition:background .2s,border-color .2s,box-shadow .2s,transform .15s,opacity .5s}
+  .tile.sym-x{border-color:rgba(255,138,110,.4);background:rgba(255,138,110,.07)}
+  .tile.sym-o{border-color:rgba(95,224,200,.4);background:rgba(95,224,200,.07)}
+  /* синхронное выделение (куб ↔ карта слоёв) */
+  .tile.hl{border-color:var(--sun);box-shadow:0 0 22px rgba(255,209,102,.45);transform:translateZ(7px)}
+  .cube.can-play .tile.empty{cursor:pointer}
+  .cube.can-play .tile.empty:hover{background:rgba(238,243,236,.13);border-color:rgba(238,243,236,.55);
+    box-shadow:0 0 20px rgba(238,243,236,.18);transform:translateZ(7px)}
+  .tile:focus-visible{border-color:var(--sun);box-shadow:0 0 0 2px rgba(255,209,102,.5)}
+  .tile.win{border-color:var(--sun);background:rgba(255,209,102,.16);animation:winPulse .9s ease-in-out infinite alternate}
+  @keyframes winPulse{from{box-shadow:0 0 10px rgba(255,209,102,.25);transform:translateZ(4px)}
+                      to{box-shadow:0 0 30px rgba(255,209,102,.55);transform:translateZ(10px)}}
+  .cube.over .tile:not(.win){opacity:.4}
+  .tsvg{position:absolute;inset:5px;pointer-events:none;overflow:visible}
+  .ghost{opacity:0;transition:opacity .15s;stroke-width:7;fill:none}
+  .cube.can-play .tile.empty:hover .ghost,.cube.can-play .tile.empty.hl .ghost{opacity:.35}
+  .cube[data-symbol="X"] .g-o{display:none}.cube[data-symbol="O"] .g-x{display:none}
+  .cube[data-symbol="X"] .ghost{stroke:var(--x)}.cube[data-symbol="O"] .ghost{stroke:var(--o)}
+  .mark{fill:none;stroke-width:7;stroke-linecap:round}
+  .mark.mx{stroke:var(--x)}.mark.mo{stroke:var(--o)}
+  .mark path,.mark circle{stroke-dasharray:1;stroke-dashoffset:1;animation:draw .38s cubic-bezier(.5,0,.3,1) forwards}
+  .mark .s2{animation-delay:.14s}
+  .mark circle{transform-box:fill-box;transform-origin:center;transform:rotate(-90deg);animation-duration:.45s}
+  @keyframes draw{to{stroke-dashoffset:0}}
+
+  .overlay{position:absolute;inset:0;border-radius:inherit;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+    background:rgba(11,22,28,.74);backdrop-filter:blur(3px);opacity:0;visibility:hidden;transition:opacity .35s,visibility .35s;z-index:6;cursor:pointer}
+  .overlay.show{opacity:1;visibility:visible}
+  .ov-card{display:flex;flex-direction:column;align-items:center;gap:8px;transform:scale(.65) rotate(-5deg);
+    transition:transform .4s cubic-bezier(.2,1.6,.4,1);cursor:default}
+  .overlay.show .ov-card{transform:scale(1) rotate(-1.5deg)}
+  #ov-word{font-family:var(--disp);font-weight:900;font-size:clamp(1.9rem,6vw,2.7rem)}
+  #ov-sub{font-family:var(--hand);font-size:1.4rem;color:var(--dim)}
+
+  .stage-controls{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin-top:16px}
+  .ctl{display:flex;flex-direction:column;gap:4px;font-family:var(--hand);font-size:1.05rem;color:var(--dim)}
+  .ctl input[type=range]{width:150px;accent-color:var(--sun);cursor:pointer}
+  .ctl-btn{font-family:var(--body);font-weight:600;font-size:.85rem;color:var(--chalk);background:transparent;
+    border:2px solid var(--faint);border-radius:12px;padding:9px 14px;cursor:pointer;transition:.18s;touch-action:manipulation}
+  .ctl-btn:hover{border-color:var(--dim);transform:translateY(-2px)}
+  .ctl-btn[aria-pressed="true"]{background:var(--sun);border-color:var(--sun);color:var(--ink)}
+  .hint{margin-top:12px;font-size:.8rem;color:var(--dim)}
+  kbd{font-family:var(--body);font-size:.72rem;border:1px solid var(--faint);border-bottom-width:2px;border-radius:5px;padding:1px 6px}
+
+  /* ---------- панель ---------- */
+  .panel{display:flex;flex-direction:column;gap:16px}
+  .card{padding:16px 18px;border:2px solid rgba(238,243,236,.2);background:rgba(255,255,255,.035);
+    border-radius:18px 24px 16px 22px/22px 16px 24px 18px;transition:transform .25s,border-color .25s}
+  .card:nth-child(odd){transform:rotate(-.6deg)}
+  .card:nth-child(even){transform:rotate(.5deg)}
+  .card:hover{transform:rotate(0) translateY(-3px);border-color:rgba(238,243,236,.4)}
+  .card h2{font-family:var(--hand);font-weight:400;font-size:1.25rem;color:var(--dim);margin-bottom:10px}
+  .side-row{display:flex;gap:12px}
+  .side-btn{flex:1;font-family:var(--disp);font-weight:700;font-size:1.7rem;padding:10px 0;cursor:pointer;
+    background:transparent;color:var(--dim);border:2px solid var(--faint);border-radius:14px;transition:.18s;touch-action:manipulation}
+  .side-btn:hover{transform:translateY(-3px);border-color:var(--dim)}
+  .side-btn.act-x{background:var(--x);border-color:var(--x);color:#2b130c;transform:rotate(-1.5deg);box-shadow:3px 4px 0 rgba(0,0,0,.35)}
+  .side-btn.act-o{background:var(--o);border-color:var(--o);color:#062a24;transform:rotate(1.5deg);box-shadow:3px 4px 0 rgba(0,0,0,.35)}
+  .side-note{font-size:.76rem;color:var(--dim);margin-top:9px;line-height:1.4}
+
+  .mini-wrap{display:flex;gap:12px;justify-content:space-between}
+  .mini-block{display:flex;flex-direction:column;align-items:center;gap:6px}
+  .mini-block span{font-family:var(--hand);font-size:.95rem;color:var(--dim)}
+  .mini{display:grid;grid-template-columns:repeat(3,27px);gap:4px}
+  .mini-cell{width:27px;height:27px;border:1.5px solid var(--faint);border-radius:6px;display:grid;place-items:center;
+    font-family:var(--disp);font-size:12px;font-weight:700;background:transparent;color:var(--chalk);padding:0;transition:.15s}
+  .mini-cell.empty{cursor:pointer}
+  .mini-cell.empty:hover{border-color:var(--sun);transform:scale(1.12)}
+  .mini-cell.mx{color:var(--x);border-color:rgba(255,138,110,.45)}
+  .mini-cell.mo{color:var(--o);border-color:rgba(95,224,200,.45)}
+  .mini-cell.hl{border-color:var(--sun);transform:scale(1.15);box-shadow:0 0 10px rgba(255,209,102,.45)}
+  .mini-cell.win{border-color:var(--sun);background:rgba(255,209,102,.18)}
+
+  .score-grid{display:grid;grid-template-columns:1fr 1fr 1fr;text-align:center;gap:8px}
+  .score-grid b{display:block;font-family:var(--disp);font-weight:700;font-size:1.9rem;line-height:1.1}
+  .score-grid span{font-family:var(--hand);font-size:1.05rem;color:var(--dim)}
+  .sc-you b{color:var(--you)} .sc-ai b{color:var(--foe)} .sc-dr b{color:var(--dim)}
+  .bump{animation:bump .45s cubic-bezier(.2,1.8,.4,1)}
+  @keyframes bump{30%{transform:scale(1.35)}}
+  .streak{margin-top:10px;font-family:var(--hand);font-size:1.1rem;color:var(--sun);text-align:center;min-height:1.3rem}
+  .actions{display:flex;flex-direction:column;gap:10px}
+  .btn{font-family:var(--body);font-weight:700;font-size:.95rem;cursor:pointer;touch-action:manipulation;
+    padding:11px 22px;border-radius:14px 18px 12px 18px/18px 12px 18px 12px;transition:transform .15s,box-shadow .15s}
+  .btn.primary{background:var(--chalk);color:var(--ink);border:2px solid var(--chalk);box-shadow:4px 5px 0 rgba(0,0,0,.4)}
+  .btn.primary:hover{transform:translate(-1px,-2px) rotate(-1deg);box-shadow:6px 8px 0 rgba(0,0,0,.4)}
+  .btn.primary:active{transform:translate(2px,3px);box-shadow:1px 1px 0 rgba(0,0,0,.4)}
+  .btn.ghost{background:transparent;color:var(--chalk);border:2px solid var(--faint)}
+  .btn.ghost:hover{border-color:var(--dim);transform:translateY(-2px)}
+  .actions .btn{width:100%}
+  #diff-info{font-size:.85rem;line-height:1.55;color:var(--dim)}
+
+  @media (max-width:960px){
+    .game{grid-template-columns:1fr;gap:26px}
+    .stage{height:440px}
+    .panel{max-width:520px;width:100%;margin:0 auto}
+    header{flex-direction:column;align-items:flex-start}
+    .doodle:nth-child(n+5){display:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms !important;animation-delay:0ms !important;transition-duration:.01ms !important}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="fx"></canvas>
+<svg class="doodle" viewBox="0 0 40 40" width="54" style="top:9%;left:4%;--dur:11s"><path d="M9 9 31 31 M31 9 9 31"/></svg>
+<svg class="doodle" viewBox="0 0 40 40" width="46" style="top:16%;right:5%;--dur:9s;--del:1s"><circle cx="20" cy="20" r="14"/></svg>
+<svg class="doodle" viewBox="0 0 100 26" width="95" style="bottom:13%;left:6%;--dur:13s"><path d="M3 14 C 14 2, 22 26, 34 14 S 56 2, 68 14 S 88 26, 97 12"/></svg>
+<svg class="doodle" viewBox="0 0 40 40" width="52" style="bottom:9%;right:8%;--dur:10s;--del:2s"><path d="M14 4v32 M26 4v32 M4 14h32 M4 26h32"/></svg>
+<svg class="doodle" viewBox="0 0 40 40" width="30" style="top:56%;right:3%;--dur:8s;--del:.5s"><path d="M10 10 30 30 M30 10 10 30"/></svg>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1><span class="cube-ico">🧊</span>Крестики&#8209;нолики&nbsp;3D</h1>
+      <svg class="squiggle" width="230" height="14" viewBox="0 0 230 14"><path pathLength="1" d="M4 9 C 40 2, 70 13, 110 8 S 195 3, 226 9"/></svg>
+      <p class="tagline">Три в ряд — по грани, по диагонали или сквозь весь куб. 49 линий победы!</p>
+    </div>
+    <div class="head-right">
+      <div class="chips" role="group" aria-label="Сложность">
+        <button class="chip" data-diff="easy"   aria-pressed="false"><strong>Лёгкий</strong><small>ходит наугад</small></button>
+        <button class="chip" data-diff="normal" aria-pressed="false"><strong>Средний</strong><small>нападает и защищает</small></button>
+        <button class="chip" data-diff="hard"   aria-pressed="false"><strong>Невозможно</strong><small>минимакс на 3+ хода</small></button>
+      </div>
+      <button class="icon-btn" id="sndBtn" aria-label="Звук включён" aria-pressed="true">
+        <svg class="on" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+        <svg class="off" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4zM16 9l6 6M22 9l-6 6"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <section class="game">
+    <div>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+      <div class="stage" id="stage">
+        <div class="cube" id="cube" data-symbol="X"></div>
+        <div class="overlay" id="overlay">
+          <div class="ov-card">
+            <div id="ov-word"></div>
+            <div id="ov-sub"></div>
+            <button class="btn primary" id="ov-btn">Ещё раз</button>
+          </div>
+        </div>
+      </div>
+      <div class="stage-controls">
+        <label class="ctl">разнос слоёв<input type="range" id="spaceRange" min="86" max="190" value="110"></label>
+        <label class="ctl">масштаб<input type="range" id="zoomRange" min="55" max="160" value="92"></label>
+        <button class="ctl-btn" id="spinBtn" aria-pressed="true">⟳ автовращение</button>
+        <button class="ctl-btn" id="viewBtn">⌂ вид сброс</button>
+      </div>
+      <p class="hint">Перетаскивайте сцену для вращения · колесо — масштаб · <kbd>R</kbd> — новая партия. Ходите прямо по кубу или по карте слоёв: наведение подсвечивает клетку в обоих местах.</p>
+    </div>
+
+    <aside class="panel">
+      <div class="card">
+        <h2>Ваш символ</h2>
+        <div class="side-row">
+          <button class="side-btn" data-side="X" aria-pressed="false">✕</button>
+          <button class="side-btn" data-side="O" aria-pressed="false">○</button>
+        </div>
+        <p class="side-note">Первым всегда ходит ✕. Центральная клетка куба — самая сильная позиция.</p>
+      </div>
+      <div class="card">
+        <h2>Карта слоёв</h2>
+        <div class="mini-wrap" id="miniWrap"></div>
+      </div>
+      <div class="card">
+        <h2>Счёт</h2>
+        <div class="score-grid">
+          <div class="sc-you"><b id="sc-you">0</b><span>Вы</span></div>
+          <div class="sc-dr"><b id="sc-dr">0</b><span>Ничьи</span></div>
+          <div class="sc-ai"><b id="sc-ai">0</b><span>ИИ</span></div>
+        </div>
+        <p class="streak" id="streak"></p>
+      </div>
+      <div class="card actions">
+        <button class="btn primary" id="newBtn">Новая партия</button>
+        <button class="btn ghost" id="resetBtn">Сбросить счёт</button>
+      </div>
+      <div class="card"><p id="diff-info"></p></div>
+    </aside>
+  </section>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $=s=>document.querySelector(s);
+const NS='http://www.w3.org/2000/svg';
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const jit=v=>(Math.random()-.5)*v;
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const symGlyph=s=>s==='X'?'✕':'○';
+const mk=(t,at={})=>{const el=document.createElementNS(NS,t);for(const k in at)el.setAttribute(k,at[k]);return el;};
+
+const S={board:Array(27).fill(''),human:'X',ai:'O',turn:'X',running:false,diff:'normal',
+         scores:{p:0,a:0,d:0},streak:0,muted:false,autorot:true};
+
+const stage=$('#stage'),cube=$('#cube'),statusEl=$('#status'),overlay=$('#overlay'),
+      oWord=$('#ov-word'),oSub=$('#ov-sub'),oBtn=$('#ov-btn'),streakEl=$('#streak'),diffInfo=$('#diff-info');
+const layers=[];const tiles=[];const miniCells=[];
+
+/* ================= линии победы (49 штук) ================= */
+const lines=[],cellLines=Array.from({length:27},()=>[]),linesThrough=Array(27).fill(0);
+(function genLines(){
+  const inb=(x,y,z)=>x>=0&&x<3&&y>=0&&y<3&&z>=0&&z<3;
+  const idx=(x,y,z)=>x+y*3+z*9;
+  const dirs=[];
+  for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++)for(let dz=-1;dz<=1;dz++){
+    if(!dx&&!dy&&!dz)continue;
+    if(dx>0||(dx===0&&(dy>0||(dy===0&&dz>0))))dirs.push([dx,dy,dz]);
+  }
+  for(let x=0;x<3;x++)for(let y=0;y<3;y++)for(let z=0;z<3;z++)
+    for(const[dx,dy,dz]of dirs){
+      const x2=x+dx,y2=y+dy,z2=z+dz,x3=x+2*dx,y3=y+2*dy,z3=z+2*dz;
+      if(inb(x2,y2,z2)&&inb(x3,y3,z3)){
+        const L=[idx(x,y,z),idx(x2,y2,z2),idx(x3,y3,z3)];
+        lines.push(L);L.forEach(i=>{cellLines[i].push(lines.length-1);linesThrough[i]++;});
+      }
+    }
+})();
+function winnerOf(b){for(const L of lines){const[a,c,d]=L;if(b[a]&&b[a]===b[c]&&b[a]===b[d])return{sym:b[a],line:L};}return null;}
+function findLine(sym){
+  for(const L of lines){
+    const v=L.map(i=>S.board[i]);
+    if(v.filter(x=>x===sym).length===2&&v.includes(''))return L[v.indexOf('')];
+  }
+  return null;
+}
+const empties=()=>S.board.map((v,i)=>v?-1:i).filter(i=>i>=0);
+
+/* ================= звук ================= */
+let AC=null;
+function ensureAC(){try{AC||=new(window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();}catch(e){}return AC;}
+document.addEventListener('pointerdown',ensureAC,{once:true});
+function tone(f,dur=.09,type='triangle',vol=.12,when=0){
+  if(S.muted)return;const a=ensureAC();if(!a)return;
+  const t=a.currentTime+when,o=a.createOscillator(),g=a.createGain();
+  o.type=type;o.frequency.value=f;
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  o.connect(g).connect(a.destination);o.start(t);o.stop(t+dur+.03);
+}
+function scratch(){
+  if(S.muted)return;const a=ensureAC();if(!a)return;
+  const len=a.sampleRate*.07,buf=a.createBuffer(1,len,a.sampleRate),d=buf.getChannelData(0);
+  for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*(1-i/len);
+  const src=a.createBufferSource();src.buffer=buf;
+  const bp=a.createBiquadFilter();bp.type='bandpass';bp.frequency.value=2000;bp.Q.value=.8;
+  const g=a.createGain();g.gain.value=.06;
+  src.connect(bp).connect(g).connect(a.destination);src.start();
+}
+const sndMove=s=>{scratch();tone(s==='X'?200:330,.09,'triangle',.1);};
+const sndClick=()=>tone(950,.04,'square',.05);
+const sndWin=()=>[523,659,784,1047].forEach((f,i)=>tone(f,.13,'triangle',.11,i*.09));
+const sndLose=()=>[330,262,196].forEach((f,i)=>tone(f,.16,'sine',.1,i*.12));
+const sndDraw=()=>{tone(392,.1);tone(392,.1,'sine',.08,.13);};
+
+/* ================= конфетти ================= */
+const fx=$('#fx'),fctx=fx.getContext('2d');
+let parts=[],fxOn=false;
+const sizeFx=()=>{fx.width=innerWidth;fx.height=innerHeight;};
+addEventListener('resize',sizeFx);sizeFx();
+const CONF=['#eef3ec','#ff8a6e','#5fe0c8','#ffd166'];
+function burst(x,y,n){
+  for(let k=0;k<n;k++){
+    const a=rnd(-Math.PI,0),sp=rnd(3,9);
+    const p={x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-2,g:.24,rot:rnd(0,Math.PI),vr:rnd(-.2,.2),
+             len:rnd(6,14),c:pick(CONF),life:rnd(55,105)};p.max=p.life;parts.push(p);
+  }
+  if(!fxOn){fxOn=true;requestAnimationFrame(tickFx);}
+}
+function tickFx(){
+  fctx.clearRect(0,0,fx.width,fx.height);
+  parts=parts.filter(p=>p.life>0&&p.y<fx.height+30);
+  for(const p of parts){
+    p.vy+=p.g;p.x+=p.vx;p.y+=p.vy;p.rot+=p.vr;p.vx*=.99;p.life--;
+    fctx.save();fctx.translate(p.x,p.y);fctx.rotate(p.rot);
+    fctx.globalAlpha=Math.max(p.life/p.max,0);fctx.strokeStyle=p.c;fctx.lineWidth=2.6;fctx.lineCap='round';
+    fctx.beginPath();fctx.moveTo(-p.len/2,0);fctx.lineTo(p.len/2,0);fctx.stroke();fctx.restore();
+  }
+  if(parts.length)requestAnimationFrame(tickFx);else{fxOn=false;fctx.clearRect(0,0,fx.width,fx.height);}
+}
+
+/* ================= построение сцены ================= */
+function xPaths(cx,cy,a=4){
+  const r=30;
+  return[
+    `M ${cx-r+jit(a)} ${cy-r+jit(a)} C ${cx-8+jit(a*1.5)} ${cy-6+jit(a*1.5)}, ${cx+10+jit(a*1.5)} ${cy+10+jit(a*1.5)}, ${cx+r+jit(a)} ${cy+r+jit(a)}`,
+    `M ${cx+r+jit(a)} ${cy-r+jit(a)} C ${cx+8+jit(a*1.5)} ${cy-4+jit(a*1.5)}, ${cx-10+jit(a*1.5)} ${cy+8+jit(a*1.5)}, ${cx-r+jit(a)} ${cy+r+jit(a)}`
+  ];
+}
+/* синхронизация выделения: куб ↔ карта слоёв */
+function linkHl(i){
+  const tile=tiles[i],mc=miniCells[i];
+  const on =()=>{tile.classList.add('hl');mc.classList.add('hl');};
+  const off=()=>{tile.classList.remove('hl');mc.classList.remove('hl');};
+  tile.addEventListener('pointerenter',on); tile.addEventListener('pointerleave',off);
+  tile.addEventListener('focus',on);        tile.addEventListener('blur',off);
+  mc.addEventListener('pointerenter',on);   mc.addEventListener('pointerleave',off);
+  mc.addEventListener('focus',on);          mc.addEventListener('blur',off);
+}
+function buildScene(){
+  for(let z=0;z<3;z++){
+    const layer=document.createElement('div');
+    layer.className='layer';layer.style.setProperty('--k',String(1-z));layer.dataset.z=z;
+    const tag=document.createElement('div');tag.className='layer-tag';
+    tag.textContent=['слой 1 · низ','слой 2 · середина','слой 3 · верх'][z];
+    layer.append(tag);
+    for(let r=0;r<3;r++)for(let c=0;c<3;c++){
+      const i=c+r*3+z*9;
+      const tile=document.createElement('div');
+      tile.className='tile empty';tile.dataset.i=i;tile.tabIndex=0;tile.setAttribute('role','button');
+      tile.setAttribute('aria-label',`Клетка ${c+1},${r+1}, слой ${z+1}: пусто`);
+      const svg=mk('svg',{class:'tsvg',viewBox:'0 0 104 104'});
+      const ghost=mk('g',{class:'ghost'});
+      const gx=mk('g',{class:'g-x'});xPaths(52,52,3).forEach(d=>gx.append(mk('path',{d})));
+      const go=mk('g',{class:'g-o'});go.append(mk('circle',{cx:52,cy:52,r:30}));
+      ghost.append(gx,go);svg.append(ghost);tile.append(svg);
+      tile.addEventListener('click',()=>humanMove(i));
+      tile.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();humanMove(i);}});
+      layer.append(tile);tiles[i]=tile;
+    }
+    cube.append(layer);layers[z]=layer;
+  }
+  for(const[px,pz]of[[-168,-168],[168,-168],[-168,168],[168,168]]){
+    const p=document.createElement('div');p.className='pillar';
+    p.style.setProperty('--px',px+'px');p.style.setProperty('--pz',pz+'px');
+    p.append(document.createElement('i'),document.createElement('i'));
+    cube.append(p);
+  }
+}
+function buildMini(){
+  const wrap=$('#miniWrap');
+  const names=['низ','середина','верх'];
+  for(let z=0;z<3;z++){
+    const block=document.createElement('div');block.className='mini-block';
+    const grid=document.createElement('div');grid.className='mini';
+    for(let r=0;r<3;r++)for(let c=0;c<3;c++){
+      const i=c+r*3+z*9;
+      const b=document.createElement('button');b.className='mini-cell empty';b.dataset.i=i;
+      b.setAttribute('aria-label',`Клетка ${c+1},${r+1}, слой ${z+1}`);
+      b.addEventListener('click',()=>humanMove(i));
+      grid.append(b);miniCells[i]=b;
+    }
+    block.append(grid);
+    const cap=document.createElement('span');cap.textContent=names[z];block.append(cap);
+    block.addEventListener('mouseenter',()=>layers[z].classList.add('hl'));
+    block.addEventListener('mouseleave',()=>layers[z].classList.remove('hl'));
+    wrap.append(block);
+  }
+  for(let i=0;i<27;i++)linkHl(i);
+}
+
+/* ================= ИИ ================= */
+function cellScore(i,sym){
+  const opp=sym==='X'?'O':'X';
+  let s=linesThrough[i]*.15;
+  for(const li of cellLines[i]){
+    const L=lines[li];let own=0,op=0;
+    for(const j of L){if(j===i)continue;const v=S.board[j];if(v===sym)own++;else if(v===op)op++;}
+    if(own&&op)continue;
+    if(own===2)s+=60;else if(op===2)s+=45;else if(own===1)s+=5;else if(op===1)s+=4;
+  }
+  return s;
+}
+function ordered(emp,sym){return emp.slice().sort((a,b)=>cellScore(b,sym)-cellScore(a,sym));}
+function evalB(){
+  let s=0;
+  for(const[a,b,c]of lines){
+    let na=0,nh=0;
+    for(const v of[S.board[a],S.board[b],S.board[c]]){if(v===S.ai)na++;else if(v===S.human)nh++;}
+    if(na&&nh)continue;
+    if(na===2)s+=30;else if(na===1)s+=2.4;
+    else if(nh===2)s-=30;else if(nh===1)s-=2.4;
+  }
+  return s;
+}
+function search(depth,cur,alpha,beta){
+  const w=winnerOf(S.board);
+  if(w)return w.sym===S.ai?1000+depth*10:-(1000+depth*10);
+  const emp=empties();
+  if(!emp.length||depth===0)return evalB();
+  const maxing=cur===S.ai;
+  let best=maxing?-Infinity:Infinity;
+  for(const i of ordered(emp,cur)){
+    S.board[i]=cur;
+    const s=search(depth-1,maxing?S.human:S.ai,alpha,beta);
+    S.board[i]='';
+    if(maxing){if(s>best)best=s;if(best>alpha)alpha=best;}
+    else{if(s<best)best=s;if(best<beta)beta=best;}
+    if(beta<=alpha)break;
+  }
+  return best;
+}
+function bestMoveHard(){
+  const e=empties().length;
+  const depth=e>14?3:(e>8?4:6);
+  let best=-Infinity,list=[],alpha=-Infinity;
+  for(const i of ordered(empties(),S.ai)){
+    S.board[i]=S.ai;
+    const s=search(depth-1,S.human,alpha,Infinity);
+    S.board[i]='';
+    if(s>best){best=s;list=[i];}else if(s===best)list.push(i);
+    if(best>alpha)alpha=best;
+  }
+  return pick(list);
+}
+function aiPick(){
+  const emp=empties();
+  if(S.diff==='easy'){
+    if(Math.random()<.35){const w=findLine(S.ai);if(w!=null)return w;}
+    return pick(emp);
+  }
+  if(S.diff==='normal'){
+    const w=findLine(S.ai);if(w!=null)return w;
+    const b=findLine(S.human);if(b!=null&&Math.random()<.93)return b;
+    const scored=ordered(emp,S.ai);
+    return pick(scored.slice(0,Math.min(3,scored.length)));
+  }
+  return bestMoveHard();
+}
+
+/* ================= ходы ================= */
+function placeMark(i,sym){
+  S.board[i]=sym;
+  const svg=tiles[i].querySelector('svg');
+  const g=mk('g',{class:'mark '+(sym==='X'?'mx':'mo')});
+  if(sym==='X')xPaths(52,52).forEach((d,k)=>{const p=mk('path',{d,pathLength:1});if(k)p.classList.add('s2');g.append(p);});
+  else g.append(mk('circle',{cx:52,cy:52,r:30+jit(4),pathLength:1}));
+  svg.append(g);
+  tiles[i].classList.remove('empty');tiles[i].classList.add(sym==='X'?'sym-x':'sym-o');
+  const[x,y,z]=[i%3,Math.floor(i/3)%3,Math.floor(i/9)];
+  tiles[i].setAttribute('aria-label',`Клетка ${x+1},${y+1}, слой ${z+1}: ${sym==='X'?'крестик':'нолик'}`);
+  const mc=miniCells[i];mc.classList.remove('empty');mc.classList.add(sym==='X'?'mx':'mo');mc.textContent=symGlyph(sym);
+  sndMove(sym);
+}
+function humanMove(i){
+  if(justDragged)return;
+  if(!S.running||S.turn!==S.human||S.board[i])return;
+  placeMark(i,S.human);
+  const w=winnerOf(S.board);
+  if(w)return end(w);
+  if(!empties().length)return end(null);
+  S.turn=S.ai;refreshTurn();setStatusThinking();scheduleAI();
+}
+function scheduleAI(){
+  cube.classList.remove('can-play');
+  setTimeout(()=>{
+    if(!S.running)return;
+    placeMark(aiPick(),S.ai);
+    const w=winnerOf(S.board);
+    if(w)return end(w);
+    if(!empties().length)return end(null);
+    S.turn=S.human;refreshTurn();setStatusHuman();cube.classList.add('can-play');
+  },rnd(450,950));
+}
+function refreshTurn(){cube.dataset.symbol=S.turn;}
+function setStatusHuman(){statusEl.innerHTML=`Ваш ход — <b class="${S.human==='X'?'cx':'co'}">${symGlyph(S.human)}</b>`;}
+function setStatusThinking(){statusEl.innerHTML=`Компьютер думает<span class="dots"><i></i><i></i><i></i></span>`;}
+
+/* ================= конец раунда ================= */
+function end(w){
+  S.running=false;cube.classList.remove('can-play');
+  const r=stage.getBoundingClientRect();
+  if(w){
+    const humanWon=w.sym===S.human;
+    w.line.forEach(i=>{tiles[i].classList.add('win');miniCells[i].classList.add('win');});
+    cube.classList.add('over');
+    if(humanWon){S.scores.p++;S.streak++;}else{S.scores.a++;S.streak=0;}
+    statusEl.textContent=humanWon?'Вы победили!':'Компьютер победил…';
+    humanWon?sndWin():sndLose();
+    burst(r.left+r.width/2,r.top+r.height*.4,humanWon?120:35);
+    showOverlay(humanWon?'win':'lose',950);
+  }else{
+    S.scores.d++;S.streak=0;
+    statusEl.textContent='Ничья!';sndDraw();
+    burst(r.left+r.width/2,r.top+r.height*.4,18);
+    showOverlay('draw',800);
+  }
+  updateScores();save();
+}
+const WORDS={
+  win :{w:'Победа!',s:['Три в ряд — сквозь куб!','Отличная партия!','Пространство ваше!']},
+  lose:{w:'Поражение…',s:['Реванш?','Куб остался за машиной…','Следите за диагоналями!']},
+  draw:{w:'Ничья!',s:['Все 27 клеток заняты.','Достойная партия.']}
+};
+function showOverlay(type,delay){
+  setTimeout(()=>{
+    oWord.textContent=WORDS[type].w;
+    oSub.textContent=pick(WORDS[type].s);
+    oWord.style.color=type==='win'?'var(--you)':type==='lose'?'var(--foe)':'var(--chalk)';
+    overlay.classList.add('show');oBtn.focus({preventScroll:true});
+  },delay);
+}
+
+/* ================= партия / счёт ================= */
+function newRound(){
+  S.board.fill('');S.turn='X';S.running=true;
+  cube.classList.remove('over');overlay.classList.remove('show');
+  tiles.forEach((t,i)=>{
+    t.classList.remove('win','sym-x','sym-o','hl');t.classList.add('empty');
+    t.querySelector('.mark')?.remove();
+    const[x,y,z]=[i%3,Math.floor(i/3)%3,Math.floor(i/9)];
+    t.setAttribute('aria-label',`Клетка ${x+1},${y+1}, слой ${z+1}: пусто`);
+    const mc=miniCells[i];mc.className='mini-cell empty';mc.textContent='';
+  });
+  refreshTurn();
+  if(S.ai==='X'){setStatusThinking();scheduleAI();}
+  else{setStatusHuman();cube.classList.add('can-play');}
+}
+let prev={p:-1,a:-1,d:-1};
+function bump(el){el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump');}
+function updateScores(){
+  const map={p:$('#sc-you'),a:$('#sc-ai'),d:$('#sc-dr')};
+  for(const k in map){
+    if(S.scores[k]!==prev[k]){map[k].textContent=S.scores[k];bump(map[k]);prev[k]=S.scores[k];}
+  }
+  streakEl.textContent=S.streak>=2?`Серия побед: ${S.streak} 🔥`:S.streak===1?'Серия побед: 1':'';
+}
+function save(){try{localStorage.setItem('chalk-ttt-3d',JSON.stringify({scores:S.scores,streak:S.streak,diff:S.diff,human:S.human,muted:S.muted,autorot:S.autorot}));}catch(e){}}
+function load(){
+  try{
+    const d=JSON.parse(localStorage.getItem('chalk-ttt-3d'));
+    if(d){Object.assign(S.scores,d.scores||{});S.streak=d.streak||0;
+          if(d.diff)S.diff=d.diff;if(d.human)S.human=d.human;S.muted=!!d.muted;
+          S.autorot=d.autorot!==false;}
+  }catch(e){}
+}
+
+/* ================= вращение, зум, разнос ================= */
+/* ИСПРАВЛЕНО: без setPointerCapture — клики по клеткам и кнопкам
+   внутри сцены больше не перехватываются обработчиком перетаскивания. */
+const V={rx:-26,ry:-38,zoom:.92,vy:0};
+const DEF={rx:-26,ry:-38,zoom:.92,spacing:110};
+let dragging=false,justDragged=false,lastX=0,lastY=0,moved=0,lastInteract=0;
+function apply(){
+  const bob=Math.sin(performance.now()/1400)*4;
+  cube.style.transform=`translateY(${bob}px) scale3d(${V.zoom},${V.zoom},${V.zoom}) rotateX(${V.rx}deg) rotateY(${V.ry}deg)`;
+}
+stage.addEventListener('pointerdown',e=>{
+  if(e.target.closest('.overlay'))return;   // кнопки оверлея — без драга
+  dragging=true;moved=0;lastX=e.clientX;lastY=e.clientY;V.vy=0;lastInteract=performance.now();
+});
+window.addEventListener('pointermove',e=>{
+  if(!dragging)return;
+  const dx=e.clientX-lastX,dy=e.clientY-lastY;
+  moved+=Math.abs(dx)+Math.abs(dy);
+  V.ry+=dx*.4;V.rx=Math.max(-85,Math.min(40,V.rx-dy*.4));
+  V.vy=dx*.4;
+  lastX=e.clientX;lastY=e.clientY;lastInteract=performance.now();
+  apply();
+});
+function endDrag(){
+  if(!dragging)return;
+  dragging=false;lastInteract=performance.now();
+  if(moved>6){justDragged=true;setTimeout(()=>justDragged=false,60);}else V.vy=0;
+}
+window.addEventListener('pointerup',endDrag);
+window.addEventListener('pointercancel',endDrag);
+addEventListener('blur',endDrag);
+stage.addEventListener('wheel',e=>{
+  e.preventDefault();
+  V.zoom=Math.max(.55,Math.min(1.6,V.zoom*(e.deltaY>0?.93:1.07)));
+  $('#zoomRange').value=Math.round(V.zoom*100);
+  lastInteract=performance.now();apply();
+},{passive:false});
+(function loop(){
+  if(!dragging){
+    if(Math.abs(V.vy)>.02){V.ry+=V.vy;V.vy*=.95;}
+    else if(S.autorot&&performance.now()-lastInteract>2600)V.ry+=.12;
+    apply();
+  }
+  requestAnimationFrame(loop);
+})();
+$('#spaceRange').addEventListener('input',e=>cube.style.setProperty('--spacing',e.target.value));
+$('#zoomRange').addEventListener('input',e=>{V.zoom=e.target.value/100;apply();});
+$('#spinBtn').addEventListener('click',e=>{
+  S.autorot=!S.autorot;e.currentTarget.setAttribute('aria-pressed',String(S.autorot));sndClick();save();
+});
+$('#viewBtn').addEventListener('click',()=>{
+  V.rx=DEF.rx;V.ry=DEF.ry;V.zoom=DEF.zoom;V.vy=0;
+  $('#zoomRange').value=DEF.zoom*100;$('#spaceRange').value=DEF.spacing;
+  cube.style.setProperty('--spacing',DEF.spacing);
+  sndClick();apply();
+});
+
+/* ================= интерфейс ================= */
+const DIFF_INFO={
+  easy:'Противник ходит наугад и редко замечает ваши линии. Отличная разминка в 3D.',
+  normal:'Компьютер достраивает свои тройки, блокирует ваши и занимает сильные клетки, но иногда ошибается.',
+  hard:'Минимакс с альфа-бета отсечением на 3–6 ходов вперёд и оценкой всех 49 линий. Забирайте центр!'
+};
+function applyColors(){
+  S.ai=S.human==='X'?'O':'X';
+  document.documentElement.style.setProperty('--you',S.human==='X'?'var(--x)':'var(--o)');
+  document.documentElement.style.setProperty('--foe',S.human==='X'?'var(--o)':'var(--x)');
+}
+function syncUI(){
+  document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',c.dataset.diff===S.diff));
+  document.querySelectorAll('.side-btn').forEach(b=>{
+    const on=b.dataset.side===S.human;
+    b.setAttribute('aria-pressed',on);
+    b.className='side-btn'+(on?(S.human==='X'?' act-x':' act-o'):'');
+  });
+  diffInfo.textContent=DIFF_INFO[S.diff];
+  const snd=$('#sndBtn');
+  snd.classList.toggle('muted',S.muted);
+  snd.setAttribute('aria-pressed',String(!S.muted));
+  $('#spinBtn').setAttribute('aria-pressed',String(S.autorot));
+}
+document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{
+  if(S.diff===c.dataset.diff)return;
+  S.diff=c.dataset.diff;sndClick();syncUI();save();newRound();
+}));
+document.querySelectorAll('.side-btn').forEach(b=>b.addEventListener('click',()=>{
+  if(S.human===b.dataset.side)return;
+  S.human=b.dataset.side;sndClick();applyColors();syncUI();save();newRound();
+}));
+$('#newBtn').addEventListener('click',()=>{sndClick();newRound();});
+$('#resetBtn').addEventListener('click',()=>{S.scores={p:0,a:0,d:0};S.streak=0;sndClick();updateScores();save();});
+oBtn.addEventListener('click',()=>{sndClick();newRound();});
+overlay.addEventListener('click',e=>{if(e.target===overlay){sndClick();newRound();}}); // клик по фону оверлея — тоже рестарт
+$('#sndBtn').addEventListener('click',()=>{S.muted=!S.muted;syncUI();save();if(!S.muted)sndClick();});
+document.addEventListener('keydown',e=>{
+  if(e.key==='r'||e.key==='R'||e.key==='к'||e.key==='К'){sndClick();newRound();}
+});
+
+/* ================= старт ================= */
+if(matchMedia('(prefers-reduced-motion: reduce)').matches)S.autorot=false;
+load();applyColors();buildScene();buildMini();syncUI();updateScores();
+cube.style.setProperty('--spacing',$('#spaceRange').value);
+apply();newRound();
+})();
+</script>
+</body>
+</html>
