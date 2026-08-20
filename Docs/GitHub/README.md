@@ -1,21 +1,17 @@
-## **Official**
+# GitHub
 
+Платформа для хостинга IT-проектов
 
-## Оглавление
-- [**Official**](#official)
-- [**Doker**](#doker)
-- [**Git**](#git)
-- [**Documentation**](#documentation)
-- [**Files**](#files)
+---
 
-https://github.com/
+## 📋 Содержание
 
-## **Doker**
+- [📋 Содержание](#-содержание)
+- [1. Официальные ресурсы](#1-официальные-ресурсы)
 
-## **Git**
-GitHub � ��������� ��� �������� Git-������������, pull request'�� � ���������� ����������.
+---
 
-## **Documentation**
-https://docs.github.com/ru
+## 1. Официальные ресурсы
 
-## **Files**
+- **Официальный сайт:** [https://github.com/](https://github.com/)
+

@@ -1,19 +1,29 @@
-## Official
+# Llm
 
+Large Language Models — большие языковые модели
 
+---
 
-## Оглавление
-- [Official](#official)
-- [Doker](#doker)
-- [Git](#git)
-- [Documentation](#documentation)
-- [Files](#files)
+## 📋 Содержание
 
-## Doker
+- [📋 Содержание](#-содержание)
+- [1. Документация](#1-документация)
 
-## Git
+---
 
-## Documentation
-https://habr.com/ru/companies/cloud_ru/articles/981954/
+## 1. Документация
 
-## Files
+- [https://habr.com/ru/companies/cloud_ru/articles/981954/](https://habr.com/ru/companies/cloud_ru/articles/981954/)
+
+## 📝 Описание
+
+Раздел находится в разработке.
+
+### Рекомендуемая структура:
+
+- Официальные ресурсы
+- Docker образы
+- Git репозитории
+- Документация и руководства
+- Примеры использования
+

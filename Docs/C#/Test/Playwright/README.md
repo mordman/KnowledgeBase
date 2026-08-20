@@ -1,19 +1,29 @@
-## Official
+# Playwright
 
+Документация по теме: Playwright
 
-## Оглавление
-- [Official](#official)
-- [Doker](#doker)
-- [Git](#git)
-- [Documentation](#documentation)
-- [Files](#files)
+---
 
-https://playwright.dev/
+## 📋 Содержание
 
-## Doker
+- [📋 Содержание](#-содержание)
+- [1. Документация](#1-документация)
 
-## Git
+---
 
-## Documentation
+## 1. Документация
 
-## Files
+- [https://playwright.dev/](https://playwright.dev/)
+
+## 📝 Описание
+
+Раздел находится в разработке.
+
+### Рекомендуемая структура:
+
+- Официальные ресурсы
+- Docker образы
+- Git репозитории
+- Документация и руководства
+- Примеры использования
+

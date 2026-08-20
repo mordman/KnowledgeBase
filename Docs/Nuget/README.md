@@ -1,19 +1,29 @@
 # Nuget Documentation
 
+Менеджер пакетов NuGet для .NET
 
+---
 
-## Оглавление
-- [Description](#description)
-  - [Official](#official)
-  - [Docs](#docs)
+## 📋 Содержание
 
-  - [Official](#official)
-  - [Docs](#docs)
-## Description
+- [📋 Содержание](#-содержание)
+- [1. Документация](#1-документация)
 
+---
 
-### Official
-https://www.nuget.org/
+## 1. Документация
 
-### Docs
-https://learn.microsoft.com/ru-ru/nuget/
+- [https://www.nuget.org/](https://www.nuget.org/)
+
+## 📝 Описание
+
+Раздел находится в разработке.
+
+### Рекомендуемая структура:
+
+- Официальные ресурсы
+- Docker образы
+- Git репозитории
+- Документация и руководства
+- Примеры использования
+

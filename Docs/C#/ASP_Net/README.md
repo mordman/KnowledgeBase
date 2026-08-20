@@ -1,10 +1,29 @@
-## ASP.Net
+# ASP Net
 
+Документация по теме: ASP Net
 
+---
 
-## Оглавление
-- [ASP.Net](#aspnet)
-- [Links](#links)
+## 📋 Содержание
 
-## Links
-https://dotnet.microsoft.com/ru-ru/apps/aspnet
+- [📋 Содержание](#-содержание)
+- [1. Документация](#1-документация)
+
+---
+
+## 1. Документация
+
+- [https://dotnet.microsoft.com/ru-ru/apps/aspnet](https://dotnet.microsoft.com/ru-ru/apps/aspnet)
+
+## 📝 Описание
+
+Раздел находится в разработке.
+
+### Рекомендуемая структура:
+
+- Официальные ресурсы
+- Docker образы
+- Git репозитории
+- Документация и руководства
+- Примеры использования
+

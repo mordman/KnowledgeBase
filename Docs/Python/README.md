@@ -1,19 +1,22 @@
-## Official
+# Python
 
+Язык программирования Python
 
+---
 
-## Оглавление
-- [Official](#official)
-- [Doker](#doker)
-- [Git](#git)
-- [Documentation](#documentation)
-- [Files](#files)
+## 📋 Содержание
 
-## Doker
+- [📋 Содержание](#-содержание)
+- [1. Официальные ресурсы](#1-официальные-ресурсы)
+- [2. Документация](#2-документация)
 
-## Git
+---
 
-## Documentation
-https://metanit.com/python/tutorial/
+## 1. Официальные ресурсы
 
-## Files
+- **Официальный сайт:** [https://www.python.org/](https://www.python.org/)
+
+## 2. Документация
+
+- [https://metanit.com/python/tutorial/](https://metanit.com/python/tutorial/)
+

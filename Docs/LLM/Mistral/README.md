@@ -1,20 +1,17 @@
-## Official
+# Mistral
 
+Документация по теме: Mistral
 
+---
 
-## Оглавление
-- [Official](#official)
-- [Doker](#doker)
-- [Git](#git)
-- [Documentation](#documentation)
-- [Files](#files)
+## 📋 Содержание
 
-## Doker
+- [📋 Содержание](#-содержание)
+- [1. Git репозиторий](#1-git-репозиторий)
 
-## Git
-https://github.com/mistralai
+---
 
-## Documentation
-https://habr.com/ru/companies/otus/articles/929624/
+## 1. Git репозиторий
 
-## Files
+- **Репозиторий:** [https://github.com/mistralai](https://github.com/mistralai)
+

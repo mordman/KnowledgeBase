@@ -1,17 +1,17 @@
-## Official
+# Tarantool
 
+Документация по теме: Tarantool
 
-## Оглавление
-- [Official](#official)
-- [Doker](#doker)
-- [Git](#git)
-- [Documentation](#documentation)
+---
 
-https://www.tarantool.io/ru/
+## 📋 Содержание
 
-## Doker
+- [📋 Содержание](#-содержание)
+- [1. Официальные ресурсы](#1-официальные-ресурсы)
 
-## Git
+---
 
-## Documentation
-https://www.tarantool.io/ru/doc/latest/
+## 1. Официальные ресурсы
+
+- **Официальный сайт:** [https://www.tarantool.io/ru/](https://www.tarantool.io/ru/)
+

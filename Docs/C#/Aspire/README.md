@@ -1,26 +1,22 @@
-## Official
+# Aspire
 
+Документация по теме: Aspire
 
-## Оглавление
-- [Official](#official)
-- [Doker](#doker)
-- [Git](#git)
-- [Documentation](#documentation)
-- [Files](#files)
-- [Links](#links)
+---
 
-https://aspire.dev/
+## 📋 Содержание
 
-## Doker
+- [📋 Содержание](#-содержание)
+- [1. Git репозиторий](#1-git-репозиторий)
+- [2. Документация](#2-документация)
 
-## Git
-https://github.com/dotnet/aspire
+---
 
-## Documentation
+## 1. Git репозиторий
 
-## Files
+- **Репозиторий:** [https://github.com/dotnet/aspire](https://github.com/dotnet/aspire)
 
-## Links
-https://habr.com/ru/articles/820371/
-https://habr.com/ru/articles/818907/
-https://dotnet.microsoft.com/ru-ru/apps/cloud
+## 2. Документация
+
+- [https://aspire.dev/](https://aspire.dev/)
+

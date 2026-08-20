@@ -1,18 +1,17 @@
-## Official
+# PostgreSQL
 
+Документация по теме: PostgreSQL
 
-## Оглавление
-- [Official](#official)
-- [Doker](#doker)
-- [Git](#git)
-- [Documentation](#documentation)
+---
 
-https://www.postgresql.org/
+## 📋 Содержание
 
-## Doker
+- [📋 Содержание](#-содержание)
+- [1. Официальные ресурсы](#1-официальные-ресурсы)
 
-## Git
+---
 
-## Documentation
-https://postgrespro.ru/docs/postgresql/current
-https://metanit.com/sql/postgresql/
+## 1. Официальные ресурсы
+
+- **Официальный сайт:** [https://www.postgresql.org/](https://www.postgresql.org/)
+

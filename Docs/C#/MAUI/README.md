@@ -1,20 +1,29 @@
-## Оглавление
-- [Official](#official)
-- [Doker](#doker)
-- [Git](#git)
-- [Documentation](#documentation)
-- [Files](#files)
+# Maui
 
-## Official
-[.NET Multi-platform App UI](https://dotnet.microsoft.com/en-us/apps/maui)
+Документация по теме: MAUI
 
-## Doker
+---
 
-## Git
+## 📋 Содержание
 
-## Documentation
-[Изучите разработку мобильных и классических приложений с помощью .NET MAUI](https://dotnet.microsoft.com/ru-ru/learn/maui)
-[Учебное пособие по .NET MAUI. Создайте свое первое многоплатформенное приложение на C#](https://dotnet.microsoft.com/ru-ru/learn/maui/first-app-tutorial/intro)
+- [📋 Содержание](#-содержание)
+- [1. Документация](#1-документация)
 
-## Files
+---
+
+## 1. Документация
+
+- [https://dotnet.microsoft.com/en-us/apps/maui](https://dotnet.microsoft.com/en-us/apps/maui)
+
+## 📝 Описание
+
+Раздел находится в разработке.
+
+### Рекомендуемая структура:
+
+- Официальные ресурсы
+- Docker образы
+- Git репозитории
+- Документация и руководства
+- Примеры использования
 

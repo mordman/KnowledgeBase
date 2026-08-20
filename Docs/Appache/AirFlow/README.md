@@ -1,26 +1,17 @@
-### **Official**
+# AirFlow
 
+Документация по теме: AirFlow
 
-## Оглавление
-- [**Official**](#official)
-- [**Docker**](#docker)
-- [**Git**](#git)
-- [**Documentation**](#documentation)
-- [**Files**](#files)
-- [**Links**](#links)
+---
 
-- [Apache Airflow Official Website](https://airflow.apache.org/)
+## 📋 Содержание
 
-### **Docker**
-- [Docker Hub (Airflow Image)](https://hub.docker.com/r/apache/airflow)
+- [📋 Содержание](#-содержание)
+- [1. Официальные ресурсы](#1-официальные-ресурсы)
 
-### **Git**
-- [Apache Airflow GitHub Repository](https://github.com/apache/airflow)
+---
 
-### **Documentation**
-- [Apache Airflow Documentation](https://airflow.apache.org/docs/)
+## 1. Официальные ресурсы
 
-### **Files**
+- **Официальный сайт:** [https://airflow.apache.org/](https://airflow.apache.org/)
 
-### **Links**
-- [Habr](https://habr.com/ru/companies/gazprombank/articles/975838/)

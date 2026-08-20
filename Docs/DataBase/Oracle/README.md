@@ -1,16 +1,17 @@
-## Official
+# Oracle
 
+Документация по теме: Oracle
 
-## Оглавление
-- [Official](#official)
-- [Doker](#doker)
-- [Git](#git)
-- [Documentation](#documentation)
+---
 
-https://docs.oracle.com/en/database/
+## 📋 Содержание
 
-## Doker
+- [📋 Содержание](#-содержание)
+- [1. Официальные ресурсы](#1-официальные-ресурсы)
 
-## Git
+---
 
-## Documentation
+## 1. Официальные ресурсы
+
+- **Официальный сайт:** [https://docs.oracle.com/en/database/](https://docs.oracle.com/en/database/)
+

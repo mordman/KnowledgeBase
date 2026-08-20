@@ -1,19 +1,17 @@
 # GitLab Documentation
 
+Платформа для DevOps и CI/CD
 
+---
 
-## Оглавление
-- [Description](#description)
-  - [Official](#official)
-  - [Docs](#docs)
+## 📋 Содержание
 
-  - [Official](#official)
-  - [Docs](#docs)
-## Description
+- [📋 Содержание](#-содержание)
+- [1. Официальные ресурсы](#1-официальные-ресурсы)
 
+---
 
-### Official
-https://about.gitlab.com/
+## 1. Официальные ресурсы
 
-### Docs
-https://docs.gitlab.com/
+- **Официальный сайт:** [https://about.gitlab.com/](https://about.gitlab.com/)
+

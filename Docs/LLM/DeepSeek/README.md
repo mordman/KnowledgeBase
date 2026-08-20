@@ -1,19 +1,17 @@
-## Official
+# DeepSeek
 
+Документация по теме: DeepSeek
 
+---
 
-## Оглавление
-- [Official](#official)
-- [Doker](#doker)
-- [Git](#git)
-- [Documentation](#documentation)
-- [Files](#files)
+## 📋 Содержание
 
-## Doker
+- [📋 Содержание](#-содержание)
+- [1. Git репозиторий](#1-git-репозиторий)
 
-## Git
-https://github.com/deepseek-ai
+---
 
-## Documentation
+## 1. Git репозиторий
 
-## Files
+- **Репозиторий:** [https://github.com/deepseek-ai](https://github.com/deepseek-ai)
+

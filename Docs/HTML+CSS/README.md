@@ -1,19 +1,29 @@
-## Official
+# Html & Css
 
+HTML и CSS — основы веб-разработки
 
+---
 
-## Оглавление
-- [Official](#official)
-- [Doker](#doker)
-- [Git](#git)
-- [Documentation](#documentation)
-- [Links](#links)
+## 📋 Содержание
 
-## Doker
+- [📋 Содержание](#-содержание)
+- [1. Документация](#1-документация)
 
-## Git
+---
 
-## Documentation
+## 1. Документация
 
-## Links
-https://design.dev/guides/
+- [https://design.dev/guides/](https://design.dev/guides/)
+
+## 📝 Описание
+
+Раздел находится в разработке.
+
+### Рекомендуемая структура:
+
+- Официальные ресурсы
+- Docker образы
+- Git репозитории
+- Документация и руководства
+- Примеры использования
+

@@ -1,20 +1,29 @@
-## Official
+# HangfireIO
 
+Документация по теме: HangfireIO
 
-## Оглавление
-- [Official](#official)
-- [Doker](#doker)
-- [Git](#git)
-- [Documentation](#documentation)
-- [Files](#files)
+---
 
-https://www.hangfire.io  
+## 📋 Содержание
 
-## Doker
+- [📋 Содержание](#-содержание)
+- [1. Документация](#1-документация)
 
-## Git
-https://github.com/HangfireIO  
+---
 
-## Documentation
+## 1. Документация
 
-## Files
+- [https://www.hangfire.io](https://www.hangfire.io)
+
+## 📝 Описание
+
+Раздел находится в разработке.
+
+### Рекомендуемая структура:
+
+- Официальные ресурсы
+- Docker образы
+- Git репозитории
+- Документация и руководства
+- Примеры использования
+

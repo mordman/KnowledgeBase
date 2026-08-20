@@ -1,20 +1,17 @@
-## Official
+# Copilot
 
+Документация по теме: Copilot
 
+---
 
-## Оглавление
-- [Official](#official)
-- [Doker](#doker)
-- [Git](#git)
-- [Documentation](#documentation)
-- [Files](#files)
+## 📋 Содержание
 
-## Doker
+- [📋 Содержание](#-содержание)
+- [1. Git репозиторий](#1-git-репозиторий)
 
-## Git
+---
 
-## Documentation
-https://docs.github.com/ru/copilot/get-started/best-practices
-https://github.com/github/copilot-docs
+## 1. Git репозиторий
 
-## Files
+- **Репозиторий:** [https://docs.github.com/ru/copilot/get-started/best-practices](https://docs.github.com/ru/copilot/get-started/best-practices)
+

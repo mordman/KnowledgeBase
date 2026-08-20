@@ -1,20 +1,29 @@
-## Official
+# C#
 
+Язык программирования C# и платформа .NET
 
+---
 
-## Оглавление
-- [Official](#official)
-- [Doker](#doker)
-- [Git](#git)
-- [Documentation](#documentation)
-- [Files](#files)
+## 📋 Содержание
 
-## Doker
+- [📋 Содержание](#-содержание)
+- [1. Документация](#1-документация)
 
-## Git
+---
 
-## Documentation
-https://metanit.com/sharp/tutorial/
+## 1. Документация
 
-## Files
+- [https://metanit.com/sharp/tutorial/](https://metanit.com/sharp/tutorial/)
+
+## 📝 Описание
+
+Раздел находится в разработке.
+
+### Рекомендуемая структура:
+
+- Официальные ресурсы
+- Docker образы
+- Git репозитории
+- Документация и руководства
+- Примеры использования
 

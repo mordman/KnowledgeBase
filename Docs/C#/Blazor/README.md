@@ -1,18 +1,29 @@
-## Оглавление
-- [Official](#official)
-- [Doker](#doker)
-- [Git](#git)
-- [Documentation](#documentation)
-- [Files](#files)
+# Blazor
 
-## Official
-[Blazor](https://dotnet.microsoft.com/en-us/apps/aspnet/web-apps/blazor)
+Документация по теме: Blazor
 
-## Doker
+---
 
-## Git
+## 📋 Содержание
 
-## Documentation
+- [📋 Содержание](#-содержание)
+- [1. Документация](#1-документация)
 
-## Files
+---
+
+## 1. Документация
+
+- [https://dotnet.microsoft.com/en-us/apps/aspnet/web-apps/blazor](https://dotnet.microsoft.com/en-us/apps/aspnet/web-apps/blazor)
+
+## 📝 Описание
+
+Раздел находится в разработке.
+
+### Рекомендуемая структура:
+
+- Официальные ресурсы
+- Docker образы
+- Git репозитории
+- Документация и руководства
+- Примеры использования
 

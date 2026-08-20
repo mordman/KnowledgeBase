@@ -1,31 +1,29 @@
-## xUnit
+# Test
 
+Документация по теме: Test
 
-## Оглавление
-- [xUnit](#xunit)
-- [MSTest](#mstest)
-- [NUnit](#nunit)
-- [PlayWright](#playwright)
-- [Selecnium](#selecnium)
-- [Moq](#moq)
-- [NBomber](#nbomber)
+---
 
-https://xunit.net/?tabs=cs
+## 📋 Содержание
 
-## MSTest
-https://learn.microsoft.com/ru-ru/dotnet/core/testing/unit-testing-mstest-intro
+- [📋 Содержание](#-содержание)
+- [1. Документация](#1-документация)
 
-## NUnit
-https://nunit.org/
+---
 
-## PlayWright
-https://playwright.dev/
+## 1. Документация
 
-## Selecnium
-https://www.selenium.dev/
+- [https://xunit.net/?tabs=cs](https://xunit.net/?tabs=cs)
 
-## Moq
-https://github.com/devlooped/moq
+## 📝 Описание
 
-## NBomber
-https://nbomber.com/
+Раздел находится в разработке.
+
+### Рекомендуемая структура:
+
+- Официальные ресурсы
+- Docker образы
+- Git репозитории
+- Документация и руководства
+- Примеры использования
+

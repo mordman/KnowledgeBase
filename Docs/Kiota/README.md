@@ -1,16 +1,29 @@
-## Official
+# Kiota
 
+Документация по теме: Kiota
 
-## Оглавление
-- [Official](#official)
-- [Doker](#doker)
-- [Git](#git)
-- [Documentation](#documentation)
+---
 
-https://learn.microsoft.com/ru-ru/openapi/kiota/overview
+## 📋 Содержание
 
-## Doker
+- [📋 Содержание](#-содержание)
+- [1. Документация](#1-документация)
 
-## Git
+---
 
-## Documentation
+## 1. Документация
+
+- [https://learn.microsoft.com/ru-ru/openapi/kiota/overview](https://learn.microsoft.com/ru-ru/openapi/kiota/overview)
+
+## 📝 Описание
+
+Раздел находится в разработке.
+
+### Рекомендуемая структура:
+
+- Официальные ресурсы
+- Docker образы
+- Git репозитории
+- Документация и руководства
+- Примеры использования
+

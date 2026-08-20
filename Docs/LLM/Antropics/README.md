@@ -1,20 +1,17 @@
-## Official
+# Antropics
 
+Документация по теме: Antropics
 
+---
 
-## Оглавление
-- [Official](#official)
-- [Doker](#doker)
-- [Git](#git)
-- [Documentation](#documentation)
-- [Files](#files)
+## 📋 Содержание
 
-## Doker
+- [📋 Содержание](#-содержание)
+- [1. Git репозиторий](#1-git-репозиторий)
 
-## Git
-https://github.com/anthropics
-https://github.com/anthropics/claude-code
+---
 
-## Documentation
+## 1. Git репозиторий
 
-## Files
+- **Репозиторий:** [https://github.com/anthropics](https://github.com/anthropics)
+

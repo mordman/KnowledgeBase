@@ -1,19 +1,17 @@
-## Official
+# Qwen
 
+Документация по теме: Qwen
 
+---
 
-## Оглавление
-- [Official](#official)
-- [Doker](#doker)
-- [Git](#git)
-- [Documentation](#documentation)
-- [Files](#files)
+## 📋 Содержание
 
-## Doker
+- [📋 Содержание](#-содержание)
+- [1. Git репозиторий](#1-git-репозиторий)
 
-## Git
-https://github.com/QwenLM
+---
 
-## Documentation
+## 1. Git репозиторий
 
-## Files
+- **Репозиторий:** [https://github.com/QwenLM](https://github.com/QwenLM)
+

@@ -1,17 +1,17 @@
-## Official
+# VSCode
 
+Visual Studio Code — редактор кода от Microsoft
 
-## Оглавление
-- [Official](#official)
-- [Doker](#doker)
-- [Git](#git)
-- [Documentation](#documentation)
+---
 
-https://code.visualstudio.com/
+## 📋 Содержание
 
-## Doker
+- [📋 Содержание](#-содержание)
+- [1. Официальные ресурсы](#1-официальные-ресурсы)
 
-## Git
+---
 
-## Documentation
-https://code.visualstudio.com/docs
+## 1. Официальные ресурсы
+
+- **Официальный сайт:** [https://code.visualstudio.com/](https://code.visualstudio.com/)
+

@@ -1,19 +1,22 @@
 # Nexus Repository Documentation
 
+Документация по теме: NexusRepository
 
+---
 
-## Оглавление
-- [Description](#description)
-  - [Official](#official)
-  - [Docs](#docs)
+## 📋 Содержание
 
-  - [Official](#official)
-  - [Docs](#docs)
-## Description
+- [📋 Содержание](#-содержание)
+- [1. Официальные ресурсы](#1-официальные-ресурсы)
+- [2. Документация](#2-документация)
 
+---
 
-### Official
-https://www.sonatype.com/products/sonatype-nexus-repository
+## 1. Официальные ресурсы
 
-### Docs
-https://help.sonatype.com/en/sonatype-nexus-repository.html
+- **Официальный сайт:** [https://www.sonatype.com/products/nexus-repository](https://www.sonatype.com/products/nexus-repository)
+
+## 2. Документация
+
+- [https://www.sonatype.com/products/sonatype-nexus-repository](https://www.sonatype.com/products/sonatype-nexus-repository)
+

@@ -1,11 +1,24 @@
-## CI/CD Documentation
+# Ci Cd
 
+Continuous Integration / Continuous Deployment
 
+---
 
-## Оглавление
-- [CI/CD Documentation](#cicd-documentation)
-  - [Docs](#docs)
+## 📋 Содержание
 
-  - [Docs](#docs)
-### Docs
-https://metanit.com/sharp/tutorial/
+- [📋 Содержание](#-содержание)
+
+---
+
+## 📝 Описание
+
+Раздел находится в разработке.
+
+### Рекомендуемая структура:
+
+- Официальные ресурсы
+- Docker образы
+- Git репозитории
+- Документация и руководства
+- Примеры использования
+

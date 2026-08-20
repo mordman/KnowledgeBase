@@ -1,14 +1,17 @@
-### **Official**
-- [Apache Superset Official Website](https://superset.apache.org/)
+# Superset
 
-### **Docker**
-- [Docker Hub (Superset Image)](https://hub.docker.com/r/apache/superset)
+Документация по теме: Superset
 
-### **Git**
-- [Apache Superset GitHub Repository](https://github.com/apache/superset)
+---
 
-### **Documentation**
-- [Apache Superset Documentation](https://superset.apache.org/docs/intro)
+## 📋 Содержание
 
-### **Links**
-- [Habr](https://habr.com/ru/news/921230/)
+- [📋 Содержание](#-содержание)
+- [1. Официальные ресурсы](#1-официальные-ресурсы)
+
+---
+
+## 1. Официальные ресурсы
+
+- **Официальный сайт:** [https://superset.apache.org/](https://superset.apache.org/)
+

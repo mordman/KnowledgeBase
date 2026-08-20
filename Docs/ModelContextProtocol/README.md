@@ -1,16 +1,17 @@
-## Official
+# ModelContextProtocol
 
+Документация по теме: ModelContextProtocol
 
+---
 
-## Оглавление
-- [Official](#official)
-- [Doker](#doker)
-- [Git](#git)
-- [Documentation](#documentation)
+## 📋 Содержание
 
-## Doker
+- [📋 Содержание](#-содержание)
+- [1. Git репозиторий](#1-git-репозиторий)
 
-## Git
+---
 
-## Documentation
-https://github.com/microsoft/mcp-for-beginners
+## 1. Git репозиторий
+
+- **Репозиторий:** [https://github.com/microsoft/mcp-for-beginners](https://github.com/microsoft/mcp-for-beginners)
+

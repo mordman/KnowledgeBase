@@ -1,20 +1,29 @@
-## Official
+# xUnit
 
+Документация по теме: xUnit
 
-## Оглавление
-- [Official](#official)
-- [Doker](#doker)
-- [Git](#git)
-- [Documentation](#documentation)
-- [Files](#files)
+---
 
-https://xunit.net/?tabs=cs
+## 📋 Содержание
 
-## Doker
+- [📋 Содержание](#-содержание)
+- [1. Документация](#1-документация)
 
-## Git
+---
 
-## Documentation
-https://habr.com/ru/companies/otus/articles/918942/
+## 1. Документация
 
-## Files
+- [https://xunit.net/?tabs=cs](https://xunit.net/?tabs=cs)
+
+## 📝 Описание
+
+Раздел находится в разработке.
+
+### Рекомендуемая структура:
+
+- Официальные ресурсы
+- Docker образы
+- Git репозитории
+- Документация и руководства
+- Примеры использования
+

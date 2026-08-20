@@ -1,16 +1,17 @@
-## Official
+# Redis
 
+Документация по теме: REDIS
 
+---
 
+## 📋 Содержание
 
-## Оглавление
-- [Official](#official)
-- [Doker](#doker)
-- [Git](#git)
-- [Documentation](#documentation)
+- [📋 Содержание](#-содержание)
+- [1. Официальные ресурсы](#1-официальные-ресурсы)
 
-## Doker
+---
 
-## Git
+## 1. Официальные ресурсы
 
-## Documentation
+- **Официальный сайт:** [https://redis.io/](https://redis.io/)
+

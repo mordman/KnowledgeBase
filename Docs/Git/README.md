@@ -1,22 +1,29 @@
-## Official
+# Git
 
+Система контроля версий Git
 
+---
 
-## Оглавление
-- [Official](#official)
-- [Doker](#doker)
-- [Git](#git)
-- [Documentation](#documentation)
-- [Files](#files)
+## 📋 Содержание
 
-## Doker
+- [📋 Содержание](#-содержание)
+- [1. Документация](#1-документация)
 
-## Git
+---
 
-## Documentation
+## 1. Документация
 
-## Files
+- [https://ohmygit.org/](https://ohmygit.org/)
 
-## Learn
- - [Oh My Git!](https://ohmygit.org/)
- - [Learn Git Branching](https://learngitbranching.js.org/?locale=ru_RU)
+## 📝 Описание
+
+Раздел находится в разработке.
+
+### Рекомендуемая структура:
+
+- Официальные ресурсы
+- Docker образы
+- Git репозитории
+- Документация и руководства
+- Примеры использования
+
