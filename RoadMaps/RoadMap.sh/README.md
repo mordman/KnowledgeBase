@@ -4,8 +4,6 @@
 
 ### Maps
 
-Вот правильно заполненные ссылки с названиями соответствующих дорожных карт (roadmaps) с сайта roadmap.sh:
-
 [Machine Learning](https://roadmap.sh/machine-learning)  
 [ML Engineer](https://roadmap.sh/r/ml-engineer-3dqvu)  
 [PostgreSQL DBA](https://roadmap.sh/postgresql-dba)  
