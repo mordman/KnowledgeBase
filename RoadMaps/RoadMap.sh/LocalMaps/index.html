@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roadmap Viewer</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --c-bg-1: #eef2f7;
+    --c-bg-2: #e2e8f0;
+    --c-card: #ffffff;
+    --c-border: #e2e8f0;
+    --c-text: #0f172a;
+    --c-muted: #64748b;
+    --c-primary: #6366f1;
+    --c-primary-soft: #eef2ff;
+    --c-success: #10b981;
+    --c-success-soft: #ecfdf5;
+    --c-info: #0ea5e9;
+    --c-info-soft: #f0f9ff;
+    --c-warn: #f59e0b;
+    --c-warn-soft: #fffbeb;
+    --c-slate-soft: #f1f5f9;
+    --c-slate: #475569;
+  }
+
+  html, body { height: 100%; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, var(--c-bg-1) 0%, var(--c-bg-2) 100%);
+    overflow: hidden;
+    color: var(--c-text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #roadmap-container { width: 100vw; height: 100vh; cursor: grab; position: relative;
+                       touch-action: none; }
+  #roadmap-container.panning { cursor: grabbing; }
+  #roadmap-container svg { display: block; user-select: none; -webkit-user-select: none; }
+
+  /* ---------- Рёбра ---------- */
+  .edge { fill: none; stroke: #cbd5e1; stroke-width: 2; stroke-linecap: round;
+          transition: stroke .2s; }
+  .edge.completed { stroke: #10b981; stroke-dasharray: 5 5; opacity: .6; }
+
+  /* ---------- Узлы ---------- */
+  .node-group { cursor: pointer; }
+
+  .node-rect {
+    fill: var(--c-card);
+    stroke: var(--c-border);
+    stroke-width: 1.5;
+    rx: 12; ry: 12;
+    transition: filter .2s, stroke .2s;
+    filter: url(#shadow-sm);
+  }
+  .node-group:hover .node-rect { filter: url(#shadow-md); }
+
+  .node-text {
+    font-family: inherit;
+    font-weight: 500;
+    pointer-events: none; user-select: none;
+    transition: fill .15s;
+    letter-spacing: -0.01em;
+  }
+
+  /* Типы блоков: заливка + рамка */
+  .node-group.topic     .node-rect { fill: var(--c-primary-soft); stroke: #c7d2fe; }
+  .node-group.topic     .node-text { fill: #312e81; }
+
+  .node-group.subtopic  .node-rect { fill: #fafbfc; stroke: #e2e8f0; }
+  .node-group.subtopic  .node-text { fill: #1e293b; }
+
+  .node-group.section   .node-rect { fill: var(--c-slate-soft); stroke: #e2e8f0;
+                                     stroke-dasharray: 6 4; }
+  .node-group.section   .node-text { fill: #334155; font-weight: 600; }
+
+  .node-group.checklist .node-rect { fill: var(--c-warn-soft); stroke: #fde68a; }
+  .node-group.checklist .node-text { fill: #78350f; }
+
+  .node-group.title     .node-rect { fill: #1e293b; stroke: #0f172a; }
+  .node-group.title     .node-text { fill: #f8fafc; font-weight: 700; }
+
+  .node-group.paragraph .node-rect { fill: #f8fafc; stroke: #e2e8f0; }
+  .node-group.paragraph .node-text { fill: #475569; }
+
+  .node-group.button    .node-rect { fill: #f1f5f9; stroke: #cbd5e1; }
+  .node-group.button    .node-text { fill: #334155; }
+
+  /* Пройденные узлы */
+  .node-group.completed .node-rect {
+    fill: #f1f5f9; stroke: #cbd5e1;
+  }
+  .node-group.completed .node-text {
+    fill: #94a3b8 !important; text-decoration: line-through;
+  }
+  .node-group.completed .node-text tspan { text-decoration: line-through; }
+
+  /* ---------- Кнопки действий у блока ---------- */
+  .btn-bg {
+    fill: #ffffff;
+    stroke: #e2e8f0;
+    stroke-width: 1.2;
+    transition: fill .15s, stroke .15s;
+    filter: url(#shadow-sm);
+  }
+  .btn-icon {
+    fill: none;
+    stroke: #64748b;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: stroke .15s;
+  }
+
+  .node-btn { cursor: pointer; }
+  .node-btn:hover .btn-bg { fill: #f1f5f9; stroke: #cbd5e1; }
+  .node-btn:hover .btn-icon { stroke: #0f172a; }
+
+  /* Кнопка-галочка: активное состояние */
+  .node-btn-check.done .btn-bg { fill: var(--c-success); stroke: var(--c-success); }
+  .node-btn-check.done .btn-icon { stroke: #ffffff; }
+  .node-btn-check.done:hover .btn-bg { fill: #059669; stroke: #059669; }
+
+  /* Кнопка поиска */
+  .node-btn-search:hover .btn-bg { fill: var(--c-primary-soft); stroke: #c7d2fe; }
+  .node-btn-search:hover .btn-icon { stroke: var(--c-primary); }
+
+  /* ---------- Панели ---------- */
+  .panel {
+    background: rgba(255,255,255,.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 14px;
+    box-shadow: 0 4px 24px rgba(15,23,42,.08), 0 1px 2px rgba(15,23,42,.04);
+    border: 1px solid rgba(226,232,240,.8);
+  }
+
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; padding: 10px 14px;
+    font-weight: 600; font-size: 13px; color: var(--c-text);
+    border-bottom: 1px solid transparent;
+    transition: border-color .2s;
+  }
+  .panel:not(.collapsed) .panel-header {
+    border-bottom-color: #f1f5f9;
+  }
+  .panel-header .arrow {
+    transition: transform .2s; font-size: 11px;
+    color: var(--c-muted);
+  }
+  .panel.collapsed .panel-header .arrow { transform: rotate(-90deg); }
+  .panel.collapsed .panel-body { display: none; }
+  .panel-body { padding: 12px 14px; }
+
+  /* ---------- Быстрое меню ---------- */
+  #quick-menu {
+    position: fixed; top: 20px; left: 20px; z-index: 300;
+    min-width: 240px; max-width: 300px;
+    user-select: none;
+  }
+  #quick-menu .qm-search {
+    width: 100%; padding: 8px 12px;
+    border: 1px solid #e2e8f0; border-radius: 8px;
+    font-size: 13px; margin-bottom: 8px;
+    font-family: inherit; outline: none;
+    background: #f8fafc;
+    transition: border-color .15s, background .15s;
+  }
+  #quick-menu .qm-search:focus { border-color: var(--c-primary); background: #fff; }
+  #quick-menu ul { list-style: none; max-height: 55vh; overflow-y: auto; }
+  #quick-menu li {
+    padding: 8px 10px; border-radius: 8px; cursor: pointer;
+    color: var(--c-text); font-size: 13px; font-weight: 500;
+    transition: background .12s; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+    margin-bottom: 1px;
+  }
+  #quick-menu li:hover { background: #f1f5f9; }
+  #quick-menu li.active {
+    background: var(--c-primary); color: #fff; font-weight: 600;
+  }
+  #quick-menu .qm-empty {
+    padding: 10px; color: var(--c-muted); font-size: 12px;
+    white-space: normal; line-height: 1.5;
+  }
+
+  /* ---------- Панель шрифта ---------- */
+  #font-panel {
+    position: fixed; bottom: 20px; right: 20px; z-index: 200;
+    min-width: 280px;
+    user-select: none;
+  }
+  .fp-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; margin-bottom: 10px;
+  }
+  .fp-row label {
+    color: var(--c-muted); font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .04em;
+    white-space: nowrap; min-width: 58px;
+  }
+  .fp-row input[type="range"] {
+    flex: 1; min-width: 60px; accent-color: var(--c-primary);
+    height: 4px;
+  }
+  .fp-row input[type="color"] {
+    width: 42px; height: 26px;
+    border: 1px solid #e2e8f0; border-radius: 8px;
+    padding: 2px; cursor: pointer; background: #fff;
+  }
+  .fp-row select {
+    flex: 1; min-width: 90px; padding: 6px 8px;
+    border: 1px solid #e2e8f0; border-radius: 8px;
+    font-size: 12px; font-family: inherit; outline: none;
+    background: #f8fafc; cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .fp-row select:focus { border-color: var(--c-primary); background: #fff; }
+  .fp-size-value {
+    min-width: 30px; text-align: right; color: var(--c-text);
+    font-size: 12px; font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .fp-btn {
+    width: 100%; margin-top: 6px; padding: 8px 12px;
+    background: #f8fafc; color: var(--c-text);
+    border: 1px solid #e2e8f0; border-radius: 8px;
+    font-size: 12px; font-weight: 500; cursor: pointer;
+    font-family: inherit; transition: background .12s, border-color .12s;
+  }
+  .fp-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
+  .fp-btn.danger { color: #b91c1c; }
+  .fp-btn.danger:hover { background: #fef2f2; border-color: #fecaca; }
+
+  /* ---------- Прогресс ---------- */
+  #progress {
+    position: fixed; top: 20px; right: 20px; z-index: 100;
+    padding: 10px 18px; font-size: 13px; font-weight: 600;
+    color: var(--c-primary); display: none;
+  }
+
+  /* ---------- Подсказка ---------- */
+  #info {
+    position: fixed; bottom: 20px; left: 20px; z-index: 100;
+    font-size: 12px; color: var(--c-muted); line-height: 1.7;
+    padding: 14px 18px; max-width: 320px;
+    display: none;
+  }
+  #info strong { color: var(--c-text); display: block; margin-bottom: 6px; font-size: 12px; }
+  #info kbd {
+    background: #f1f5f9; padding: 2px 7px; border-radius: 5px;
+    font-size: 11px; font-family: ui-monospace, 'SF Mono', monospace;
+    border: 1px solid #e2e8f0; color: var(--c-text);
+  }
+
+  /* ---------- Экран загрузки ---------- */
+  #loader {
+    position: fixed; inset: 0; z-index: 150;
+    background: linear-gradient(135deg, rgba(238,242,247,.97), rgba(226,232,240,.97));
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 18px; padding: 40px 20px 20px 340px;
+    text-align: center;
+  }
+  #loader.hidden { display: none; }
+  #loader h2 {
+    font-size: 26px; font-weight: 700; color: var(--c-text);
+    letter-spacing: -0.02em;
+  }
+  #loader p {
+    color: var(--c-muted); font-size: 14px; max-width: 520px;
+    line-height: 1.6;
+  }
+  #loader code {
+    background: #f1f5f9; padding: 2px 8px; border-radius: 6px;
+    font-size: 12px; font-family: ui-monospace, monospace;
+    color: #0f172a;
+  }
+  .btn {
+    background: var(--c-primary); color: #fff;
+    border: none; padding: 11px 22px;
+    border-radius: 10px; font-size: 14px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+    transition: background .15s, transform .1s, box-shadow .15s;
+    text-decoration: none; display: inline-block;
+    box-shadow: 0 1px 2px rgba(99,102,241,.3), 0 4px 12px rgba(99,102,241,.2);
+  }
+  .btn:hover { background: #4f46e5; box-shadow: 0 2px 4px rgba(99,102,241,.4), 0 8px 20px rgba(99,102,241,.3); }
+  .btn:active { transform: translateY(1px); }
+  .btn.secondary {
+    background: #fff; color: var(--c-text);
+    box-shadow: 0 1px 2px rgba(15,23,42,.06), 0 2px 8px rgba(15,23,42,.04);
+    border: 1px solid #e2e8f0;
+  }
+  .btn.secondary:hover { background: #f8fafc; border-color: #cbd5e1; }
+  .btn-group { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+  #url-input {
+    padding: 11px 16px; border: 1px solid #e2e8f0; border-radius: 10px;
+    font-size: 14px; width: 380px; max-width: 100%; font-family: inherit;
+    outline: none; transition: border-color .15s, box-shadow .15s;
+    background: #fff;
+  }
+  #url-input:focus {
+    border-color: var(--c-primary);
+    box-shadow: 0 0 0 3px rgba(99,102,241,.1);
+  }
+
+  @media (max-width: 700px) {
+    #loader { padding: 260px 20px 20px; justify-content: flex-start; }
+    #font-panel { min-width: 240px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="roadmap-container"></div>
+
+<!-- Быстрое меню -->
+<div id="quick-menu" class="panel collapsed">
+  <div class="panel-header" id="qm-header">
+    <span>📚 Карты</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="panel-body">
+    <input type="text" class="qm-search" id="qm-search" placeholder="Поиск…">
+    <ul id="qm-list"><li class="qm-empty">Загрузка списка…</li></ul>
+  </div>
+</div>
+
+<!-- Панель шрифта -->
+<div id="font-panel" class="panel collapsed">
+  <div class="panel-header" id="fp-header">
+    <span>⚙️ Настройки шрифта</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="panel-body">
+    <div class="fp-row">
+      <label for="fp-type">Тип</label>
+      <select id="fp-type">
+        <option value="topic">topic</option>
+        <option value="subtopic">subtopic</option>
+        <option value="section">section</option>
+        <option value="checklist">checklist</option>
+        <option value="title">title</option>
+        <option value="paragraph">paragraph</option>
+        <option value="button">button</option>
+        <option value="default">default</option>
+      </select>
+    </div>
+    <div class="fp-row">
+      <label for="fp-size">Размер</label>
+      <input type="range" id="fp-size" min="6" max="40" step="1" value="14">
+      <span class="fp-size-value" id="fp-size-value">14</span>
+    </div>
+    <div class="fp-row">
+      <label for="fp-color">Цвет</label>
+      <input type="color" id="fp-color" value="#1a1a2e">
+    </div>
+    <div class="fp-row">
+      <label for="fp-family">Шрифт</label>
+      <select id="fp-family">
+        <option value="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">Системный</option>
+        <option value="Inter, sans-serif">Inter</option>
+        <option value="Arial, Helvetica, sans-serif">Arial</option>
+        <option value="'Segoe UI', Tahoma, sans-serif">Segoe UI</option>
+        <option value="'Times New Roman', Times, serif">Times New Roman</option>
+        <option value="Georgia, serif">Georgia</option>
+        <option value="Verdana, Geneva, sans-serif">Verdana</option>
+        <option value="'Courier New', Courier, monospace">Courier New</option>
+        <option value="'Consolas', Monaco, monospace">Consolas</option>
+      </select>
+    </div>
+    <button class="fp-btn" id="fp-reset-type">Сбросить тип</button>
+    <button class="fp-btn" id="fp-reset-all">Сбросить всё</button>
+    <button class="fp-btn danger" id="reset-btn">Сбросить прогресс карты</button>
+  </div>
+</div>
+
+<div id="loader">
+  <h2>Выберите карту</h2>
+  <p id="loader-msg">Кликните карту в меню слева или введите URL JSON-файла roadmap.sh</p>
+  <input type="text" id="url-input" placeholder="https://roadmap.sh/redis.json" value="">
+  <div class="btn-group">
+    <button class="btn" id="load-url-btn" type="button">Загрузить по URL</button>
+    <button class="btn secondary" id="pick-file-btn" type="button">Выбрать JSON</button>
+  </div>
+  <input type="file" id="file-input" accept=".json,application/json" style="display:none">
+</div>
+
+<div id="progress" class="panel">Пройдено: 0 / 0</div>
+
+<div id="info" class="panel">
+  <strong>УПРАВЛЕНИЕ</strong>
+  <kbd>Клик</kbd> — отметить пройденным<br>
+  <kbd>✓</kbd> — отметить кнопкой · <kbd>🔍</kbd> — поиск в Google<br>
+  <kbd>Колесо</kbd> — масштаб · <kbd>Перетаскивание</kbd> — перемещение<br>
+  <kbd>Двойной клик</kbd> — вписать карту в экран
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const SVG_NS       = 'http://www.w3.org/2000/svg';
+  const STORAGE_KEY  = 'roadmap-progress-v2';
+  const FONT_KEY     = 'roadmap-font-settings-v2';
+  const MANIFEST_URL = './roadmaps/manifest.json';
+  const DIR_URL      = './roadmaps/';
+  const ROADMAPS_DIR = './roadmaps/';
+  const BASE_FONT    = 14;
+  const BUTTON_R     = 10;
+  const BUTTON_GAP   = 6;
+  const BUTTON_HALO  = 24;   // запас сверху под кнопки при расталкивании
+
+  const NODE_TYPES = ['topic', 'subtopic', 'section', 'checklist',
+                      'title', 'paragraph', 'button', 'default'];
+
+  const DEFAULT_FAMILY = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+  const DEFAULT_STYLE  = { size: BASE_FONT, color: '#1e293b', family: DEFAULT_FAMILY };
+
+  /* =========================================================
+     Измерение текста
+     ========================================================= */
+  const _canvas = document.createElement('canvas');
+  const _ctx    = _canvas.getContext('2d');
+
+  function measureText(text, font) {
+    _ctx.font = font;
+    return _ctx.measureText(text).width;
+  }
+
+  function wrapText(text, maxWidth, font) {
+    const words = String(text).split(/\s+/).filter(Boolean);
+    if (!words.length) return [''];
+    const lines = [];
+    let current = '';
+    for (const word of words) {
+      const test = current ? current + ' ' + word : word;
+      if (current && measureText(test, font) > maxWidth) {
+        lines.push(current);
+        current = word;
+      } else {
+        current = test;
+      }
+    }
+    if (current) lines.push(current);
+    return lines.length ? lines : [''];
+  }
+
+  /* =========================================================
+     Раскладка
+     ========================================================= */
+  const PAD_X = 14;
+  const PAD_Y = 8;
+  const LINE_RATIO = 1.28;
+
+  function layoutNode(n) {
+    const type = getNodeType(n);
+    const st   = fontSettings[type] || DEFAULT_STYLE;
+    const base = getBaseSize(n);
+
+    const fontSize   = st.size;
+    const lineHeight = fontSize * LINE_RATIO;
+    const font       = `500 ${fontSize}px ${st.family}`;
+    const label      = getNodeLabel(n);
+
+    const availW = Math.max(20, base.w - PAD_X * 2);
+    const lines  = wrapText(label, availW, font);
+
+    let maxLineW = 0;
+    for (const l of lines) maxLineW = Math.max(maxLineW, measureText(l, font));
+
+    const reqW = maxLineW + PAD_X * 2;
+    const reqH = lines.length * lineHeight + PAD_Y * 2;
+
+    const w = Math.max(base.w, reqW);
+    const h = Math.max(base.h, reqH);
+
+    const cx = n.position.x + base.w / 2;
+    const cy = n.position.y + base.h / 2;
+
+    return {
+      x: cx - w / 2,
+      y: cy - h / 2,
+      w, h,
+      lines,
+      fontSize,
+      lineHeight,
+      color:  st.color,
+      family: st.family
+    };
+  }
+
+  /* =========================================================
+     Расталкивание с учётом «гало» под кнопки сверху
+     ========================================================= */
+  function resolveOverlaps(boxes, iterations = 60, padding = 12) {
+    const list = [...boxes.values()];
+    if (list.length < 2) return;
+
+    for (let iter = 0; iter < iterations; iter++) {
+      let moved = false;
+      for (let i = 0; i < list.length; i++) {
+        const a = list[i];
+        for (let j = i + 1; j < list.length; j++) {
+          const b = list[j];
+
+          // Эффективные боксы: сверху добавляем место под кнопки
+          const aTop = a.y - BUTTON_HALO;
+          const bTop = b.y - BUTTON_HALO;
+
+          const oL = Math.max(a.x, b.x);
+          const oR = Math.min(a.x + a.w, b.x + b.w);
+          const oT = Math.max(aTop, bTop);
+          const oB = Math.min(a.y + a.h, b.y + b.h);
+          const overlapX = oR - oL + padding;
+          const overlapY = oB - oT + padding;
+
+          if (overlapX <= 0 || overlapY <= 0) continue;
+          moved = true;
+
+          if (overlapX < overlapY) {
+            const totalW = a.w + b.w;
+            const aPush  = overlapX * (b.w / totalW);
+            const bPush  = overlapX * (a.w / totalW);
+            if (a.x + a.w / 2 < b.x + b.w / 2) { a.x -= aPush; b.x += bPush; }
+            else                               { a.x += aPush; b.x -= bPush; }
+          } else {
+            const totalH = a.h + b.h;
+            const aPush  = overlapY * (b.h / totalH);
+            const bPush  = overlapY * (a.h / totalH);
+            if (a.y + a.h / 2 < b.y + b.h / 2) { a.y -= aPush; b.y += bPush; }
+            else                               { a.y += aPush; b.y -= bPush; }
+          }
+        }
+      }
+      if (!moved) break;
+    }
+  }
+
+  /* ---------- Прогресс ---------- */
+  let currentSlug  = null;
+  let completedIds = new Set();
+
+  function storageKeyFor(slug) { return STORAGE_KEY + '::' + (slug || 'default'); }
+  function loadProgressFor(slug) {
+    try { completedIds = new Set(JSON.parse(localStorage.getItem(storageKeyFor(slug)) || '[]')); }
+    catch (e) { completedIds = new Set(); }
+  }
+  function saveProgress() {
+    if (!currentSlug) return;
+    try { localStorage.setItem(storageKeyFor(currentSlug), JSON.stringify([...completedIds])); }
+    catch (e) {}
+  }
+
+  /* ---------- Шрифтовые настройки ---------- */
+  function loadFontSettings() {
+    let stored = null;
+    try { stored = JSON.parse(localStorage.getItem(FONT_KEY) || 'null'); } catch (e) {}
+    const result = {};
+    NODE_TYPES.forEach(t => {
+      result[t] = { ...DEFAULT_STYLE, ...(stored && stored[t] ? stored[t] : {}) };
+    });
+    return result;
+  }
+  function saveFontSettings() {
+    try { localStorage.setItem(FONT_KEY, JSON.stringify(fontSettings)); } catch (e) {}
+  }
+  let fontSettings = loadFontSettings();
+
+  /* ---------- DOM ---------- */
+  const loader     = document.getElementById('loader');
+  const loaderMsg  = document.getElementById('loader-msg');
+  const fileInput  = document.getElementById('file-input');
+  const pickBtn    = document.getElementById('pick-file-btn');
+  const urlInput   = document.getElementById('url-input');
+  const loadUrlBtn = document.getElementById('load-url-btn');
+  const qmList     = document.getElementById('qm-list');
+  const qmSearch   = document.getElementById('qm-search');
+  const quickMenu  = document.getElementById('quick-menu');
+
+  document.getElementById('qm-header').addEventListener('click', () => {
+    quickMenu.classList.toggle('collapsed');
+  });
+
+  /* ---------- Панель шрифта ---------- */
+  const fontPanel   = document.getElementById('font-panel');
+  const fpHeader    = document.getElementById('fp-header');
+  const fpType      = document.getElementById('fp-type');
+  const fpSize      = document.getElementById('fp-size');
+  const fpSizeValue = document.getElementById('fp-size-value');
+  const fpColor     = document.getElementById('fp-color');
+  const fpFamily    = document.getElementById('fp-family');
+  const fpResetType = document.getElementById('fp-reset-type');
+  const fpResetAll  = document.getElementById('fp-reset-all');
+
+  fpHeader.addEventListener('click', () => fontPanel.classList.toggle('collapsed'));
+
+  function syncPanelToType(type) {
+    const s = fontSettings[type] || DEFAULT_STYLE;
+    fpSize.value = s.size;
+    fpSizeValue.textContent = s.size;
+    fpColor.value = s.color;
+    const exists = [...fpFamily.options].some(o => o.value === s.family);
+    if (!exists) {
+      const opt = document.createElement('option');
+      opt.value = s.family;
+      opt.textContent = 'Пользовательский';
+      fpFamily.appendChild(opt);
+    }
+    fpFamily.value = s.family;
+  }
+  syncPanelToType(fpType.value);
+
+  fpType.addEventListener('change', () => syncPanelToType(fpType.value));
+
+  fpSize.addEventListener('input', () => {
+    const t = fpType.value;
+    fontSettings[t].size = Number(fpSize.value);
+    fpSizeValue.textContent = fontSettings[t].size;
+    saveFontSettings(); scheduleRender();
+  });
+  fpColor.addEventListener('input', () => {
+    const t = fpType.value;
+    fontSettings[t].color = fpColor.value;
+    saveFontSettings(); scheduleRender();
+  });
+  fpFamily.addEventListener('change', () => {
+    const t = fpType.value;
+    fontSettings[t].family = fpFamily.value;
+    saveFontSettings(); scheduleRender();
+  });
+  fpResetType.addEventListener('click', () => {
+    fontSettings[fpType.value] = { ...DEFAULT_STYLE };
+    saveFontSettings(); syncPanelToType(fpType.value); scheduleRender();
+  });
+  fpResetAll.addEventListener('click', () => {
+    NODE_TYPES.forEach(t => fontSettings[t] = { ...DEFAULT_STYLE });
+    saveFontSettings(); syncPanelToType(fpType.value); scheduleRender();
+  });
+
+  /* ---------- Загрузка JSON ---------- */
+  pickBtn.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        currentSlug = null;
+        loadProgressFor(null);
+        viewState = { scale: null, tx: 0, ty: 0 };
+        start(JSON.parse(ev.target.result));
+        markActiveMenu(null);
+      } catch (err) { loaderMsg.textContent = 'Ошибка разбора JSON: ' + err.message; }
+    };
+    reader.readAsText(file);
+  });
+
+  loadUrlBtn.addEventListener('click', () => {
+    const url = urlInput.value.trim();
+    if (!url) return;
+    loadFromUrl(url, null);
+  });
+
+  function loadFromUrl(url, slug) {
+    loader.classList.remove('hidden');
+    loaderMsg.textContent = 'Загрузка…';
+    fetch(url)
+      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(data => {
+        currentSlug = slug;
+        loadProgressFor(slug);
+        viewState = { scale: null, tx: 0, ty: 0 };
+        start(data);
+        markActiveMenu(slug);
+      })
+      .catch(err => {
+        loader.classList.remove('hidden');
+        loaderMsg.textContent = 'Ошибка загрузки: ' + err.message;
+      });
+  }
+
+  /* ---------- Меню карт ---------- */
+  function buildMenu() {
+    fetch(MANIFEST_URL, { cache: 'no-store' })
+      .then(r => { if (!r.ok) throw new Error('no manifest'); return r.json(); })
+      .then(data => {
+        const maps = (data.maps || []).map(m => ({
+          file: m.file,
+          title: m.title || m.file.replace(/\.json$/i, '')
+        }));
+        renderMenu(maps);
+      })
+      .catch(() => {
+        fetch(DIR_URL, { cache: 'no-store' })
+          .then(r => { if (!r.ok) throw new Error('no dir'); return r.text(); })
+          .then(html => {
+            const maps = parseDirListing(html);
+            if (!maps.length) throw new Error('empty');
+            renderMenu(maps);
+          })
+          .catch(() => {
+            qmList.innerHTML = '<li class="qm-empty">' +
+              'manifest.json не найден.<br>Запустите create-roadmaps.bat и откройте через локальный сервер.' +
+              '</li>';
+          });
+      });
+  }
+
+  function parseDirListing(html) {
+    const result = [];
+    const re = /href="([^"]+\.json)"/gi;
+    let m;
+    const seen = new Set();
+    while ((m = re.exec(html)) !== null) {
+      const f = decodeURIComponent(m[1]).replace(/^.*\//, '');
+      if (f.toLowerCase() === 'manifest.json') continue;
+      if (seen.has(f)) continue;
+      seen.add(f);
+      result.push({ file: f, title: f.replace(/\.json$/i, '') });
+    }
+    result.sort((a, b) => a.title.localeCompare(b.title));
+    return result;
+  }
+
+  function renderMenu(maps) {
+    if (!maps.length) {
+      qmList.innerHTML = '<li class="qm-empty">Папка roadmaps пуста.</li>';
+      return;
+    }
+    qmList.innerHTML = '';
+    maps.forEach(m => {
+      const li = document.createElement('li');
+      li.textContent = m.title;
+      li.title = m.file;
+      li.dataset.file = m.file;
+      li.addEventListener('click', () => loadFromUrl(ROADMAPS_DIR + m.file, m.file));
+      qmList.appendChild(li);
+    });
+    qmSearch.addEventListener('input', () => {
+      const q = qmSearch.value.trim().toLowerCase();
+      [...qmList.children].forEach(li => {
+        if (!li.dataset.file) return;
+        li.style.display = li.textContent.toLowerCase().includes(q) ? '' : 'none';
+      });
+    });
+  }
+
+  function markActiveMenu(slug) {
+    [...qmList.children].forEach(li => {
+      if (!li.dataset.file) return;
+      li.classList.toggle('active', li.dataset.file === slug);
+    });
+  }
+
+  buildMenu();
+
+  /* ---------- Хелперы данных ---------- */
+  function getNodeType(n) { return NODE_TYPES.includes(n.type) ? n.type : 'default'; }
+  function getNodeLabel(n) { return String(n.data?.label ?? n.label ?? '').trim(); }
+  function isServiceNode(n) {
+    const label = getNodeLabel(n).toLowerCase();
+    return label === 'horizontal node' || label === 'vertical node';
+  }
+  function getCardTitle(data) { return data.title?.card || data.title?.page || 'Roadmap'; }
+  function getBaseSize(n) {
+    const w = n.measured?.width  ?? n.width  ?? n.style?.width  ?? n.data?.style?.width  ?? 150;
+    const h = n.measured?.height ?? n.height ?? n.style?.height ?? n.data?.style?.height ?? 40;
+    return { w: Number(w) || 150, h: Number(h) || 40 };
+  }
+
+  /* ---------- Состояние ---------- */
+  let currentData = null;
+  let viewState   = { scale: null, tx: 0, ty: 0 };
+
+  let renderPending = false;
+  function scheduleRender() {
+    if (renderPending) return;
+    renderPending = true;
+    requestAnimationFrame(() => { renderPending = false; renderMap(); });
+  }
+
+  function start(data) {
+    currentData = data;
+    loader.classList.add('hidden');
+    document.getElementById('progress').style.display  = 'block';
+    document.getElementById('info').style.display      = 'block';
+    document.getElementById('reset-btn').style.display = 'block';
+    document.title = getCardTitle(data);
+    renderMap();
+  }
+
+  /* =========================================================
+     Основная отрисовка
+     ========================================================= */
+  function renderMap() {
+    const data = currentData;
+	const cardTitle = getCardTitle(data);
+    if (!data) return;
+
+    const container = document.getElementById('roadmap-container');
+    container.innerHTML = '';
+
+    const nodes = (data.nodes || []).filter(n => {
+      if (!n || !n.position) return false;
+      if (isServiceNode(n)) return false;
+      if (!getNodeLabel(n)) return false;
+      return true;
+    });
+
+    const nodeById = new Map();
+    nodes.forEach(n => nodeById.set(n.id, n));
+
+    /* ---------- Раскладка ---------- */
+    const boxes = new Map();
+    nodes.forEach(n => boxes.set(n.id, layoutNode(n)));
+    resolveOverlaps(boxes, 60, 12);
+
+    /* ---------- Bounding box ---------- */
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    boxes.forEach(b => {
+      if (b.x       < minX) minX = b.x;
+      if (b.y - BUTTON_HALO < minY) minY = b.y - BUTTON_HALO;
+      if (b.x + b.w > maxX) maxX = b.x + b.w;
+      if (b.y + b.h > maxY) maxY = b.y + b.h;
+    });
+    const PADDING = 140;
+    minX -= PADDING; minY -= PADDING; maxX += PADDING; maxY += PADDING;
+    const graphW = maxX - minX, graphH = maxY - minY;
+
+    /* ---------- SVG ---------- */
+    const svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('width',  window.innerWidth);
+    svg.setAttribute('height', window.innerHeight);
+    container.appendChild(svg);
+
+    // Фильтры теней
+    const defs = document.createElementNS(SVG_NS, 'defs');
+    defs.innerHTML = `
+      <filter id="shadow-sm" x="-30%" y="-30%" width="160%" height="160%">
+        <feDropShadow dx="0" dy="1" stdDeviation="1.2"
+          flood-color="#0f172a" flood-opacity="0.06"/>
+      </filter>
+      <filter id="shadow-md" x="-30%" y="-30%" width="160%" height="160%">
+        <feDropShadow dx="0" dy="2" stdDeviation="3"
+          flood-color="#0f172a" flood-opacity="0.12"/>
+      </filter>
+    `;
+    svg.appendChild(defs);
+
+    const g = document.createElementNS(SVG_NS, 'g');
+    svg.appendChild(g);
+
+    function applyTransform() {
+      g.setAttribute('transform',
+        `translate(${viewState.tx}, ${viewState.ty}) scale(${viewState.scale})`);
+    }
+    function fitToScreen() {
+      const w = window.innerWidth, h = window.innerHeight;
+      const s = Math.min(w / graphW, h / graphH, 1) * 0.9;
+      viewState.scale = s;
+      viewState.tx = (w - graphW * s) / 2 - minX * s;
+      viewState.ty = (h - graphH * s) / 2 - minY * s;
+      applyTransform();
+    }
+
+    /* ---------- Слой связей ---------- */
+    const edgesGroup = document.createElementNS(SVG_NS, 'g');
+    edgesGroup.setAttribute('class', 'edges');
+    g.appendChild(edgesGroup);
+
+    const edges = Array.isArray(data.edges) ? data.edges : [];
+    const edgeEls = [];
+
+    edges.forEach(edge => {
+      const sb = boxes.get(edge.source);
+      const tb = boxes.get(edge.target);
+      if (!sb || !tb) return;
+
+      const sCx = sb.x + sb.w / 2, sCy = sb.y + sb.h / 2;
+      const tCx = tb.x + tb.w / 2, tCy = tb.y + tb.h / 2;
+      const dx = tCx - sCx, dy = tCy - sCy;
+
+      let x1, y1, x2, y2, c1x, c1y, c2x, c2y;
+      if (Math.abs(dx) >= Math.abs(dy)) {
+        if (dx >= 0) { x1 = sb.x + sb.w; y1 = sCy; x2 = tb.x;        y2 = tCy; }
+        else         { x1 = sb.x;        y1 = sCy; x2 = tb.x + tb.w; y2 = tCy; }
+        const midX = (x1 + x2) / 2;
+        c1x = midX; c1y = y1; c2x = midX; c2y = y2;
+      } else {
+        if (dy >= 0) { x1 = sCx; y1 = sb.y + sb.h; x2 = tCx; y2 = tb.y; }
+        else         { x1 = sCx; y1 = sb.y;        x2 = tCx; y2 = tb.y + tb.h; }
+        const midY = (y1 + y2) / 2;
+        c1x = x1; c1y = midY; c2x = x2; c2y = midY;
+      }
+
+      const path = document.createElementNS(SVG_NS, 'path');
+      path.setAttribute('class', 'edge');
+      path.setAttribute('d',
+        `M ${x1} ${y1} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${x2} ${y2}`);
+      edgesGroup.appendChild(path);
+      edgeEls.push({ el: path, source: edge.source, target: edge.target });
+    });
+
+    /* ---------- Слой узлов ---------- */
+    const nodesGroup = document.createElementNS(SVG_NS, 'g');
+    nodesGroup.setAttribute('class', 'nodes');
+    g.appendChild(nodesGroup);
+
+    /* ---------- Слой кнопок (поверх всего) ---------- */
+    const buttonsGroup = document.createElementNS(SVG_NS, 'g');
+    buttonsGroup.setAttribute('class', 'buttons');
+    g.appendChild(buttonsGroup);
+
+    const groupById = new Map();
+
+    nodes.forEach(n => {
+      const box = boxes.get(n.id);
+      if (!box) return;
+      const type = getNodeType(n);
+
+      /* --- Узел --- */
+      const ng = document.createElementNS(SVG_NS, 'g');
+      ng.setAttribute('class', `node-group ${type}`);
+      ng.setAttribute('transform', `translate(${box.x}, ${box.y})`);
+      ng.dataset.id = n.id;
+
+      const rect = document.createElementNS(SVG_NS, 'rect');
+      rect.setAttribute('class', 'node-rect');
+      rect.setAttribute('width',  box.w);
+      rect.setAttribute('height', box.h);
+      ng.appendChild(rect);
+
+      const text = document.createElementNS(SVG_NS, 'text');
+      text.setAttribute('class', 'node-text');
+      text.setAttribute('x', box.w / 2);
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('font-size',   box.fontSize + 'px');
+      text.setAttribute('fill',        box.color);
+      text.setAttribute('font-family', box.family);
+
+      const totalH = box.lines.length * box.lineHeight;
+      const firstY = box.h / 2 - totalH / 2 + box.lineHeight / 2;
+
+      box.lines.forEach((line, i) => {
+        const tspan = document.createElementNS(SVG_NS, 'tspan');
+        tspan.setAttribute('x', box.w / 2);
+        tspan.setAttribute('y', firstY + i * box.lineHeight);
+        tspan.setAttribute('dominant-baseline', 'central');
+        tspan.textContent = line;
+        text.appendChild(tspan);
+      });
+      ng.appendChild(text);
+
+      if (completedIds.has(n.id)) ng.classList.add('completed');
+      nodesGroup.appendChild(ng);
+      groupById.set(n.id, ng);
+
+      /* --- Кнопки в правом верхнем углу --- */
+      const btnCheckX  = box.x + box.w - BUTTON_R - 2;                 // правая кнопка (галочка)
+      const btnSearchX = btnCheckX - BUTTON_R * 2 - BUTTON_GAP;
+      const btnY       = box.y - BUTTON_R - 2;                        // над верхней гранью
+
+      // --- Кнопка "Поиск в Google" ---
+      const searchG = document.createElementNS(SVG_NS, 'g');
+      searchG.setAttribute('class', 'node-btn node-btn-search');
+      searchG.setAttribute('transform', `translate(${btnSearchX}, ${btnY})`);
+      searchG.setAttribute('tabindex', '0');
+
+      const searchCircle = document.createElementNS(SVG_NS, 'circle');
+      searchCircle.setAttribute('class', 'btn-bg');
+      searchCircle.setAttribute('r', BUTTON_R);
+      searchG.appendChild(searchCircle);
+
+      // Иконка лупы: окружность + ручка
+      const searchIcon = document.createElementNS(SVG_NS, 'g');
+      const searchLens = document.createElementNS(SVG_NS, 'circle');
+      searchLens.setAttribute('class', 'btn-icon');
+      searchLens.setAttribute('cx', -1.2);
+      searchLens.setAttribute('cy', -1.2);
+      searchLens.setAttribute('r', 3.2);
+      searchLens.setAttribute('fill', 'none');
+      searchLens.setAttribute('stroke', 'currentColor');
+      searchLens.setAttribute('stroke-width', '1.8');
+      searchIcon.appendChild(searchLens);
+
+      const searchHandle = document.createElementNS(SVG_NS, 'path');
+      searchHandle.setAttribute('class', 'btn-icon');
+      searchHandle.setAttribute('d', 'M 1.4 1.4 L 4 4');
+      searchIcon.appendChild(searchHandle);
+      searchG.appendChild(searchIcon);
+
+      const searchQuery = cardTitle + ': ' + getNodeLabel(n);
+      const searchTitle = document.createElementNS(SVG_NS, 'title');
+      searchTitle.textContent = 'Искать в Google: ' + searchQuery;
+      searchG.appendChild(searchTitle);
+
+      buttonsGroup.appendChild(searchG);
+
+      // --- Кнопка "Отметить" ---
+      const checkG = document.createElementNS(SVG_NS, 'g');
+      checkG.setAttribute('class', 'node-btn node-btn-check' +
+        (completedIds.has(n.id) ? ' done' : ''));
+      checkG.setAttribute('transform', `translate(${btnCheckX}, ${btnY})`);
+      checkG.setAttribute('tabindex', '0');
+
+      const checkCircle = document.createElementNS(SVG_NS, 'circle');
+      checkCircle.setAttribute('class', 'btn-bg');
+      checkCircle.setAttribute('r', BUTTON_R);
+      checkG.appendChild(checkCircle);
+
+      const checkPath = document.createElementNS(SVG_NS, 'path');
+      checkPath.setAttribute('class', 'btn-icon');
+      checkPath.setAttribute('d', 'M -4.5 0 L -1.5 3 L 4.5 -3');
+      checkG.appendChild(checkPath);
+
+      const checkTitle = document.createElementNS(SVG_NS, 'title');
+      checkTitle.textContent = completedIds.has(n.id)
+        ? 'Вернуть в работу'
+        : 'Отметить как пройденное';
+      checkG.appendChild(checkTitle);
+
+      buttonsGroup.appendChild(checkG);
+
+      /* --- Обработчики --- */
+      // Клик по телу узла — переключить
+      ng.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        toggleComplete(n.id, ng, checkG);
+      });
+
+      // Клик по галочке — переключить (без всплытия)
+      checkG.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        toggleComplete(n.id, ng, checkG);
+      });
+
+      // Поиск в Google (с префиксом названия карты)
+      searchG.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const query = cardTitle + ': ' + getNodeLabel(n);
+        const q = encodeURIComponent(query);
+        window.open('https://www.google.com/search?q=' + q,
+                    '_blank', 'noopener,noreferrer');
+      });
+    });
+
+    function toggleComplete(id, ng, checkG) {
+      if (completedIds.has(id)) {
+        completedIds.delete(id);
+        ng.classList.remove('completed');
+        checkG.classList.remove('done');
+        checkG.querySelector('title').textContent = 'Отметить как пройденное';
+      } else {
+        completedIds.add(id);
+        ng.classList.add('completed');
+        checkG.classList.add('done');
+        checkG.querySelector('title').textContent = 'Вернуть в работу';
+      }
+      saveProgress();
+      updateProgress();
+      refreshEdges();
+    }
+
+    function refreshEdges() {
+      edgeEls.forEach(e => {
+        const done = completedIds.has(e.source) && completedIds.has(e.target);
+        e.el.classList.toggle('completed', done);
+      });
+    }
+    refreshEdges();
+
+    function updateProgress() {
+      let done = 0;
+      for (const n of nodes) if (completedIds.has(n.id)) done++;
+      document.getElementById('progress').textContent =
+        `Пройдено: ${done} / ${nodes.length}`;
+    }
+    updateProgress();
+
+    /* ---------- Трансформации ---------- */
+    if (viewState.scale === null) fitToScreen();
+    else                          applyTransform();
+
+    /* ---------- Зум ---------- */
+    svg.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const rect = svg.getBoundingClientRect();
+      const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+      const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+      const newScale = Math.min(4, Math.max(0.05, viewState.scale * factor));
+      const ratio = newScale / viewState.scale;
+      viewState.tx = mx - (mx - viewState.tx) * ratio;
+      viewState.ty = my - (my - viewState.ty) * ratio;
+      viewState.scale = newScale;
+      applyTransform();
+    }, { passive: false });
+
+    /* ---------- Панорамирование ---------- */
+    let panning = false, pStartX = 0, pStartY = 0, pStartTx = 0, pStartTy = 0;
+    svg.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) return;
+      if (e.target.closest && e.target.closest('.node-group, .node-btn')) return;
+      panning = true;
+      pStartX = e.clientX; pStartY = e.clientY;
+      pStartTx = viewState.tx; pStartTy = viewState.ty;
+      container.classList.add('panning');
+      e.preventDefault();
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (!panning) return;
+      viewState.tx = pStartTx + (e.clientX - pStartX);
+      viewState.ty = pStartTy + (e.clientY - pStartY);
+      applyTransform();
+    });
+    window.addEventListener('mouseup', () => {
+      if (!panning) return;
+      panning = false;
+      container.classList.remove('panning');
+    });
+
+    svg.addEventListener('dblclick', (e) => { e.preventDefault(); fitToScreen(); });
+
+    /* ---------- Тач ---------- */
+    let touchState = null;
+    svg.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        touchState = { mode: 'pan',
+          x: e.touches[0].clientX, y: e.touches[0].clientY,
+          tx: viewState.tx, ty: viewState.ty };
+      } else if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        touchState = { mode: 'zoom',
+          dist: Math.hypot(dx, dy), scale: viewState.scale,
+          tx: viewState.tx, ty: viewState.ty,
+          cx: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+          cy: (e.touches[0].clientY + e.touches[1].clientY) / 2 };
+      }
+    }, { passive: true });
+
+    svg.addEventListener('touchmove', (e) => {
+      if (!touchState) return;
+      if (touchState.mode === 'pan' && e.touches.length === 1) {
+        viewState.tx = touchState.tx + (e.touches[0].clientX - touchState.x);
+        viewState.ty = touchState.ty + (e.touches[0].clientY - touchState.y);
+        applyTransform();
+      } else if (touchState.mode === 'zoom' && e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.hypot(dx, dy);
+        const newScale = Math.min(4, Math.max(0.05,
+                          touchState.scale * (dist / touchState.dist)));
+        const ratio = newScale / touchState.scale;
+        const rect = svg.getBoundingClientRect();
+        const mx = touchState.cx - rect.left, my = touchState.cy - rect.top;
+        viewState.tx = mx - (mx - touchState.tx) * ratio;
+        viewState.ty = my - (my - touchState.ty) * ratio;
+        viewState.scale = newScale;
+        applyTransform();
+      }
+      e.preventDefault();
+    }, { passive: false });
+
+    svg.addEventListener('touchend', () => { touchState = null; }, { passive: true });
+
+    document.getElementById('reset-btn').onclick = () => {
+      if (!confirm('Сбросить прогресс для текущей карты?')) return;
+      completedIds.clear();
+      saveProgress();
+      // Сброс визуальных состояний
+      nodes.forEach(n => {
+        const nodeEl  = groupById.get(n.id);
+        if (nodeEl) nodeEl.classList.remove('completed');
+      });
+      svg.querySelectorAll('.node-btn-check').forEach(b => b.classList.remove('done'));
+      updateProgress();
+      refreshEdges();
+    };
+
+    window.addEventListener('resize', () => {
+      svg.setAttribute('width',  window.innerWidth);
+      svg.setAttribute('height', window.innerHeight);
+    });
+  }
+})();
+</script>
+</body>
+</html>
