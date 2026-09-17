@@ -533,6 +533,11 @@
     <button class="fp-btn" id="fp-reset-type">Сбросить тип</button>
     <button class="fp-btn" id="fp-reset-all">Сбросить все настройки</button>
     <button class="fp-btn danger" id="reset-btn">Сбросить прогресс карты</button>
+	<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--c-border)">
+      <button class="fp-btn" id="fp-export">💾 Выгрузить состояние</button>
+      <button class="fp-btn" id="fp-import">📥 Загрузить состояние</button>
+      <input type="file" id="fp-import-input" accept="application/json,.json" style="display:none">
+    </div>
   </div>
 </div>
 
@@ -858,6 +863,87 @@
     if (b) applyTheme(b.dataset.theme);
   });
   applyTheme(loadTheme());
+
+  /* =========== Экспорт / импорт состояния =========== */
+  const STORAGE_PREFIX = 'roadmap-';
+
+  function exportState() {
+    const data = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(STORAGE_PREFIX)) data[k] = localStorage.getItem(k);
+    }
+    if (!Object.keys(data).length) {
+      alert('Нет данных для выгрузки — прогресс ещё не сохранён.');
+      return;
+    }
+    const payload = {
+      version: 1,
+      app: 'roadmap-viewer',
+      exportedAt: new Date().toISOString(),
+      data
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)],
+      { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    a.href = url;
+    a.download = `roadmap-state-${ts}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function importState(file) {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      let parsed;
+      try {
+        parsed = JSON.parse(ev.target.result);
+      } catch (err) {
+        alert('Не удалось разобрать JSON: ' + err.message);
+        return;
+      }
+      // Поддерживаем оба формата: с обёрткой { data: {...} } и плоский
+      const data = (parsed && typeof parsed === 'object' && parsed.data)
+        ? parsed.data
+        : parsed;
+      if (!data || typeof data !== 'object') {
+        alert('Неверный формат файла: ожидается объект с ключами roadmap-*.');
+        return;
+      }
+      let count = 0;
+      for (const [k, v] of Object.entries(data)) {
+        if (!k.startsWith(STORAGE_PREFIX)) continue;
+        if (typeof v !== 'string') continue;
+        try { localStorage.setItem(k, v); count++; } catch {}
+      }
+      if (!count) {
+        alert('В файле не найдено подходящих ключей (roadmap-*).');
+        return;
+      }
+      const reload = confirm(
+        `Успешно загружено записей: ${count}.\n\n` +
+        `Перезагрузить страницу, чтобы применить изменения?`
+      );
+      if (reload) location.reload();
+    };
+    reader.readAsText(file);
+  }
+
+  const fpExport = document.getElementById('fp-export');
+  const fpImport = document.getElementById('fp-import');
+  const fpImportInput = document.getElementById('fp-import-input');
+
+  fpExport.addEventListener('click', exportState);
+  fpImport.addEventListener('click', () => fpImportInput.click());
+  fpImportInput.addEventListener('change', e => {
+    const f = e.target.files && e.target.files[0];
+    if (f) importState(f);
+    fpImportInput.value = '';
+  });
 
   const openFileDialog = () => fileInput.click();
   pickBtn.addEventListener('click', openFileDialog);
