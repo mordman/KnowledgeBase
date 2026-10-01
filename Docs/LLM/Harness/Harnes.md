@@ -1,1 +1,0 @@
-https://habr.com/ru/articles/1076594/
